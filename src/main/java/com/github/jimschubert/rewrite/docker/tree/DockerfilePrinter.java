@@ -16,7 +16,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     private static final UnaryOperator<String> MARKER_WRAPPER =
             out -> "/*~~" + out + (out.isEmpty() ? "" : "~~") + ">*/";
 
-    protected void beforeSyntax(Dockerfile t, PrintOutputCapture<P> p) {
+    protected void beforeSyntax(Docker t, PrintOutputCapture<P> p) {
         beforeSyntax(t.getPrefix(), t.getMarkers(), p);
     }
 
@@ -42,7 +42,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         }
     }
 
-    protected void afterSyntax(Dockerfile t, PrintOutputCapture<P> p) {
+    protected void afterSyntax(Docker t, PrintOutputCapture<P> p) {
         afterSyntax(t.getMarkers(), p);
     }
 
@@ -56,22 +56,22 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public @Nullable Dockerfile visit(@Nullable Tree tree, PrintOutputCapture<P> p, Cursor parent) {
+    public @Nullable Docker visit(@Nullable Tree tree, PrintOutputCapture<P> p, Cursor parent) {
         if (tree == null) {
             return null;
         }
-        Dockerfile.Document target = null;
-        if (tree instanceof Dockerfile.Document) {
-            target = (Dockerfile.Document) tree;
-        } else if (tree instanceof Dockerfile) {
-            target = (Dockerfile.Document) tree;
+        Docker.Document target = null;
+        if (tree instanceof Docker.Document) {
+            target = (Docker.Document) tree;
+        } else if (tree instanceof Docker) {
+            target = (Docker.Document) tree;
         } else {
             return null;
         }
 
-        List<Dockerfile.Stage> stages = target.getStages();
+        List<Docker.Stage> stages = target.getStages();
         for (int i = 0; i < stages.size(); i++) {
-            Dockerfile.Stage stage = stages.get(i);
+            Docker.Stage stage = stages.get(i);
             visit(stage, p);
             if (i < stages.size() - 1) {
                 p.append("\n");
@@ -81,11 +81,11 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitStage(Dockerfile.Stage stage, PrintOutputCapture<P> p) {
+    public Docker visitStage(Docker.Stage stage, PrintOutputCapture<P> p) {
         beforeSyntax(stage, p);
-        List<Dockerfile.Instruction> children = stage.getChildren();
+        List<Docker.Instruction> children = stage.getChildren();
         for (int i = 0; i < children.size(); i++) {
-            Dockerfile.Instruction instruction = children.get(i);
+            Docker.Instruction instruction = children.get(i);
             visit(instruction, p);
             if (i < children.size() - 1) {
                 p.append("\n");
@@ -96,7 +96,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitFrom(Dockerfile.From from, PrintOutputCapture<P> p) {
+    public Docker visitFrom(Docker.From from, PrintOutputCapture<P> p) {
         beforeSyntax(from, p);
         p.append("FROM");
         if (from.getPlatform() != null && from.getPlatform().getElement().getText() != null) {
@@ -131,8 +131,8 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitComment(Dockerfile.Comment comment, PrintOutputCapture<P> p) {
-        Dockerfile.Literal literal = comment.getText().getElement();
+    public Docker visitComment(Docker.Comment comment, PrintOutputCapture<P> p) {
+        Docker.Literal literal = comment.getText().getElement();
         if (literal != null) {
             beforeSyntax(comment, p);
             p.append("#");
@@ -145,11 +145,11 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitDirective(Dockerfile.Directive directive, PrintOutputCapture<P> p) {
+    public Docker visitDirective(Docker.Directive directive, PrintOutputCapture<P> p) {
         beforeSyntax(directive, p);
         p.append("#");
-        DockerfileRightPadded<Dockerfile.KeyArgs> padded = directive.getDirective();
-        Dockerfile.KeyArgs keyArgs = padded.getElement();
+        DockerRightPadded<Docker.KeyArgs> padded = directive.getDirective();
+        Docker.KeyArgs keyArgs = padded.getElement();
         visitSpace(keyArgs.getPrefix(), p);
         p.append(keyArgs.getKey());
         if (keyArgs.isHasEquals()) {
@@ -168,7 +168,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitRun(Dockerfile.Run run, PrintOutputCapture<P> p) {
+    public Docker visitRun(Docker.Run run, PrintOutputCapture<P> p) {
         beforeSyntax(run, p);
         p.append("RUN ");
         if (run.getMounts() != null) {
@@ -215,7 +215,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitCmd(Dockerfile.Cmd cmd, PrintOutputCapture<P> p) {
+    public Docker visitCmd(Docker.Cmd cmd, PrintOutputCapture<P> p) {
         beforeSyntax(cmd, p);
         p.append("CMD");
         Form form = cmd.getForm();
@@ -227,8 +227,8 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         }
 
         for (int i = 0; i < cmd.getCommands().size(); i++) {
-            DockerfileRightPadded<Dockerfile.Literal> padded = cmd.getCommands().get(i);
-            Dockerfile.Literal literal = padded.getElement();
+            DockerRightPadded<Docker.Literal> padded = cmd.getCommands().get(i);
+            Docker.Literal literal = padded.getElement();
             String text = literal.getText();
             if (form == Form.EXEC) {
                 text = trimDoubleQuotes(text);
@@ -255,10 +255,10 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitLabel(Dockerfile.Label label, PrintOutputCapture<P> p) {
+    public Docker visitLabel(Docker.Label label, PrintOutputCapture<P> p) {
         beforeSyntax(label, p);
         p.append("LABEL");
-        for (Dockerfile.KeyArgs kvp : label.getArgs()) {
+        for (Docker.KeyArgs kvp : label.getArgs()) {
             p.append(" ").append(kvp.getKey());
             if (kvp.isHasEquals()) {
                 p.append("=");
@@ -276,7 +276,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitMaintainer(Dockerfile.Maintainer maintainer, PrintOutputCapture<P> p) {
+    public Docker visitMaintainer(Docker.Maintainer maintainer, PrintOutputCapture<P> p) {
         beforeSyntax(maintainer, p);
         p.append("MAINTAINER ");
         p.append(maintainer.getName());
@@ -285,12 +285,12 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitExpose(Dockerfile.Expose expose, PrintOutputCapture<P> p) {
+    public Docker visitExpose(Docker.Expose expose, PrintOutputCapture<P> p) {
         beforeSyntax(expose, p);
         p.append("EXPOSE");
         for (int i = 0; i < expose.getPorts().size(); i++) {
-            DockerfileRightPadded<Dockerfile.Port> padded = expose.getPorts().get(i);
-            Dockerfile.Port port = padded.getElement();
+            DockerRightPadded<Docker.Port> padded = expose.getPorts().get(i);
+            Docker.Port port = padded.getElement();
             visitSpace(port.getPrefix(), p);
             p.append(port.getPort());
             if (port.isProtocolProvided() && port.getProtocol() != null && !port.getProtocol().isEmpty()) {
@@ -304,12 +304,12 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitEnv(Dockerfile.Env env, PrintOutputCapture<P> p) {
+    public Docker visitEnv(Docker.Env env, PrintOutputCapture<P> p) {
         beforeSyntax(env, p);
         p.append("ENV");
 
-        for (DockerfileRightPadded<Dockerfile.KeyArgs> padded : env.getArgs()) {
-            Dockerfile.KeyArgs kvp = padded.getElement();
+        for (DockerRightPadded<Docker.KeyArgs> padded : env.getArgs()) {
+            Docker.KeyArgs kvp = padded.getElement();
             visitSpace(kvp.getPrefix(), p);
             p.append(kvp.getKey());
             if (kvp.getValue() != null && !kvp.getValue().isEmpty()) {
@@ -335,20 +335,20 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitAdd(Dockerfile.Add add, PrintOutputCapture<P> p) {
+    public Docker visitAdd(Docker.Add add, PrintOutputCapture<P> p) {
         beforeSyntax(add, p);
         p.append("ADD");
 
         if (add.getOptions() != null) {
             add.getOptions().forEach(o -> {
-                    Dockerfile.Option element = o.getElement();
+                    Docker.Option element = o.getElement();
                     if (element.getName() != null && !element.getName().isEmpty()) {
                         visitSpace(element.getPrefix(), p);
                         p.append("--");
                         p.append(element.getName());
                         if (element.getKeyArgs() != null) {
                             p.append("=");
-                            for (Dockerfile.KeyArgs kvp : element.getKeyArgs()) {
+                            for (Docker.KeyArgs kvp : element.getKeyArgs()) {
                                 p.append(kvp.getKey());
                                 if (kvp.isHasEquals()) {
                                     p.append("=");
@@ -370,8 +370,8 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
 
         if (add.getSources() != null ) {
             for (int i = 0; i < add.getSources().size(); i++) {
-                DockerfileRightPadded<Dockerfile.Literal> literalPadded = add.getSources().get(i);
-                Dockerfile.Literal literal = literalPadded.getElement();
+                DockerRightPadded<Docker.Literal> literalPadded = add.getSources().get(i);
+                Docker.Literal literal = literalPadded.getElement();
                 visitSpace(literal.getPrefix(), p);
                 p.append(literal.getText());
                 visitSpace(literalPadded.getAfter(), p);
@@ -379,8 +379,8 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         }
 
         if (add.getDestination() != null) {
-            DockerfileRightPadded<Dockerfile.Literal> literalPadded = add.getDestination();
-            Dockerfile.Literal literal = literalPadded.getElement();
+            DockerRightPadded<Docker.Literal> literalPadded = add.getDestination();
+            Docker.Literal literal = literalPadded.getElement();
             visitSpace(literal.getPrefix(), p);
             p.append(literal.getText());
             visitSpace(literalPadded.getAfter(), p);
@@ -391,20 +391,20 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitCopy(Dockerfile.Copy copy, PrintOutputCapture<P> p) {
+    public Docker visitCopy(Docker.Copy copy, PrintOutputCapture<P> p) {
         beforeSyntax(copy, p);
         p.append("COPY");
 
         if (copy.getOptions() != null) {
             copy.getOptions().forEach(o -> {
-                        Dockerfile.Option element = o.getElement();
+                        Docker.Option element = o.getElement();
                         if (element.getName() != null && !element.getName().isEmpty()) {
                             visitSpace(element.getPrefix(), p);
                             p.append("--");
                             p.append(element.getName());
                             if (element.getKeyArgs() != null) {
                                 p.append("=");
-                                for (Dockerfile.KeyArgs kvp : element.getKeyArgs()) {
+                                for (Docker.KeyArgs kvp : element.getKeyArgs()) {
                                     p.append(kvp.getKey());
                                     if (kvp.isHasEquals()) {
                                         p.append("=");
@@ -426,8 +426,8 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
 
         if (copy.getSources() != null ) {
             for (int i = 0; i < copy.getSources().size(); i++) {
-                DockerfileRightPadded<Dockerfile.Literal> literalPadded = copy.getSources().get(i);
-                Dockerfile.Literal literal = literalPadded.getElement();
+                DockerRightPadded<Docker.Literal> literalPadded = copy.getSources().get(i);
+                Docker.Literal literal = literalPadded.getElement();
                 visitSpace(literal.getPrefix(), p);
                 p.append(literal.getText());
                 visitSpace(literalPadded.getAfter(), p);
@@ -435,8 +435,8 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         }
 
         if (copy.getDestination() != null) {
-            DockerfileRightPadded<Dockerfile.Literal> literalPadded = copy.getDestination();
-            Dockerfile.Literal literal = literalPadded.getElement();
+            DockerRightPadded<Docker.Literal> literalPadded = copy.getDestination();
+            Docker.Literal literal = literalPadded.getElement();
             visitSpace(literal.getPrefix(), p);
             p.append(literal.getText());
             visitSpace(literalPadded.getAfter(), p);
@@ -448,12 +448,12 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitEntrypoint(Dockerfile.Entrypoint entrypoint, PrintOutputCapture<P> p) {
+    public Docker visitEntrypoint(Docker.Entrypoint entrypoint, PrintOutputCapture<P> p) {
         beforeSyntax(entrypoint, p);
         p.append("ENTRYPOINT [");
         for (int i = 0; i < entrypoint.getCommand().size(); i++) {
-            DockerfileRightPadded<Dockerfile.Literal> padded = entrypoint.getCommand().get(i);
-            Dockerfile.Literal literal = padded.getElement();
+            DockerRightPadded<Docker.Literal> padded = entrypoint.getCommand().get(i);
+            Docker.Literal literal = padded.getElement();
             String text = literal.getText();
             text = trimDoubleQuotes(text);
             visitSpace(literal.getPrefix(), p);
@@ -470,7 +470,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitVolume(Dockerfile.Volume volume, PrintOutputCapture<P> p) {
+    public Docker visitVolume(Docker.Volume volume, PrintOutputCapture<P> p) {
         beforeSyntax(volume, p);
         p.append("VOLUME ");
         // TODO: update with appropriate options
@@ -480,7 +480,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitUser(Dockerfile.User user, PrintOutputCapture<P> p) {
+    public Docker visitUser(Docker.User user, PrintOutputCapture<P> p) {
         beforeSyntax(user, p);
         p.append("USER ");
         p.append(user.getUsername());
@@ -493,7 +493,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitWorkdir(Dockerfile.Workdir workdir, PrintOutputCapture<P> p) {
+    public Docker visitWorkdir(Docker.Workdir workdir, PrintOutputCapture<P> p) {
         beforeSyntax(workdir, p);
         p.append("WORKDIR ");
         p.append(workdir.getPath());
@@ -502,11 +502,11 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitArg(Dockerfile.Arg arg, PrintOutputCapture<P> p) {
+    public Docker visitArg(Docker.Arg arg, PrintOutputCapture<P> p) {
         beforeSyntax(arg, p);
         p.append("ARG");
         arg.getArgs().forEach(padded -> {
-            Dockerfile.KeyArgs kvp = padded.getElement();
+            Docker.KeyArgs kvp = padded.getElement();
             visitSpace(kvp.getPrefix(), p);
             p.append(kvp.getKey());
             if (kvp.isHasEquals()) {
@@ -526,7 +526,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitOnBuild(Dockerfile.OnBuild onBuild, PrintOutputCapture<P> p) {
+    public Docker visitOnBuild(Docker.OnBuild onBuild, PrintOutputCapture<P> p) {
         beforeSyntax(onBuild, p);
         p.append("ONBUILD ");
         visit(onBuild.getInstruction(), p);
@@ -535,7 +535,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitStopSignal(Dockerfile.StopSignal stopSignal, PrintOutputCapture<P> p) {
+    public Docker visitStopSignal(Docker.StopSignal stopSignal, PrintOutputCapture<P> p) {
         beforeSyntax(stopSignal, p);
         p.append("STOPSIGNAL ");
         p.append(stopSignal.getSignal());
@@ -544,7 +544,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitHealthcheck(Dockerfile.Healthcheck healthcheck, PrintOutputCapture<P> p) {
+    public Docker visitHealthcheck(Docker.Healthcheck healthcheck, PrintOutputCapture<P> p) {
         beforeSyntax(healthcheck, p);
         p.append("HEALTHCHECK ");
         p.append(healthcheck.getCommand());
@@ -553,7 +553,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Dockerfile visitShell(Dockerfile.Shell shell, PrintOutputCapture<P> p) {
+    public Docker visitShell(Docker.Shell shell, PrintOutputCapture<P> p) {
         beforeSyntax(shell, p);
         p.append("SHELL ");
         p.append("[");
@@ -568,12 +568,12 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         return shell;
     }
 
-    private void appendRightPaddedLiteral(DockerfileRightPadded<Dockerfile.Literal> padded, PrintOutputCapture<P> p) {
+    private void appendRightPaddedLiteral(DockerRightPadded<Docker.Literal> padded, PrintOutputCapture<P> p) {
         if (padded == null) {
             return;
         }
 
-        Dockerfile.Literal literal = padded.getElement();
+        Docker.Literal literal = padded.getElement();
         if (literal == null || literal.getText() == null || literal.getText().isEmpty()) {
             return;
         }

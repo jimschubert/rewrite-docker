@@ -1,8 +1,6 @@
 package com.github.jimschubert.rewrite.docker;
 
-import com.github.jimschubert.rewrite.docker.tree.Dockerfile;
-import com.github.jimschubert.rewrite.docker.tree.DockerfileRightPadded;
-import com.github.jimschubert.rewrite.docker.tree.Space;
+import com.github.jimschubert.rewrite.docker.tree.Docker;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +40,7 @@ public class SetImagePlatform extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new DockerIsoVisitor<>() {
             @Override
-            public Dockerfile.From visitFrom(Dockerfile.From from, ExecutionContext executionContext) {
+            public Docker.From visitFrom(Docker.From from, ExecutionContext executionContext) {
                 from = super.visitFrom(from, executionContext);
                 if (matchImage == null || ".*".equals(matchImage) || ".+".equals(matchImage)) {
                     return from.withPlatform(platform);

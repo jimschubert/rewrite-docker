@@ -1,6 +1,6 @@
 package com.github.jimschubert.rewrite.docker;
 
-import com.github.jimschubert.rewrite.docker.tree.Dockerfile;
+import com.github.jimschubert.rewrite.docker.tree.Docker;
 import com.github.jimschubert.rewrite.docker.tree.Space;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
@@ -8,21 +8,21 @@ import org.openrewrite.Tree;
 
 public class DockerIsoVisitor<T> extends DockerVisitor<T> {
     @Override
-    public Dockerfile.Document visitDocument(Dockerfile.Document dockerfile, T ctx) {
-        return (Dockerfile.Document)super.visitDocument(dockerfile, ctx);
+    public Docker.Document visitDocument(Docker.Document dockerfile, T ctx) {
+        return (Docker.Document)super.visitDocument(dockerfile, ctx);
     }
 
     @Override
-    public @Nullable Dockerfile visit(@Nullable Tree tree, T t, Cursor parent) {
+    public @Nullable Docker visit(@Nullable Tree tree, T t, Cursor parent) {
         tree = super.visit(tree, t, parent);
         if (tree == null) {
             return null;
         }
-        if (tree instanceof Dockerfile.Document) {
-            return visitDocument((Dockerfile.Document) tree, t);
+        if (tree instanceof Docker.Document) {
+            return visitDocument((Docker.Document) tree, t);
         }
 
-        return (Dockerfile)tree;
+        return (Docker)tree;
     }
 
     @Override
@@ -31,107 +31,107 @@ public class DockerIsoVisitor<T> extends DockerVisitor<T> {
     }
 
     @Override
-    public Dockerfile.Stage visitStage(Dockerfile.Stage stage, T t) {
-        return (Dockerfile.Stage)super.visitStage(stage, t);
+    public Docker.Stage visitStage(Docker.Stage stage, T t) {
+        return (Docker.Stage)super.visitStage(stage, t);
     }
 
     @Override
-    public Dockerfile.From visitFrom(Dockerfile.From from, T t) {
-        return (Dockerfile.From)super.visitFrom(from, t);
+    public Docker.From visitFrom(Docker.From from, T t) {
+        return (Docker.From)super.visitFrom(from, t);
     }
 
     @Override
-    public Dockerfile.Comment visitComment(Dockerfile.Comment comment, T t) {
-        return (Dockerfile.Comment)super.visitComment(comment, t);
+    public Docker.Comment visitComment(Docker.Comment comment, T t) {
+        return (Docker.Comment)super.visitComment(comment, t);
     }
 
     @Override
-    public Dockerfile.Directive visitDirective(Dockerfile.Directive directive, T t) {
-        return (Dockerfile.Directive)super.visitDirective(directive, t);
+    public Docker.Directive visitDirective(Docker.Directive directive, T t) {
+        return (Docker.Directive)super.visitDirective(directive, t);
     }
 
     @Override
-    public Dockerfile.Run visitRun(Dockerfile.Run run, T t) {
-        return (Dockerfile.Run)super.visitRun(run, t);
+    public Docker.Run visitRun(Docker.Run run, T t) {
+        return (Docker.Run)super.visitRun(run, t);
     }
 
     @Override
-    public Dockerfile.Cmd visitCmd(Dockerfile.Cmd cmd, T t) {
-        return (Dockerfile.Cmd)super.visitCmd(cmd, t);
+    public Docker.Cmd visitCmd(Docker.Cmd cmd, T t) {
+        return (Docker.Cmd)super.visitCmd(cmd, t);
     }
 
     @Override
-    public Dockerfile.Label visitLabel(Dockerfile.Label label, T t) {
-        return (Dockerfile.Label)super.visitLabel(label, t);
+    public Docker.Label visitLabel(Docker.Label label, T t) {
+        return (Docker.Label)super.visitLabel(label, t);
     }
 
     @Override
-    public Dockerfile.Maintainer visitMaintainer(Dockerfile.Maintainer maintainer, T t) {
-        return (Dockerfile.Maintainer)super.visitMaintainer(maintainer, t);
+    public Docker.Maintainer visitMaintainer(Docker.Maintainer maintainer, T t) {
+        return (Docker.Maintainer)super.visitMaintainer(maintainer, t);
     }
 
     @Override
-    public Dockerfile.Expose visitExpose(Dockerfile.Expose expose, T t) {
-        return (Dockerfile.Expose)super.visitExpose(expose, t);
+    public Docker.Expose visitExpose(Docker.Expose expose, T t) {
+        return (Docker.Expose)super.visitExpose(expose, t);
     }
 
     @Override
-    public Dockerfile.Env visitEnv(Dockerfile.Env env, T t) {
-        return (Dockerfile.Env)super.visitEnv(env, t);
+    public Docker.Env visitEnv(Docker.Env env, T t) {
+        return (Docker.Env)super.visitEnv(env, t);
     }
 
     @Override
-    public Dockerfile.Add visitAdd(Dockerfile.Add add, T t) {
-        return (Dockerfile.Add)super.visitAdd(add, t);
+    public Docker.Add visitAdd(Docker.Add add, T t) {
+        return (Docker.Add)super.visitAdd(add, t);
     }
 
     @Override
-    public Dockerfile.Copy visitCopy(Dockerfile.Copy copy, T t) {
-        return (Dockerfile.Copy)super.visitCopy(copy, t);
+    public Docker.Copy visitCopy(Docker.Copy copy, T t) {
+        return (Docker.Copy)super.visitCopy(copy, t);
     }
 
     @Override
-    public Dockerfile.Entrypoint visitEntrypoint(Dockerfile.Entrypoint entrypoint, T t) {
-        return (Dockerfile.Entrypoint)super.visitEntrypoint(entrypoint, t);
+    public Docker.Entrypoint visitEntrypoint(Docker.Entrypoint entrypoint, T t) {
+        return (Docker.Entrypoint)super.visitEntrypoint(entrypoint, t);
     }
 
     @Override
-    public Dockerfile.Volume visitVolume(Dockerfile.Volume volume, T t) {
-        return (Dockerfile.Volume)super.visitVolume(volume, t);
+    public Docker.Volume visitVolume(Docker.Volume volume, T t) {
+        return (Docker.Volume)super.visitVolume(volume, t);
     }
 
     @Override
-    public Dockerfile.User visitUser(Dockerfile.User user, T t) {
-        return (Dockerfile.User)super.visitUser(user, t);
+    public Docker.User visitUser(Docker.User user, T t) {
+        return (Docker.User)super.visitUser(user, t);
     }
 
     @Override
-    public Dockerfile.Workdir visitWorkdir(Dockerfile.Workdir workdir, T t) {
-        return (Dockerfile.Workdir)super.visitWorkdir(workdir, t);
+    public Docker.Workdir visitWorkdir(Docker.Workdir workdir, T t) {
+        return (Docker.Workdir)super.visitWorkdir(workdir, t);
     }
 
     @Override
-    public Dockerfile.Arg visitArg(Dockerfile.Arg arg, T t) {
-        return (Dockerfile.Arg)super.visitArg(arg, t);
+    public Docker.Arg visitArg(Docker.Arg arg, T t) {
+        return (Docker.Arg)super.visitArg(arg, t);
     }
 
     @Override
-    public Dockerfile.OnBuild visitOnBuild(Dockerfile.OnBuild onBuild, T t) {
-        return (Dockerfile.OnBuild)super.visitOnBuild(onBuild, t);
+    public Docker.OnBuild visitOnBuild(Docker.OnBuild onBuild, T t) {
+        return (Docker.OnBuild)super.visitOnBuild(onBuild, t);
     }
 
     @Override
-    public Dockerfile.StopSignal visitStopSignal(Dockerfile.StopSignal stopSignal, T t) {
-        return (Dockerfile.StopSignal)super.visitStopSignal(stopSignal, t);
+    public Docker.StopSignal visitStopSignal(Docker.StopSignal stopSignal, T t) {
+        return (Docker.StopSignal)super.visitStopSignal(stopSignal, t);
     }
 
     @Override
-    public Dockerfile.Healthcheck visitHealthcheck(Dockerfile.Healthcheck healthcheck, T t) {
-        return (Dockerfile.Healthcheck)super.visitHealthcheck(healthcheck, t);
+    public Docker.Healthcheck visitHealthcheck(Docker.Healthcheck healthcheck, T t) {
+        return (Docker.Healthcheck)super.visitHealthcheck(healthcheck, t);
     }
 
     @Override
-    public Dockerfile.Shell visitShell(Dockerfile.Shell shell, T t) {
-        return (Dockerfile.Shell)super.visitShell(shell, t);
+    public Docker.Shell visitShell(Docker.Shell shell, T t) {
+        return (Docker.Shell)super.visitShell(shell, t);
     }
 }

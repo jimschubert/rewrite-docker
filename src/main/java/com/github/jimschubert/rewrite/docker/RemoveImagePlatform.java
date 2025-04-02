@@ -1,5 +1,6 @@
 package com.github.jimschubert.rewrite.docker;
 
+import com.github.jimschubert.rewrite.docker.tree.Docker;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +38,7 @@ public class RemoveImagePlatform extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor(){
         return new DockerIsoVisitor<>() {
             @Override
-            public com.github.jimschubert.rewrite.docker.tree.Dockerfile.From visitFrom(com.github.jimschubert.rewrite.docker.tree.Dockerfile.From from, ExecutionContext executionContext) {
+            public Docker.From visitFrom(Docker.From from, ExecutionContext executionContext) {
                 from = super.visitFrom(from, executionContext);
                 if (matchImage == null || ".*".equals(matchImage) || ".+".equals(matchImage)) {
                     return from.withPlatform(null);

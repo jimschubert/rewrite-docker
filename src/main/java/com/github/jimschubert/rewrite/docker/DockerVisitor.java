@@ -1,17 +1,17 @@
 package com.github.jimschubert.rewrite.docker;
 
-import com.github.jimschubert.rewrite.docker.tree.Dockerfile;
+import com.github.jimschubert.rewrite.docker.tree.Docker;
 import com.github.jimschubert.rewrite.docker.tree.Space;
 import org.openrewrite.TreeVisitor;
 
 import java.util.List;
 
-public class DockerVisitor<P> extends TreeVisitor<Dockerfile, P> {
+public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
 
-    public Dockerfile visitDocument(Dockerfile.Document dockerfile, P ctx) {
+    public Docker visitDocument(Docker.Document dockerfile, P ctx) {
         return dockerfile.withStages(dockerfile.getStages().stream()
                 .map(s -> visitAndCast(s, ctx))
-                .map(s -> (Dockerfile.Stage)s)
+                .map(s -> (Docker.Stage)s)
                 .toList());
     }
 
@@ -19,100 +19,100 @@ public class DockerVisitor<P> extends TreeVisitor<Dockerfile, P> {
         return space;
     }
 
-    public Dockerfile visitStage(Dockerfile.Stage stage, P p) {
-        List<Dockerfile.Instruction> children = stage.getChildren().stream()
+    public Docker visitStage(Docker.Stage stage, P p) {
+        List<Docker.Instruction> children = stage.getChildren().stream()
                 .map(c -> visitAndCast(c, p))
-                .map(c -> (Dockerfile.Instruction)c)
+                .map(c -> (Docker.Instruction)c)
                 .toList();
 
         return stage.withChildren(children)
                 .withMarkers(visitMarkers(stage.getMarkers(), p));
     }
 
-    public Dockerfile visitFrom(Dockerfile.From from, P p) {
+    public Docker visitFrom(Docker.From from, P p) {
         return from.withMarkers(visitMarkers(from.getMarkers(), p));
     }
-    public Dockerfile visitComment(Dockerfile.Comment comment, P p) {
+    public Docker visitComment(Docker.Comment comment, P p) {
         return comment.withMarkers(visitMarkers(comment.getMarkers(), p));
     }
 
-    public Dockerfile visitRun(Dockerfile.Run run, P p) {
+    public Docker visitRun(Docker.Run run, P p) {
         return run.withMarkers(visitMarkers(run.getMarkers(), p));
     }
 
-    public Dockerfile visitCmd(Dockerfile.Cmd cmd, P p) {
+    public Docker visitCmd(Docker.Cmd cmd, P p) {
         return cmd.withMarkers(visitMarkers(cmd.getMarkers(), p));
     }
 
-    public Dockerfile visitLabel(Dockerfile.Label label, P p) {
+    public Docker visitLabel(Docker.Label label, P p) {
         return label.withMarkers(visitMarkers(label.getMarkers(), p));
     }
 
-    public Dockerfile visitMaintainer(Dockerfile.Maintainer maintainer, P p) {
+    public Docker visitMaintainer(Docker.Maintainer maintainer, P p) {
         return maintainer.withMarkers(visitMarkers(maintainer.getMarkers(), p));
     }
 
-    public Dockerfile visitExpose(Dockerfile.Expose expose, P p) {
+    public Docker visitExpose(Docker.Expose expose, P p) {
         return expose.withMarkers(visitMarkers(expose.getMarkers(), p));
     }
 
-    public Dockerfile visitEnv(Dockerfile.Env env, P p) {
+    public Docker visitEnv(Docker.Env env, P p) {
         return env.withMarkers(visitMarkers(env.getMarkers(), p));
     }
 
-    public Dockerfile visitAdd(Dockerfile.Add add, P p) {
+    public Docker visitAdd(Docker.Add add, P p) {
         return add.withMarkers(visitMarkers(add.getMarkers(), p));
     }
 
-    public Dockerfile visitCopy(Dockerfile.Copy copy, P p) {
+    public Docker visitCopy(Docker.Copy copy, P p) {
         return copy.withMarkers(visitMarkers(copy.getMarkers(), p));
     }
 
-    public Dockerfile visitEntrypoint(Dockerfile.Entrypoint entrypoint, P p) {
+    public Docker visitEntrypoint(Docker.Entrypoint entrypoint, P p) {
         return entrypoint.withMarkers(visitMarkers(entrypoint.getMarkers(), p));
     }
 
-    public Dockerfile visitVolume(Dockerfile.Volume volume, P p) {
+    public Docker visitVolume(Docker.Volume volume, P p) {
         return volume.withMarkers(visitMarkers(volume.getMarkers(), p));
     }
 
-    public Dockerfile visitUser(Dockerfile.User user, P p) {
+    public Docker visitUser(Docker.User user, P p) {
         return user.withMarkers(visitMarkers(user.getMarkers(), p));
     }
 
-    public Dockerfile visitWorkdir(Dockerfile.Workdir workdir, P p) {
+    public Docker visitWorkdir(Docker.Workdir workdir, P p) {
         return workdir.withMarkers(visitMarkers(workdir.getMarkers(), p));
     }
 
-    public Dockerfile visitArg(Dockerfile.Arg arg, P p) {
+    public Docker visitArg(Docker.Arg arg, P p) {
         return arg.withMarkers(visitMarkers(arg.getMarkers(), p));
     }
 
-    public Dockerfile visitOnBuild(Dockerfile.OnBuild onBuild, P p) {
+    public Docker visitOnBuild(Docker.OnBuild onBuild, P p) {
         return onBuild.withMarkers(visitMarkers(onBuild.getMarkers(), p));
     }
 
-    public Dockerfile visitStopSignal(Dockerfile.StopSignal stopSignal, P p) {
+    public Docker visitStopSignal(Docker.StopSignal stopSignal, P p) {
         return stopSignal.withMarkers(visitMarkers(stopSignal.getMarkers(), p));
     }
 
-    public Dockerfile visitHealthcheck(Dockerfile.Healthcheck healthcheck, P p) {
+    public Docker visitHealthcheck(Docker.Healthcheck healthcheck, P p) {
         return healthcheck.withMarkers(visitMarkers(healthcheck.getMarkers(), p));
     }
 
-    public Dockerfile visitShell(Dockerfile.Shell shell, P p) {
+    public Docker visitShell(Docker.Shell shell, P p) {
         return shell.withMarkers(visitMarkers(shell.getMarkers(), p));
     }
 
-    public Dockerfile visitDirective(Dockerfile.Directive directive, P p) {
+    public Docker visitDirective(Docker.Directive directive, P p) {
         return directive.withMarkers(visitMarkers(directive.getMarkers(), p));
     }
 
-    public Dockerfile visitLiteral(Dockerfile.Literal literal, P p) {
+    public Docker visitLiteral(Docker.Literal literal, P p) {
         return literal.withMarkers(visitMarkers(literal.getMarkers(), p));
     }
 
-    public Dockerfile visitOption(Dockerfile.Option option, P p) {
+    public Docker visitOption(Docker.Option option, P p) {
         return option.withMarkers(visitMarkers(option.getMarkers(), p));
     }
 }

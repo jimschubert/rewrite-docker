@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
 @Data
-public class DockerfileRightPadded<T> {
+public class DockerRightPadded<T> {
     @With
     T element;
 
@@ -29,20 +29,20 @@ public class DockerfileRightPadded<T> {
     @With
     Markers markers;
 
-    public DockerfileRightPadded<T> map(UnaryOperator<T> map) {
+    public DockerRightPadded<T> map(UnaryOperator<T> map) {
         return withElement(map.apply(element));
     }
 
-    public static <T> List<T> getElements(List<DockerfileRightPadded<T>> ls) {
+    public static <T> List<T> getElements(List<DockerRightPadded<T>> ls) {
         List<T> list = new ArrayList<>();
-        for (DockerfileRightPadded<T> l : ls) {
+        for (DockerRightPadded<T> l : ls) {
             T elem = l.getElement();
             list.add(elem);
         }
         return list;
     }
 
-    public static <P extends Dockerfile> List<DockerfileRightPadded<P>> withElements(List<DockerfileRightPadded<P>> before, List<P> elements) {
+    public static <P extends Docker> List<DockerRightPadded<P>> withElements(List<DockerRightPadded<P>> before, List<P> elements) {
         // a cheaper check for the most common case when there are no changes
         if (elements.size() == before.size()) {
             boolean hasChanges = false;
@@ -57,33 +57,33 @@ public class DockerfileRightPadded<T> {
             }
         }
 
-        List<DockerfileRightPadded<P>> after = new ArrayList<>(elements.size());
-        Map<UUID, DockerfileRightPadded<P>> beforeById = before.stream().collect(Collectors
+        List<DockerRightPadded<P>> after = new ArrayList<>(elements.size());
+        Map<UUID, DockerRightPadded<P>> beforeById = before.stream().collect(Collectors
                 .toMap(j -> j.getElement().getId(), Function.identity()));
 
         for (P t : elements) {
             if (beforeById.get(t.getId()) != null) {
-                DockerfileRightPadded<P> found = beforeById.get(t.getId());
+                DockerRightPadded<P> found = beforeById.get(t.getId());
                 after.add(found.withElement(t));
             } else {
-                after.add(new DockerfileRightPadded<>(t, Space.EMPTY, Markers.EMPTY));
+                after.add(new DockerRightPadded<>(t, Space.EMPTY, Markers.EMPTY));
             }
         }
 
         return after;
     }
 
-    public static <T> DockerfileRightPadded<T> build(T element) {
-        return new DockerfileRightPadded<>(element, Space.EMPTY, Markers.EMPTY);
+    public static <T> DockerRightPadded<T> build(T element) {
+        return new DockerRightPadded<>(element, Space.EMPTY, Markers.EMPTY);
     }
 
     @Nullable
-    public static <T> DockerfileRightPadded<T> withElement(@Nullable DockerfileRightPadded<T> before, @Nullable T elements) {
+    public static <T> DockerRightPadded<T> withElement(@Nullable DockerRightPadded<T> before, @Nullable T elements) {
         if (before == null) {
             if (elements == null) {
                 return null;
             }
-            return new DockerfileRightPadded<>(elements, Space.EMPTY, Markers.EMPTY);
+            return new DockerRightPadded<>(elements, Space.EMPTY, Markers.EMPTY);
         }
         if (elements == null) {
             return null;

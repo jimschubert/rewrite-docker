@@ -16,9 +16,9 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public interface Dockerfile extends Tree {
+public interface Docker extends Tree {
 
-    interface Instruction extends Dockerfile {}
+    interface Instruction extends Docker {}
 
 
     @SuppressWarnings("unchecked")
@@ -33,14 +33,14 @@ public interface Dockerfile extends Tree {
     }
 
     @Nullable
-    default <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+    default <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
         return v.defaultValue(this, p);
     }
 
     /**
      * @return A copy of this Dockerfile with the same content, but with new ids.
      */
-    Dockerfile copyPaste();
+    Docker copyPaste();
 
     default Space getPrefix() {
         return Space.EMPTY;
@@ -49,7 +49,7 @@ public interface Dockerfile extends Tree {
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class Literal implements Dockerfile {
+    class Literal implements Docker {
         @EqualsAndHashCode.Include
         UUID id;
 
@@ -60,7 +60,7 @@ public interface Dockerfile extends Tree {
         Markers markers;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitLiteral(this, p);
         }
 
@@ -70,7 +70,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Literal(Tree.randomId(), prefix, text, markers == null ? Markers.EMPTY : Markers.build(markers.getMarkers()));
         }
 
@@ -82,7 +82,7 @@ public interface Dockerfile extends Tree {
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class Option implements Dockerfile {
+    class Option implements Docker {
         @EqualsAndHashCode.Include
         UUID id;
 
@@ -92,7 +92,7 @@ public interface Dockerfile extends Tree {
         Markers markers;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitOption(this, p);
         }
 
@@ -102,7 +102,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Option(Tree.randomId(), name, keyArgs, markers == null ? Markers.EMPTY : Markers.build(markers.getMarkers()));
         }
     }
@@ -111,7 +111,7 @@ public interface Dockerfile extends Tree {
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class Document implements Dockerfile, SourceFile {
+    class Document implements Docker, SourceFile {
         @EqualsAndHashCode.Include
         UUID id;
 
@@ -146,7 +146,7 @@ public interface Dockerfile extends Tree {
 
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.defaultValue(this, p);
         }
 
@@ -156,7 +156,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Document(Tree.randomId(), markers, sourcePath, fileAttributes, charsetName, charsetBomMarked, checksum,
                     stages.stream().map(Stage::copyPaste).collect(Collectors.toList()), eof);
         }
@@ -165,20 +165,20 @@ public interface Dockerfile extends Tree {
     @lombok.Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class Add implements Dockerfile.Instruction {
+    class Add implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
 
         Space prefix;
         Markers markers;
 
-        List<DockerfileRightPadded<Option>> options;
+        List<DockerRightPadded<Option>> options;
 
-        List<DockerfileRightPadded<Literal>> sources;
-        DockerfileRightPadded<Literal> destination;
+        List<DockerRightPadded<Literal>> sources;
+        DockerRightPadded<Literal> destination;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitAdd(this, p);
         }
 
@@ -188,7 +188,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Add(Tree.randomId(), prefix, markers, options, sources, destination);
         }
     }
@@ -196,17 +196,17 @@ public interface Dockerfile extends Tree {
     @lombok.Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class Arg implements Dockerfile.Instruction {
+    class Arg implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
 
         Space prefix;
         Markers markers;
 
-        List<DockerfileRightPadded<KeyArgs>> args;
+        List<DockerRightPadded<KeyArgs>> args;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitArg(this, p);
         }
 
@@ -216,7 +216,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Arg(Tree.randomId(), prefix, markers, args);
         }
     }
@@ -224,7 +224,7 @@ public interface Dockerfile extends Tree {
     @lombok.Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class Cmd implements Dockerfile.Instruction {
+    class Cmd implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
 
@@ -232,10 +232,10 @@ public interface Dockerfile extends Tree {
         Markers markers;
 
         Form form;
-        List<DockerfileRightPadded<Literal>> commands;
+        List<DockerRightPadded<Literal>> commands;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitCmd(this, p);
         }
 
@@ -245,7 +245,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Cmd(Tree.randomId(), prefix, markers, form, commands);
         }
     }
@@ -253,17 +253,17 @@ public interface Dockerfile extends Tree {
     @lombok.Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class Comment implements Dockerfile.Instruction {
+    class Comment implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
 
         Space prefix;
         Markers markers;
 
-        DockerfileRightPadded<Literal> text;
+        DockerRightPadded<Literal> text;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitComment(this, p);
         }
 
@@ -273,7 +273,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Comment(Tree.randomId(), prefix, markers, text);
         }
     }
@@ -281,20 +281,20 @@ public interface Dockerfile extends Tree {
     @Value
     @With
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    class Copy implements Dockerfile.Instruction {
+    class Copy implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
 
         Space prefix;
         Markers markers;
 
-        List<DockerfileRightPadded<Literal>> sources;
-        DockerfileRightPadded<Literal> destination;
+        List<DockerRightPadded<Literal>> sources;
+        DockerRightPadded<Literal> destination;
 
-        List<DockerfileRightPadded<Option>> options;
+        List<DockerRightPadded<Option>> options;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitCopy(this, p);
         }
 
@@ -304,7 +304,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Copy(Tree.randomId(), prefix, markers, sources, destination, new ArrayList<>(options));
         }
     }
@@ -313,17 +313,17 @@ public interface Dockerfile extends Tree {
     @lombok.Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class Directive implements Dockerfile.Instruction {
+    class Directive implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
 
         Space prefix;
         Markers markers;
 
-        DockerfileRightPadded<KeyArgs> directive;
+        DockerRightPadded<KeyArgs> directive;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
              return v.visitDirective(this, p);
         }
 
@@ -333,7 +333,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Directive(Tree.randomId(), prefix, markers, directive);
         }
     }
@@ -341,19 +341,19 @@ public interface Dockerfile extends Tree {
     @lombok.Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class Entrypoint implements Dockerfile.Instruction {
+    class Entrypoint implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
 
         Space prefix;
         Markers markers;
 
-        List<DockerfileRightPadded<Literal>> command;
+        List<DockerRightPadded<Literal>> command;
 
         Space trailing;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitEntrypoint(this, p);
         }
 
@@ -363,7 +363,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Entrypoint(Tree.randomId(), prefix, markers, command, trailing);
         }
     }
@@ -371,17 +371,17 @@ public interface Dockerfile extends Tree {
     @lombok.Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class Env implements Dockerfile.Instruction {
+    class Env implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
 
         Space prefix;
         Markers markers;
 
-        List<DockerfileRightPadded<KeyArgs>> args;
+        List<DockerRightPadded<KeyArgs>> args;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitEnv(this, p);
         }
 
@@ -391,7 +391,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Env(Tree.randomId(), prefix, markers, args);
         }
     }
@@ -399,7 +399,7 @@ public interface Dockerfile extends Tree {
     @lombok.Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class Expose implements Dockerfile.Instruction {
+    class Expose implements Docker.Instruction {
 
         @EqualsAndHashCode.Include
         UUID id;
@@ -407,10 +407,10 @@ public interface Dockerfile extends Tree {
         Space prefix;
         Markers markers;
 
-        List<DockerfileRightPadded<Port>> ports;
+        List<DockerRightPadded<Port>> ports;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitExpose(this, p);
         }
 
@@ -420,14 +420,14 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Expose(Tree.randomId(), prefix, markers, ports);
         }
     }
 
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    class From implements Dockerfile.Instruction {
+    class From implements Docker.Instruction {
         @With
         @EqualsAndHashCode.Include
         UUID id;
@@ -439,22 +439,22 @@ public interface Dockerfile extends Tree {
         Markers markers;
 
         @NonFinal
-        DockerfileRightPadded<Literal> platform;
+        DockerRightPadded<Literal> platform;
 
         @NonFinal
-        DockerfileRightPadded<Literal> image;
+        DockerRightPadded<Literal> image;
 
         @NonFinal
-        DockerfileRightPadded<Literal> version;
+        DockerRightPadded<Literal> version;
 
         @With
         Literal as;
 
         @NonFinal
-        DockerfileRightPadded<Literal> alias;
+        DockerRightPadded<Literal> alias;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitFrom(this, p);
         }
 
@@ -464,7 +464,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new From(Tree.randomId(), prefix, markers, platform, image, version, as, alias);
         }
 
@@ -528,7 +528,7 @@ public interface Dockerfile extends Tree {
     @Value
     @With
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    class Healthcheck implements Dockerfile.Instruction {
+    class Healthcheck implements Docker.Instruction {
         public enum Type {
             CMD, NONE
         }
@@ -553,7 +553,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitHealthcheck(this, p);
         }
 
@@ -563,7 +563,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Healthcheck(Tree.randomId(), prefix, markers, type, command, new LinkedHashMap<>(options));
         }
 
@@ -588,7 +588,7 @@ public interface Dockerfile extends Tree {
     @lombok.Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class Label implements Dockerfile.Instruction {
+    class Label implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
 
@@ -598,7 +598,7 @@ public interface Dockerfile extends Tree {
         List<KeyArgs> args;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitLabel(this, p);
         }
 
@@ -608,7 +608,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Label(Tree.randomId(), prefix, markers, args);
         }
     }
@@ -616,7 +616,7 @@ public interface Dockerfile extends Tree {
     @lombok.Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class Maintainer implements Dockerfile.Instruction {
+    class Maintainer implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
 
@@ -627,7 +627,7 @@ public interface Dockerfile extends Tree {
         Quoting quoting;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitMaintainer(this, p);
         }
 
@@ -637,7 +637,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Maintainer(Tree.randomId(), prefix, markers, name, quoting);
         }
     }
@@ -646,17 +646,17 @@ public interface Dockerfile extends Tree {
     @lombok.Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class OnBuild implements Dockerfile.Instruction {
+    class OnBuild implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
 
         Space prefix;
         Markers markers;
 
-        Dockerfile instruction;
+        Docker instruction;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitOnBuild(this, p);
         }
 
@@ -666,7 +666,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new OnBuild(Tree.randomId(), prefix, markers, instruction.copyPaste());
         }
     }
@@ -674,7 +674,7 @@ public interface Dockerfile extends Tree {
     @Value
     @With
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    class Run implements Dockerfile.Instruction {
+    class Run implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
 
@@ -689,7 +689,7 @@ public interface Dockerfile extends Tree {
         String heredocName;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitRun(this, p);
         }
 
@@ -699,7 +699,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Run(Tree.randomId(), prefix, markers, commands, mounts, networkOption, securityOption, heredoc, heredocName);
         }
     }
@@ -708,7 +708,7 @@ public interface Dockerfile extends Tree {
     @lombok.Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class Shell implements Dockerfile.Instruction {
+    class Shell implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
 
@@ -718,7 +718,7 @@ public interface Dockerfile extends Tree {
         List<String> commands;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitShell(this, p);
         }
 
@@ -728,7 +728,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Shell(Tree.randomId(), prefix, markers, commands);
         }
     }
@@ -736,7 +736,7 @@ public interface Dockerfile extends Tree {
     @lombok.Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class StopSignal implements Dockerfile.Instruction {
+    class StopSignal implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
 
@@ -746,7 +746,7 @@ public interface Dockerfile extends Tree {
         String signal;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitStopSignal(this, p);
         }
 
@@ -756,7 +756,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new StopSignal(Tree.randomId(), prefix, markers, signal);
         }
     }
@@ -765,7 +765,7 @@ public interface Dockerfile extends Tree {
     @lombok.Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class User implements Dockerfile.Instruction {
+    class User implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
 
@@ -776,7 +776,7 @@ public interface Dockerfile extends Tree {
         String group;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitUser(this, p);
         }
 
@@ -786,7 +786,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new User(Tree.randomId(), prefix, markers, username, group);
         }
     }
@@ -795,7 +795,7 @@ public interface Dockerfile extends Tree {
     @lombok.Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class Volume implements Dockerfile.Instruction {
+    class Volume implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
 
@@ -805,7 +805,7 @@ public interface Dockerfile extends Tree {
         String path;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitVolume(this, p);
         }
 
@@ -815,7 +815,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Volume(Tree.randomId(), prefix, markers, path);
         }
     }
@@ -823,7 +823,7 @@ public interface Dockerfile extends Tree {
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class Stage implements Dockerfile {
+    class Stage implements Docker {
         @EqualsAndHashCode.Include
         UUID id;
         Markers markers;
@@ -831,7 +831,7 @@ public interface Dockerfile extends Tree {
         List<Instruction> children;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitStage(this, p);
         }
 
@@ -849,7 +849,7 @@ public interface Dockerfile extends Tree {
     @lombok.Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class Workdir implements Dockerfile.Instruction {
+    class Workdir implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
 
@@ -859,7 +859,7 @@ public interface Dockerfile extends Tree {
         String path;
 
         @Override
-        public <P> Dockerfile acceptDocker(DockerVisitor<P> v, P p) {
+        public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitWorkdir(this, p);
         }
 
@@ -869,7 +869,7 @@ public interface Dockerfile extends Tree {
         }
 
         @Override
-        public Dockerfile copyPaste() {
+        public Docker copyPaste() {
             return new Workdir(Tree.randomId(), prefix, markers, path);
         }
     }

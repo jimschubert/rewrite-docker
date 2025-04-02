@@ -1,9 +1,9 @@
 package com.github.jimschubert.rewrite.docker.internal;
 
 import com.github.jimschubert.docker.ast.*;
-import com.github.jimschubert.rewrite.docker.tree.Dockerfile;
-import com.github.jimschubert.rewrite.docker.tree.Dockerfile.*;
-import com.github.jimschubert.rewrite.docker.tree.DockerfileRightPadded;
+import com.github.jimschubert.rewrite.docker.tree.Docker;
+import com.github.jimschubert.rewrite.docker.tree.Docker.*;
+import com.github.jimschubert.rewrite.docker.tree.DockerRightPadded;
 import com.github.jimschubert.rewrite.docker.tree.Quoting;
 import com.github.jimschubert.rewrite.docker.tree.Space;
 import org.openrewrite.FileAttributes;
@@ -15,7 +15,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -36,26 +35,26 @@ public class DockerfileParserVisitor {
         this.charset = source.getCharset();
     }
 
-    public Dockerfile.Document visit(List<DockerInstruction> dockerInstructions) {
-        List<Dockerfile.Stage> stages = new ArrayList<>();
-        List<Dockerfile.Instruction> currentInstructions = new ArrayList<>();
+    public Docker.Document visit(List<DockerInstruction> dockerInstructions) {
+        List<Docker.Stage> stages = new ArrayList<>();
+        List<Docker.Instruction> currentInstructions = new ArrayList<>();
 
         for (DockerInstruction instruction : dockerInstructions) {
-            Dockerfile.Instruction convertedInstruction = convertToDockerfileInstruction(instruction);
+            Docker.Instruction convertedInstruction = convertToDockerfileInstruction(instruction);
             currentInstructions.add(convertedInstruction);
             if (convertedInstruction instanceof From) {
-                Stage stage = visitStage(new Dockerfile.Stage(Tree.randomId(), Markers.EMPTY, currentInstructions));
+                Stage stage = visitStage(new Docker.Stage(Tree.randomId(), Markers.EMPTY, currentInstructions));
                 stages.add(stage);
                 currentInstructions = new ArrayList<>();
             }
         }
 
         if (stages.isEmpty()) {
-            Stage stage = visitStage(new Dockerfile.Stage(Tree.randomId(), Markers.EMPTY, currentInstructions));
+            Stage stage = visitStage(new Docker.Stage(Tree.randomId(), Markers.EMPTY, currentInstructions));
             stages.add(stage);
         }
 
-        return new Dockerfile.Document(
+        return new Docker.Document(
                 Tree.randomId(),
                 Markers.EMPTY,
                 relativePath,
@@ -68,7 +67,7 @@ public class DockerfileParserVisitor {
         );
     }
 
-    private Dockerfile.Instruction convertToDockerfileInstruction(DockerInstruction instr) {
+    private Docker.Instruction convertToDockerfileInstruction(DockerInstruction instr) {
         switch (instr.getInstruction()) {
             case "ENTRYPOINT":
                 return visitEntrypoint((EntrypointInstruction) instr);
@@ -124,11 +123,11 @@ public class DockerfileParserVisitor {
                 Tree.randomId(),
                 Space.EMPTY,
                 Markers.EMPTY,
-                DockerfileRightPadded.build(Literal.build(platform).withPrefix(Space.build(" "))),
-                DockerfileRightPadded.build(Literal.build(image).withPrefix(Space.build(" "))),
-                DockerfileRightPadded.build(Literal.build(null)),
+                DockerRightPadded.build(Literal.build(platform).withPrefix(Space.build(" "))),
+                DockerRightPadded.build(Literal.build(image).withPrefix(Space.build(" "))),
+                DockerRightPadded.build(Literal.build(null)),
                 Literal.build(as).withPrefix(Space.build(" ")),
-                DockerfileRightPadded.build(Literal.build(alias).withPrefix(Space.build(" ")))
+                DockerRightPadded.build(Literal.build(alias).withPrefix(Space.build(" ")))
         ).withDigest(digest).withTag(tag);
     }
 
@@ -139,7 +138,7 @@ public class DockerfileParserVisitor {
     public Entrypoint visitEntrypoint(EntrypointInstruction instr) {
         return new Entrypoint(Tree.randomId(), Space.EMPTY, Markers.EMPTY,
                 instr.getEntrypoint().stream().map(e ->
-                        DockerfileRightPadded.build(Literal.build(e).withPrefix(Space.build(" ")))
+                        DockerRightPadded.build(Literal.build(e).withPrefix(Space.build(" ")))
                                 .withAfter(Space.build(" "))
                 ).toList(), Space.EMPTY);
     }
@@ -158,7 +157,7 @@ public class DockerfileParserVisitor {
 
     public Arg visitArg(ArgInstruction instr) {
         return new Arg(Tree.randomId(), Space.EMPTY, Markers.EMPTY, instr.getArgs().stream()
-                .map(kv -> DockerfileRightPadded.build(new Dockerfile.KeyArgs(Space.build(" "), kv.getKey(), kv.getValue(), kv.hasEquals(), Quoting.valueOf(kv.getQuoting().name()))))
+                .map(kv -> DockerRightPadded.build(new Docker.KeyArgs(Space.build(" "), kv.getKey(), kv.getValue(), kv.hasEquals(), Quoting.valueOf(kv.getQuoting().name()))))
                 .collect(Collectors.toList()));
     }
 

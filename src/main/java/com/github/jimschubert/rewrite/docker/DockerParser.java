@@ -2,7 +2,7 @@ package com.github.jimschubert.rewrite.docker;
 
 import com.github.jimschubert.docker.parser.DockerfileParser;
 import com.github.jimschubert.rewrite.docker.internal.DockerfileParserVisitor;
-import com.github.jimschubert.rewrite.docker.tree.Dockerfile;
+import com.github.jimschubert.rewrite.docker.tree.Docker;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
@@ -24,7 +24,7 @@ public class DockerParser implements Parser {
             try (EncodingDetectingInputStream is = input.getSource(ctx)) {
                 DockerfileParser parser = new DockerfileParser(false);
 
-                Dockerfile.Document document = new DockerfileParserVisitor(
+                Docker.Document document = new DockerfileParserVisitor(
                         input.getRelativePath(relativeTo),
                         input.getFileAttributes(),
                         input.getSource(ctx)
@@ -55,7 +55,7 @@ public class DockerParser implements Parser {
 
     public static class Builder extends Parser.Builder {
         public Builder() {
-            super(Dockerfile.Document.class);
+            super(Docker.Document.class);
         }
 
         @Override

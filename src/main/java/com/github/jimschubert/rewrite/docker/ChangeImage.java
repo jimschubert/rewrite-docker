@@ -1,7 +1,6 @@
 package com.github.jimschubert.rewrite.docker;
 
-import com.github.jimschubert.rewrite.docker.tree.Dockerfile;
-import com.github.jimschubert.rewrite.docker.tree.Space;
+import com.github.jimschubert.rewrite.docker.tree.Docker;
 import lombok.*;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
@@ -53,8 +52,8 @@ public class ChangeImage extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new DockerIsoVisitor<>() {
             @Override
-            public Dockerfile.From visitFrom(Dockerfile.From from, ExecutionContext executionContext) {
-                Dockerfile.From newFrom = super.visitFrom(from, executionContext);
+            public Docker.From visitFrom(Docker.From from, ExecutionContext executionContext) {
+                Docker.From newFrom = super.visitFrom(from, executionContext);
                 if (oldImage == null || newImage == null) {
                     return newFrom;
                 }
