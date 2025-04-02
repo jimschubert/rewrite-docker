@@ -77,7 +77,8 @@ public class ChangeImage extends Recipe {
                             tag = parts[1];
                         }
 
-                        newFrom = newFrom.withImage(newFrom.getImage().withElement(Dockerfile.Literal.build(image).withPrefix(Space.build(" ")))).withTag(tag)
+                        newFrom = newFrom.withImage(image)
+                            .withTag(tag)
                             .withMarkers(newFrom.getMarkers().addIfAbsent(modifiedMarker));
                     } else if (newImage.contains("@")) {
                         String[] parts = newImage.split("@");
@@ -87,15 +88,15 @@ public class ChangeImage extends Recipe {
                             digest = parts[1];
                         }
 
-                        newFrom = newFrom.withImage(newFrom.getImage().withElement(Dockerfile.Literal.build(image).withPrefix(Space.build(" ")))).withDigest(digest)
+                        newFrom = newFrom.withImage(image)
+                            .withDigest(digest)
                             .withMarkers(newFrom.getMarkers().addIfAbsent(modifiedMarker));
                     } else if (newVersion == null) {
-                        return newFrom.withImage(newFrom.getImage().withElement(Dockerfile.Literal.build(newImage).withPrefix(Space.build(" "))))
-                                .withVersion(newFrom.getVersion())
+                        return newFrom.withImage(newImage)
                             .withMarkers(newFrom.getMarkers().addIfAbsent(modifiedMarker));
                     } else {
                         // remove version (no tag or digest specified)
-                        return newFrom.withImage(newFrom.getImage().withElement(Dockerfile.Literal.build(newImage).withPrefix(Space.build(" "))))
+                        return newFrom.withImage(newImage)
                             .withVersion(null)
                             .withMarkers(newFrom.getMarkers().addIfAbsent(modifiedMarker));
                     }

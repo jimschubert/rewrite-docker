@@ -45,11 +45,11 @@ public class SetImagePlatform extends Recipe {
             public Dockerfile.From visitFrom(Dockerfile.From from, ExecutionContext executionContext) {
                 from = super.visitFrom(from, executionContext);
                 if (matchImage == null || ".*".equals(matchImage) || ".+".equals(matchImage)) {
-                    return from.withPlatform(DockerfileRightPadded.build(Dockerfile.Literal.build(platform).withPrefix(Space.build(" "))));
+                    return from.withPlatform(platform);
                 }
                 Matcher matcher = Pattern.compile(matchImage).matcher(from.getImageSpecWithVersion());
                 if (matcher.matches()) {
-                    return from.withPlatform(DockerfileRightPadded.build(Dockerfile.Literal.build(platform).withPrefix(Space.build(" "))));
+                    return from.withPlatform(platform);
                 }
                 return from;
             }

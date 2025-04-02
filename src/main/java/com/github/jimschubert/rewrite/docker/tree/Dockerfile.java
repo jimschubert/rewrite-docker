@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import lombok.With;
+import lombok.experimental.NonFinal;
 import org.openrewrite.*;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.marker.Markers;
@@ -425,23 +426,31 @@ public interface Dockerfile extends Tree {
     }
 
     @Value
-    @With
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     class From implements Dockerfile.Instruction {
+        @With
         @EqualsAndHashCode.Include
         UUID id;
 
+        @With
         Space prefix;
+
+        @With
         Markers markers;
 
+        @NonFinal
         DockerfileRightPadded<Literal> platform;
 
+        @NonFinal
         DockerfileRightPadded<Literal> image;
 
+        @NonFinal
         DockerfileRightPadded<Literal> version;
 
+        @With
         Literal as;
 
+        @NonFinal
         DockerfileRightPadded<Literal> alias;
 
         @Override
@@ -475,16 +484,30 @@ public interface Dockerfile extends Tree {
             return v.startsWith("@") ? v.substring(1) : null;
         }
 
+        public From withPlatform(String platform) {
+            Space prefix = this.platform.getElement() == null ? Space.EMPTY : this.platform.getElement().getPrefix();
+            this.platform = this.platform.withElement(Literal.build(platform).withPrefix(prefix).withMarkers(Markers.EMPTY));
+            return this;
+        }
+
+        public From withImage(String image) {
+            Space prefix = this.image.getElement() == null ? Space.build(" ") : this.image.getElement().getPrefix();
+            this.image = this.image.withElement(Literal.build(image).withPrefix(prefix).withMarkers(Markers.EMPTY));
+            return this;
+        }
+
+        public From withVersion(String version) {
+            this.version = this.version.withElement(Literal.build(version).withMarkers(Markers.EMPTY));
+            return this;
+        }
+
         public From withDigest(String digest) {
             if (digest == null) {
                 return this;
             }
             digest = digest.indexOf('@') == 0 ? digest : "@" + digest;
-            return withVersion(new DockerfileRightPadded<>(
-                    version.getElement(),
-                    version.getAfter(),
-                    version.getMarkers())
-                .withElement(new Literal(version.getElement().getId(), version.getElement().getPrefix(), digest, version.getElement().getMarkers())));
+            version = version.withElement(Literal.build(digest).withMarkers(Markers.EMPTY));
+            return this;
         }
 
         public From withTag(String tag) {
@@ -492,11 +515,8 @@ public interface Dockerfile extends Tree {
                 return this;
             }
             tag = tag.indexOf(':') == 0 ? tag : ":" + tag;
-            return withVersion(new DockerfileRightPadded<>(
-                    version.getElement(),
-                    version.getAfter(),
-                    version.getMarkers())
-                .withElement(new Literal(version.getElement().getId(), version.getElement().getPrefix(), tag, version.getElement().getMarkers())));
+            version = version.withElement(Literal.build(tag).withMarkers(Markers.EMPTY));
+            return this;
         }
 
         public String getTag() {

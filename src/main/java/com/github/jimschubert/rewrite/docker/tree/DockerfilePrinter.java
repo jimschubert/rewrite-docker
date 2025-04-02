@@ -102,14 +102,15 @@ public class DockerfilePrinter<P> extends DockerfileVisitor<PrintOutputCapture<P
         if (from.getPlatform() != null && from.getPlatform().getElement().getText() != null) {
             p.append(" --platform=");
             p.append(from.getPlatform().getElement().getText());
-            p.append(from.getPlatform().getAfter().getWhitespace());
+
+            visitSpace(from.getPlatform().getAfter(), p);
         }
 
         appendRightPaddedLiteral(from.getImage(), p);
         appendRightPaddedLiteral(from.getVersion(), p);
 
         if (from.getAlias() != null && from.getAlias().getElement().getText() != null && !from.getAlias().getElement().getText().isEmpty()) {
-            p.append(from.getAs().getPrefix().getWhitespace());
+            visitSpace(from.getAs().getPrefix(), p);
             p.append(from.getAs().getText());
             appendRightPaddedLiteral(from.getAlias(), p);
         }
@@ -135,9 +136,9 @@ public class DockerfilePrinter<P> extends DockerfileVisitor<PrintOutputCapture<P
         if (literal != null) {
             beforeSyntax(comment, p);
             p.append("#");
-            p.append(literal.getPrefix().getWhitespace());
+            visitSpace(literal.getPrefix(), p);
             p.append(literal.getText().replace("\n", "\n# "));
-            p.append(comment.getText().getAfter().getWhitespace());
+            visitSpace(comment.getText().getAfter(), p);
             afterSyntax(comment, p);
         }
         return comment;
@@ -149,7 +150,7 @@ public class DockerfilePrinter<P> extends DockerfileVisitor<PrintOutputCapture<P
         p.append("#");
         DockerfileRightPadded<Dockerfile.KeyArgs> padded = directive.getDirective();
         Dockerfile.KeyArgs keyArgs = padded.getElement();
-        p.append(keyArgs.getPrefix().getWhitespace());
+        visitSpace(keyArgs.getPrefix(), p);
         p.append(keyArgs.getKey());
         if (keyArgs.isHasEquals()) {
             p.append("=");
@@ -161,7 +162,7 @@ public class DockerfilePrinter<P> extends DockerfileVisitor<PrintOutputCapture<P
         } else {
             p.append(keyArgs.getValue());
         }
-        p.append(padded.getAfter().getWhitespace());
+        visitSpace(padded.getAfter(), p);
         afterSyntax(directive, p);
         return directive;
     }
@@ -231,12 +232,12 @@ public class DockerfilePrinter<P> extends DockerfileVisitor<PrintOutputCapture<P
             String text = literal.getText();
             if (form == Form.EXEC) {
                 text = trimDoubleQuotes(text);
-                p.append(literal.getPrefix().getWhitespace());
+                visitSpace(literal.getPrefix(), p);
                 p.append("\"").append(text).append("\"");
             } else {
                 p.append(text);
             }
-            p.append(padded.getAfter().getWhitespace());
+            visitSpace(padded.getAfter(), p);
         }
 
         if (form == Form.EXEC) {
@@ -290,13 +291,13 @@ public class DockerfilePrinter<P> extends DockerfileVisitor<PrintOutputCapture<P
         for (int i = 0; i < expose.getPorts().size(); i++) {
             DockerfileRightPadded<Dockerfile.Port> padded = expose.getPorts().get(i);
             Dockerfile.Port port = padded.getElement();
-            p.append(port.getPrefix().getWhitespace());
+            visitSpace(port.getPrefix(), p);
             p.append(port.getPort());
             if (port.isProtocolProvided() && port.getProtocol() != null && !port.getProtocol().isEmpty()) {
                 p.append("/");
                 p.append(port.getProtocol());
             }
-            p.append(padded.getAfter().getWhitespace());
+            visitSpace(padded.getAfter(), p);
         }
         afterSyntax(expose, p);
         return expose;
@@ -309,7 +310,7 @@ public class DockerfilePrinter<P> extends DockerfileVisitor<PrintOutputCapture<P
 
         for (DockerfileRightPadded<Dockerfile.KeyArgs> padded : env.getArgs()) {
             Dockerfile.KeyArgs kvp = padded.getElement();
-            p.append(kvp.getPrefix().getWhitespace());
+            visitSpace(kvp.getPrefix(), p);
             p.append(kvp.getKey());
             if (kvp.getValue() != null && !kvp.getValue().isEmpty()) {
                 if (kvp.isHasEquals()) {
@@ -327,7 +328,7 @@ public class DockerfilePrinter<P> extends DockerfileVisitor<PrintOutputCapture<P
                 }
             }
 
-            p.append(padded.getAfter().getWhitespace());
+            visitSpace(padded.getAfter(),p);
         }
         afterSyntax(env, p);
         return env;
@@ -342,7 +343,7 @@ public class DockerfilePrinter<P> extends DockerfileVisitor<PrintOutputCapture<P
             add.getOptions().forEach(o -> {
                     Dockerfile.Option element = o.getElement();
                     if (element.getName() != null && !element.getName().isEmpty()) {
-                        p.append(element.getPrefix().getWhitespace());
+                        visitSpace(element.getPrefix(), p);
                         p.append("--");
                         p.append(element.getName());
                         if (element.getKeyArgs() != null) {
@@ -371,18 +372,18 @@ public class DockerfilePrinter<P> extends DockerfileVisitor<PrintOutputCapture<P
             for (int i = 0; i < add.getSources().size(); i++) {
                 DockerfileRightPadded<Dockerfile.Literal> literalPadded = add.getSources().get(i);
                 Dockerfile.Literal literal = literalPadded.getElement();
-                p.append(literal.getPrefix().getWhitespace());
+                visitSpace(literal.getPrefix(), p);
                 p.append(literal.getText());
-                p.append(literalPadded.getAfter().getWhitespace());
+                visitSpace(literalPadded.getAfter(), p);
             }
         }
 
         if (add.getDestination() != null) {
             DockerfileRightPadded<Dockerfile.Literal> literalPadded = add.getDestination();
             Dockerfile.Literal literal = literalPadded.getElement();
-            p.append(literal.getPrefix().getWhitespace());
+            visitSpace(literal.getPrefix(), p);
             p.append(literal.getText());
-            p.append(literalPadded.getAfter().getWhitespace());
+            visitSpace(literalPadded.getAfter(), p);
         }
 
         afterSyntax(add, p);
@@ -398,7 +399,7 @@ public class DockerfilePrinter<P> extends DockerfileVisitor<PrintOutputCapture<P
             copy.getOptions().forEach(o -> {
                         Dockerfile.Option element = o.getElement();
                         if (element.getName() != null && !element.getName().isEmpty()) {
-                            p.append(element.getPrefix().getWhitespace());
+                            visitSpace(element.getPrefix(), p);
                             p.append("--");
                             p.append(element.getName());
                             if (element.getKeyArgs() != null) {
@@ -427,18 +428,18 @@ public class DockerfilePrinter<P> extends DockerfileVisitor<PrintOutputCapture<P
             for (int i = 0; i < copy.getSources().size(); i++) {
                 DockerfileRightPadded<Dockerfile.Literal> literalPadded = copy.getSources().get(i);
                 Dockerfile.Literal literal = literalPadded.getElement();
-                p.append(literal.getPrefix().getWhitespace());
+                visitSpace(literal.getPrefix(), p);
                 p.append(literal.getText());
-                p.append(literalPadded.getAfter().getWhitespace());
+                visitSpace(literalPadded.getAfter(), p);
             }
         }
 
         if (copy.getDestination() != null) {
             DockerfileRightPadded<Dockerfile.Literal> literalPadded = copy.getDestination();
             Dockerfile.Literal literal = literalPadded.getElement();
-            p.append(literal.getPrefix().getWhitespace());
+            visitSpace(literal.getPrefix(), p);
             p.append(literal.getText());
-            p.append(literalPadded.getAfter().getWhitespace());
+            visitSpace(literalPadded.getAfter(), p);
         }
 
 
@@ -455,15 +456,15 @@ public class DockerfilePrinter<P> extends DockerfileVisitor<PrintOutputCapture<P
             Dockerfile.Literal literal = padded.getElement();
             String text = literal.getText();
             text = trimDoubleQuotes(text);
-            p.append(literal.getPrefix().getWhitespace());
+            visitSpace(literal.getPrefix(), p);
             p.append("\"").append(text).append("\"");
-            p.append(padded.getAfter().getWhitespace());
+            visitSpace(padded.getAfter(), p);
             if (i < entrypoint.getCommand().size() - 1) {
                 p.append(",");
             }
         }
         p.append("]");
-        p.append(entrypoint.getTrailing().getWhitespace());
+        visitSpace(entrypoint.getTrailing(), p);
         afterSyntax(entrypoint, p);
         return entrypoint;
     }
@@ -506,7 +507,7 @@ public class DockerfilePrinter<P> extends DockerfileVisitor<PrintOutputCapture<P
         p.append("ARG");
         arg.getArgs().forEach(padded -> {
             Dockerfile.KeyArgs kvp = padded.getElement();
-            p.append(kvp.getPrefix().getWhitespace());
+            visitSpace(kvp.getPrefix(), p);
             p.append(kvp.getKey());
             if (kvp.isHasEquals()) {
                 p.append("=");
@@ -518,7 +519,7 @@ public class DockerfilePrinter<P> extends DockerfileVisitor<PrintOutputCapture<P
             } else {
                 p.append(kvp.getValue());
             }
-            p.append(padded.getAfter().getWhitespace());
+            visitSpace(padded.getAfter(), p);
         });
         afterSyntax(arg, p);
         return arg;
@@ -576,8 +577,8 @@ public class DockerfilePrinter<P> extends DockerfileVisitor<PrintOutputCapture<P
         if (literal == null || literal.getText() == null || literal.getText().isEmpty()) {
             return;
         }
-        p.append(literal.getPrefix().getWhitespace());
+        visitSpace(literal.getPrefix(), p);
         p.append(literal.getText());
-        p.append(padded.getAfter().getWhitespace());
+        visitSpace(padded.getAfter(), p);
     }
 }
