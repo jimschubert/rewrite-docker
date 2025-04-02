@@ -2,7 +2,7 @@
 
 This is a pet project to support dockerfiles in OpenRewrite.
 
-It does _not_ work well enough for you to use it. It's a work in progress.
+It does _not_ work well enough for you to use it. It's a work in progress. I can't promise that it will ever be finished.
 
 TODOs:
 
