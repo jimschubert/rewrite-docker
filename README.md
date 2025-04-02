@@ -9,3 +9,7 @@ TODOs:
 * Implement a more solid lexer/parser to retain whitespace.
 * Update all print methods (aside from FROM) to properly print prefix + right-padding
 * Update all types with Right-padded literals to have simplified with* methods
+
+## License
+
+This project is licensed under the [Apache License, Version 2.0](LICENSE).
