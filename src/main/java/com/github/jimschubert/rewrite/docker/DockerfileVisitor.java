@@ -8,6 +8,13 @@ import java.util.List;
 
 public class DockerfileVisitor<P> extends TreeVisitor<Dockerfile, P> {
 
+    public Dockerfile visitDocument(Dockerfile.Document dockerfile, P ctx) {
+        return dockerfile.withStages(dockerfile.getStages().stream()
+                .map(s -> visitAndCast(s, ctx))
+                .map(s -> (Dockerfile.Stage)s)
+                .toList());
+    }
+
     public Space visitSpace(Space space, P p) {
         return space;
     }
@@ -95,5 +102,17 @@ public class DockerfileVisitor<P> extends TreeVisitor<Dockerfile, P> {
 
     public Dockerfile visitShell(Dockerfile.Shell shell, P p) {
         return shell.withMarkers(visitMarkers(shell.getMarkers(), p));
+    }
+
+    public Dockerfile visitDirective(Dockerfile.Directive directive, P p) {
+        return directive.withMarkers(visitMarkers(directive.getMarkers(), p));
+    }
+
+    public Dockerfile visitLiteral(Dockerfile.Literal literal, P p) {
+        return literal.withMarkers(visitMarkers(literal.getMarkers(), p));
+    }
+
+    public Dockerfile visitOption(Dockerfile.Option option, P p) {
+        return option.withMarkers(visitMarkers(option.getMarkers(), p));
     }
 }

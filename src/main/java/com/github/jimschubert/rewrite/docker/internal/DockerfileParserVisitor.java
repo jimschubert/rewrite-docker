@@ -3,7 +3,7 @@ package com.github.jimschubert.rewrite.docker.internal;
 import com.github.jimschubert.docker.ast.*;
 import com.github.jimschubert.rewrite.docker.tree.Dockerfile;
 import com.github.jimschubert.rewrite.docker.tree.Dockerfile.*;
-import com.github.jimschubert.rewrite.docker.tree.KeyArgs;
+import com.github.jimschubert.rewrite.docker.tree.DockerfileRightPadded;
 import com.github.jimschubert.rewrite.docker.tree.Quoting;
 import com.github.jimschubert.rewrite.docker.tree.Space;
 import org.openrewrite.FileAttributes;
@@ -16,12 +16,16 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class DockerfileParserVisitor {
     private final Path relativePath;
     private final FileAttributes fileAttributes;
     private final Charset charset;
+
+    // TODO: Implement these fields if needed.
     private final EncodingDetectingInputStream source;
     private int cursor = 0;
 
@@ -85,7 +89,47 @@ public class DockerfileParserVisitor {
     }
 
     private Instruction visitFrom(FromInstruction instr) {
-        return new From(Tree.randomId(), null, null, instr.getImage(), instr.getAlias());
+        Matcher aliasMatcher = Pattern.compile("^FROM(?:\\s*--platform=[a-z0-9/]+)?\\s+([^ ]+)\\s+(as|AS)\\s+(.+)\\s*$").matcher(instr.toCanonicalForm());
+        String image = instr.getImage();
+        String as = null;
+        String alias = instr.getAlias();
+        String platform = instr.getPlatform();
+        String digest = instr.getDigest();
+        String tag = null;
+
+        // if it's aliased, this parser returns the alias as the whole image (a bug).
+        // This is a workaround which will continue to work even if the parser is fixed.
+        if (aliasMatcher.matches()) {
+            image = aliasMatcher.group(1);
+            as = aliasMatcher.group(2);
+            alias = aliasMatcher.group(3);
+        }
+
+        // This parser doesn't parse a few things properly, so we need to handle them here.
+        if (image.indexOf('@') > 0) {
+            String[] parts = image.split("@");
+            image = parts[0];
+            if (parts.length > 1) {
+                digest = parts[1];
+            }
+        } else if (image.indexOf(':') > 0) {
+            String[] parts = image.split(":");
+            image = parts[0];
+            if (parts.length > 1) {
+                tag = parts[1];
+            }
+        }
+
+        return new From(
+                Tree.randomId(),
+                Space.EMPTY,
+                Markers.EMPTY,
+                DockerfileRightPadded.build(Literal.build(platform).withPrefix(Space.build(" "))),
+                DockerfileRightPadded.build(Literal.build(image).withPrefix(Space.build(" "))),
+                DockerfileRightPadded.build(Literal.build(null)),
+                Literal.build(as).withPrefix(Space.build(" ")),
+                DockerfileRightPadded.build(Literal.build(alias).withPrefix(Space.build(" ")))
+        ).withDigest(digest).withTag(tag);
     }
 
     public Stage visitStage(Stage instr) {
@@ -93,24 +137,28 @@ public class DockerfileParserVisitor {
     }
 
     public Entrypoint visitEntrypoint(EntrypointInstruction instr) {
-        return new Entrypoint(Tree.randomId(), null, null, instr.getEntrypoint());
+        return new Entrypoint(Tree.randomId(), Space.EMPTY, Markers.EMPTY,
+                instr.getEntrypoint().stream().map(e ->
+                        DockerfileRightPadded.build(Literal.build(e).withPrefix(Space.build(" ")))
+                                .withAfter(Space.build(" "))
+                ).toList(), Space.EMPTY);
     }
 
     public Volume visitVolume(VolumeInstruction instr) {
-        return new Volume(Tree.randomId(), null, null, instr.getVolume());
+        return new Volume(Tree.randomId(), Space.EMPTY, Markers.EMPTY, instr.getVolume());
     }
 
     public User visitUser(UserInstruction instr) {
-        return new User(UUID.randomUUID(), null, null, instr.getUser(), instr.getGroup());
+        return new User(Tree.randomId(), Space.EMPTY, Markers.EMPTY, instr.getUser(), instr.getGroup());
     }
 
     public Workdir visitWorkdir(WorkdirInstruction instr) {
-        return new Workdir(UUID.randomUUID(), null, null, instr.getWorkdir());
+        return new Workdir(Tree.randomId(), Space.EMPTY, Markers.EMPTY, instr.getWorkdir());
     }
 
     public Arg visitArg(ArgInstruction instr) {
-        return new Arg(UUID.randomUUID(), null, null, instr.getArgs().stream()
-                .map(kv -> new KeyArgs(kv.getKey(), kv.getValue(), kv.hasEquals(), Quoting.valueOf(kv.getQuoting().name())))
+        return new Arg(Tree.randomId(), Space.EMPTY, Markers.EMPTY, instr.getArgs().stream()
+                .map(kv -> DockerfileRightPadded.build(new Dockerfile.KeyArgs(Space.build(" "), kv.getKey(), kv.getValue(), kv.hasEquals(), Quoting.valueOf(kv.getQuoting().name()))))
                 .collect(Collectors.toList()));
     }
 
