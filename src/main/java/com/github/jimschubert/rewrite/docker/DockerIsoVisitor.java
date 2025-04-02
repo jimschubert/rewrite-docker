@@ -6,6 +6,13 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.Tree;
 
+/**
+ * An isomorphic visitor for Dockerfile ASTs.
+ * Each visit method returns the same type as the input, but with the children visited.
+ * This visitor should be preferred over {@link DockerVisitor} when visiting the Dockerfile LST.
+ * @see <a href="https://docs.openrewrite.org/concepts-and-explanations/visitors#isomorphic-vs-non-isomorphic-visitors">OpenRewrite docs: Visitor</a>
+ * @param <T>
+ */
 public class DockerIsoVisitor<T> extends DockerVisitor<T> {
     @Override
     public Docker.Document visitDocument(Docker.Document dockerfile, T ctx) {

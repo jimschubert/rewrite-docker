@@ -6,6 +6,13 @@ import org.openrewrite.TreeVisitor;
 
 import java.util.List;
 
+/**
+ * A visitor for Docker LSTs.
+ * Each visit method returns an abstract type. This visitor allows for rewriting the Dockerfile (e.g. replace an ARG instruction with an ENV instruction).
+ * For the most part, you'll want to use {@link DockerIsoVisitor} when visiting the Dockerfile AST.
+ * @see <a href="https://docs.openrewrite.org/concepts-and-explanations/visitors#isomorphic-vs-non-isomorphic-visitors">OpenRewrite docs: Visitor</a>
+ * @param <P>
+ */
 public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
 
     public Docker visitDocument(Docker.Document dockerfile, P ctx) {
