@@ -276,6 +276,10 @@ public interface Docker extends Tree {
         public Docker copyPaste() {
             return new Comment(Tree.randomId(), prefix, markers, text);
         }
+
+        public static Comment build(String text) {
+            return new Comment(Tree.randomId(), Space.EMPTY, Markers.EMPTY, DockerRightPadded.build(Literal.build(text).withPrefix(Space.build(" "))));
+        }
     }
 
     @Value
@@ -320,6 +324,7 @@ public interface Docker extends Tree {
         Space prefix;
         Markers markers;
 
+        @NonFinal
         DockerRightPadded<KeyArgs> directive;
 
         @Override
@@ -335,6 +340,38 @@ public interface Docker extends Tree {
         @Override
         public Docker copyPaste() {
             return new Directive(Tree.randomId(), prefix, markers, directive);
+        }
+
+        public String getKey() {
+            return directive.getElement().getKey();
+        }
+
+        public Directive withKey(String key) {
+            Space prefix = directive.getElement().getKey() == null ? Space.EMPTY : directive.getElement().getPrefix();
+            directive = directive.withElement(new KeyArgs(prefix, key, directive.getElement().getValue(), directive.getElement().isHasEquals(), directive.getElement().getQuoting()));
+            return this;
+        }
+
+        public Directive withValue(String value) {
+            Space prefix = directive.getElement().getValue() == null ? Space.EMPTY : directive.getElement().getPrefix();
+            directive = directive.withElement(new KeyArgs(prefix, directive.getElement().getKey(), value, directive.getElement().isHasEquals(), directive.getElement().getQuoting()));
+            return this;
+        }
+
+        public String getValue() {
+            return directive.getElement().getValue();
+        }
+
+        public String getFullDirective() {
+            if (directive.getElement().getKey() == null) {
+                return "";
+            }
+
+            return directive.getElement().getKey() + "=" + directive.getElement().getValue();
+        }
+
+        public static Directive build(String key, String value) {
+            return new Directive(Tree.randomId(), Space.EMPTY, Markers.EMPTY, DockerRightPadded.build(new KeyArgs(Space.build(" "), key, value, true, Quoting.UNQUOTED)));
         }
     }
 

@@ -5,6 +5,7 @@ import com.github.jimschubert.rewrite.docker.tree.Space;
 import org.openrewrite.TreeVisitor;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * A visitor for Docker LSTs.
@@ -16,10 +17,12 @@ import java.util.List;
 public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
 
     public Docker visitDocument(Docker.Document dockerfile, P ctx) {
-        return dockerfile.withStages(dockerfile.getStages().stream()
+        Docker d = dockerfile.withStages(dockerfile.getStages().stream()
                 .map(s -> visitAndCast(s, ctx))
                 .map(s -> (Docker.Stage)s)
-                .toList());
+                .collect(Collectors.toList()));
+
+        return d;
     }
 
     public Space visitSpace(Space space, P p) {
@@ -27,13 +30,10 @@ public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
     }
 
     public Docker visitStage(Docker.Stage stage, P p) {
-        List<Docker.Instruction> children = stage.getChildren().stream()
-                .map(c -> visitAndCast(c, p))
-                .map(c -> (Docker.Instruction)c)
-                .toList();
+        stage.getChildren()
+                .forEach(c -> visitAndCast(c, p));
 
-        return stage.withChildren(children)
-                .withMarkers(visitMarkers(stage.getMarkers(), p));
+        return stage;
     }
 
     public Docker visitFrom(Docker.From from, P p) {

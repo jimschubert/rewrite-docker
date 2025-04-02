@@ -68,6 +68,7 @@ public class DockerfileParserVisitor {
     }
 
     private Docker.Instruction convertToDockerfileInstruction(DockerInstruction instr) {
+        Matcher directiveMatcher = Pattern.compile("(?i)^#\\s*(syntax|escape|check)=(.*)\\s*$").matcher(instr.toCanonicalForm());
         switch (instr.getInstruction()) {
             case "ENTRYPOINT":
                 return visitEntrypoint((EntrypointInstruction) instr);
@@ -81,10 +82,33 @@ public class DockerfileParserVisitor {
                 return visitArg((ArgInstruction) instr);
             case "FROM":
                 return visitFrom((FromInstruction) instr);
-            // Add other cases here
+            case "#":
+                // when the comment includes a directive like syntax=... or escape=... or check=... return a directive
+                if (directiveMatcher.matches()) {
+                    return visitDirective((DirectiveInstruction)instr);
+                }
+
+                return visitComment(new CommentInstruction(instr.toCanonicalForm().substring(0, 2)));
+            case "COMMENT":
+                if (directiveMatcher.matches()) {
+                    return visitDirective(new DirectiveInstruction(directiveMatcher.group(1) + "=" + directiveMatcher.group(2)));
+                }
+
+                return visitComment((CommentInstruction) instr);
             default:
                 throw new IllegalArgumentException("Unknown instruction type: " + instr.getInstruction());
         }
+    }
+
+
+    private Instruction visitDirective(DirectiveInstruction instr) {
+        String[] parts = instr.toCanonicalForm().substring(2).split("=", 2);
+
+        return Directive.build(parts[0], parts[1]);
+    }
+
+    private Instruction visitComment(CommentInstruction instr) {
+        return Comment.build(instr.getComment());
     }
 
     private Instruction visitFrom(FromInstruction instr) {
