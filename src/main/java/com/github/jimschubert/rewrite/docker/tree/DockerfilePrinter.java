@@ -1,6 +1,6 @@
 package com.github.jimschubert.rewrite.docker.tree;
 
-import com.github.jimschubert.rewrite.docker.DockerfileVisitor;
+import com.github.jimschubert.rewrite.docker.DockerVisitor;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
@@ -12,7 +12,7 @@ import org.openrewrite.marker.Markers;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
-public class DockerfilePrinter<P> extends DockerfileVisitor<PrintOutputCapture<P>> {
+public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     private static final UnaryOperator<String> MARKER_WRAPPER =
             out -> "/*~~" + out + (out.isEmpty() ? "" : "~~") + ">*/";
 

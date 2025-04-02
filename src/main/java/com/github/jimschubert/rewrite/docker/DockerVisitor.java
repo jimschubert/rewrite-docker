@@ -6,7 +6,7 @@ import org.openrewrite.TreeVisitor;
 
 import java.util.List;
 
-public class DockerfileVisitor<P> extends TreeVisitor<Dockerfile, P> {
+public class DockerVisitor<P> extends TreeVisitor<Dockerfile, P> {
 
     public Dockerfile visitDocument(Dockerfile.Document dockerfile, P ctx) {
         return dockerfile.withStages(dockerfile.getStages().stream()

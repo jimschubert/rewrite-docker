@@ -6,7 +6,7 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.Tree;
 
-public class DockerIsoVisitor<T> extends DockerfileVisitor<T> {
+public class DockerIsoVisitor<T> extends DockerVisitor<T> {
     @Override
     public Dockerfile.Document visitDocument(Dockerfile.Document dockerfile, T ctx) {
         return (Dockerfile.Document)super.visitDocument(dockerfile, ctx);
