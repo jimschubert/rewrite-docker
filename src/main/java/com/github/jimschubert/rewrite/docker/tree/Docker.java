@@ -85,6 +85,7 @@ public interface Docker extends Tree {
     class Option implements Docker {
         @EqualsAndHashCode.Include
         UUID id;
+        Space prefix;
 
         String name;
         List<KeyArgs> keyArgs;
@@ -103,7 +104,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Option(Tree.randomId(), name, keyArgs, markers == null ? Markers.EMPTY : Markers.build(markers.getMarkers()));
+            return new Option(Tree.randomId(), prefix, name, keyArgs, markers == null ? Markers.EMPTY : Markers.build(markers.getMarkers()));
         }
     }
 
