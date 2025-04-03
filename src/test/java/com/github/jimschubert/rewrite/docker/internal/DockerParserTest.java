@@ -248,4 +248,78 @@ class DockerParserTest {
         assertArg(args.get(1), "MY_DOG", true, "Rex The Dog", " ", " \\\n", Quoting.UNQUOTED);
         assertArg(args.get(2), "MY_CAT", true, "fluffy", "", " ", Quoting.UNQUOTED);
     }
+
+    @Test
+    void testExposeSingle() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("EXPOSE 8080".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Expose expose = (Docker.Expose) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, expose.getPrefix());
+
+        List<DockerRightPadded<Docker.Port>> ports = expose.getPorts();
+        assertEquals(1, ports.size());
+        assertEquals("8080", ports.get(0).getElement().getPort());
+        assertEquals(" ", ports.get(0).getElement().getPrefix().getWhitespace());
+        assertEquals("", ports.get(0).getAfter().getWhitespace());
+        assertEquals("tcp", ports.get(0).getElement().getProtocol());
+    }
+
+    @Test
+    void testExposeMultiple() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("EXPOSE 8080 8081/udp 9999".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Expose expose = (Docker.Expose) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, expose.getPrefix());
+
+        List<DockerRightPadded<Docker.Port>> ports = expose.getPorts();
+        assertEquals(3, ports.size());
+        assertEquals("8080", ports.get(0).getElement().getPort());
+        assertEquals(" ", ports.get(0).getElement().getPrefix().getWhitespace());
+        assertEquals("", ports.get(0).getAfter().getWhitespace());
+        assertEquals("tcp", ports.get(0).getElement().getProtocol());
+
+        assertEquals("8081", ports.get(1).getElement().getPort());
+        assertEquals(" ", ports.get(1).getElement().getPrefix().getWhitespace());
+        assertEquals("", ports.get(1).getAfter().getWhitespace());
+        assertEquals("udp", ports.get(1).getElement().getProtocol());
+
+        assertEquals("9999", ports.get(2).getElement().getPort());
+        assertEquals(" ", ports.get(2).getElement().getPrefix().getWhitespace());
+        assertEquals("", ports.get(2).getAfter().getWhitespace());
+        assertEquals("tcp", ports.get(2).getElement().getProtocol());
+    }
+
+    @Test
+    void testExposeMultiline() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("EXPOSE 8080 \\\n\t\t8081/udp \\\n9999".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Expose expose = (Docker.Expose) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, expose.getPrefix());
+
+        List<DockerRightPadded<Docker.Port>> ports = expose.getPorts();
+        assertEquals(3, ports.size());
+        assertEquals("8080", ports.get(0).getElement().getPort());
+        assertEquals(" ", ports.get(0).getElement().getPrefix().getWhitespace());
+        assertEquals(" \\\n", ports.get(0).getAfter().getWhitespace());
+        assertEquals("tcp", ports.get(0).getElement().getProtocol());
+
+        assertEquals("8081", ports.get(1).getElement().getPort());
+        assertEquals("\t\t", ports.get(1).getElement().getPrefix().getWhitespace());
+        assertEquals(" \\\n", ports.get(1).getAfter().getWhitespace());
+        assertEquals("udp", ports.get(1).getElement().getProtocol());
+
+        assertEquals("9999", ports.get(2).getElement().getPort());
+        assertEquals("", ports.get(2).getElement().getPrefix().getWhitespace());
+        assertEquals("", ports.get(2).getAfter().getWhitespace());
+        assertEquals("tcp", ports.get(2).getElement().getProtocol());
+    }
 }

@@ -62,6 +62,22 @@ public class DockerParser {
             instruction.setLength(0);
         }
 
+        Docker.Port stringToPorts(String s) {
+            if (s == null || s.isEmpty()) {
+                return null;
+            }
+            StringWithPadding stringWithPadding = StringWithPadding.of(s);
+            String content = stringWithPadding.content();
+            String[] parts = content.split("/");
+
+            if (parts.length == 2) {
+                return new Docker.Port(stringWithPadding.prefix(), parts[0], parts[1], true);
+            } else if (parts.length == 1) {
+                return new Docker.Port(stringWithPadding.prefix(), parts[0], "tcp", false);
+            }
+            return null;
+        }
+
         Docker.KeyArgs stringToKeyArgs(String s) {
             if (s == null || s.isEmpty()) {
                 return null;
@@ -87,6 +103,10 @@ public class DockerParser {
                 }
             }
             return new Docker.KeyArgs(stringWithPadding.prefix(), key, value, EQUAL.equals(delim), q);
+        }
+
+        private List<DockerRightPadded<Docker.Port>> parsePorts(String input) {
+            return parseElements(input, SPACE + TAB, true, this::stringToPorts);
         }
 
         private List<DockerRightPadded<Docker.KeyArgs>> parseArgs(String input) {
@@ -292,8 +312,9 @@ public class DockerParser {
                 List<DockerRightPadded<Docker.KeyArgs>> args = parseArgs(instruction.toString());
                 return new Docker.Env(Tree.randomId(), prefix, Markers.EMPTY, args);
             }  else if (name.equals(Docker.Expose.class.getSimpleName())) {
-                // TODO: implement this
-                return new Docker.Expose(Tree.randomId(), prefix, Markers.EMPTY, null);
+                List<DockerRightPadded<Docker.Port>> ports = parsePorts(instruction.toString());
+
+                return new Docker.Expose(Tree.randomId(), prefix, Markers.EMPTY, ports);
             } else if (name.equals(Docker.From.class.getSimpleName())) {
                 // TODO: implement this
                 return new Docker.From(Tree.randomId(), prefix, Markers.EMPTY, null, null, null, null, null);
