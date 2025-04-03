@@ -46,6 +46,10 @@ public class DockerParser {
             }
         }
 
+        void resetPrefix() {
+            prefix = Space.EMPTY;
+        }
+
         void append(String s) {
             instruction.append(s);
         }
@@ -63,7 +67,7 @@ public class DockerParser {
                 return null;
             }
 
-            StringWithPadding stringWithPadding = asStringWithPrefix(s);
+            StringWithPadding stringWithPadding = StringWithPadding.of(s);
             String content = stringWithPadding.content();
 
             @SuppressWarnings("RegExpRepeatedSpace")
@@ -98,6 +102,7 @@ public class DockerParser {
         private <T> List<DockerRightPadded<T>> parseElements(String input, String delims, boolean appendRightPadding, Function<String, T> elementCreator) {
             List<DockerRightPadded<T>> elements = new ArrayList<>();
             StringBuilder currentElement = new StringBuilder();
+            StringBuilder afterBuilder = new StringBuilder(); // queue up escaped newlines and whitespace as 'after' for previous element
             boolean inQuotes = false;
             char doubleQuote = DOUBLE_QUOTE.charAt(0);
             char singleQuote = SINGLE_QUOTE.charAt(0);
@@ -122,7 +127,8 @@ public class DockerParser {
                 } else {
                     if (delimSet.contains(c) && lastChar != escape) {
                         if (!StringUtils.isBlank(currentElement.toString())) {
-                            elements.add(DockerRightPadded.build(elementCreator.apply(currentElement.toString())).withAfter(Space.EMPTY));
+                            elements.add(DockerRightPadded.build(elementCreator.apply(currentElement.toString()))
+                                    .withAfter(Space.EMPTY));
                             currentElement.setLength(0);
                         }
                         // drop comma, assuming we are creating a list of elements
@@ -134,7 +140,50 @@ public class DockerParser {
                             inQuotes = true;
                             quote = c;
                         }
-                        currentElement.append(c);
+
+                        // "peek": if the current character is an escape and the next character is newline or carriage return, 'after' and advance
+                        int nextCharIndex = i + 1;
+                        if (c == escape && nextCharIndex < input.length() && (input.charAt(nextCharIndex) == '\n' || input.charAt(nextCharIndex) == '\r')) {
+                            // if we had already collected some whitespace (only whitespace), add it as 'after' to the last element
+                            if (StringUtils.isBlank(currentElement.toString())) {
+                                afterBuilder.append(currentElement);
+                                currentElement.setLength(0);
+                            }
+
+                            char next = input.charAt(nextCharIndex);
+                            afterBuilder.append(escape).append(next);
+
+                            // manually advance
+                            lastChar = next;
+                            i++;
+                            continue;
+                        }
+
+                        // if 'after' builder is not empty and the character is whitespace, accumulate it
+                        if (!afterBuilder.isEmpty() && (c == ' ' || c == '\t' || c == '\n')) {
+                            afterBuilder.append(c);
+                            lastChar = c;
+                            continue;
+                        }
+
+                        // Drop escape character if it is followed by a space
+                        // other situations will retain the escape character
+                        if (lastChar == escape && c == ' ') {
+                            currentElement.setLength(currentElement.length() - 1);
+                        }
+
+                        // no longer accumulating a prefix, add as "after" to the last element
+                        if (!elements.isEmpty() && !afterBuilder.isEmpty()) {
+                            int idx = elements.size() - 1;
+                            DockerRightPadded<T> element = elements.get(idx);
+                            elements.set(idx, element.withAfter( Space.append(element.getAfter(), Space.build(afterBuilder.toString()))));
+                            afterBuilder.setLength(0);
+                        }
+
+                        // Only collect the current element if we're not "in a prefix" situation
+                        if (afterBuilder.isEmpty()) {
+                            currentElement.append(c);
+                        }
                     }
                 }
                 lastChar = c;
@@ -164,7 +213,7 @@ public class DockerParser {
             if (s == null || s.isEmpty()) {
                 return null;
             }
-            StringWithPadding stringWithPadding = asStringWithPrefix(s);
+            StringWithPadding stringWithPadding = StringWithPadding.of(s);
             String content = stringWithPadding.content();
             Quoting q = Quoting.UNQUOTED;
             if (content.startsWith(DOUBLE_QUOTE) && content.endsWith(DOUBLE_QUOTE)) {
@@ -202,7 +251,7 @@ public class DockerParser {
                 Space execFormPrefix = Space.EMPTY;
                 Space execFormSuffix = Space.EMPTY;
                 if (content.trim().startsWith("[")) {
-                    StringWithPadding stringWithPadding = asStringWithPrefix(content);
+                    StringWithPadding stringWithPadding = StringWithPadding.of(content);
                     content = stringWithPadding.content();
                     execFormPrefix = stringWithPadding.prefix();
                     content = content.substring(1, content.length() - 1);
@@ -216,7 +265,7 @@ public class DockerParser {
 
                 return new Docker.Entrypoint(Tree.randomId(), form, prefix, execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY);
             } else if (name.equals(Docker.Comment.class.getSimpleName())) {
-                StringWithPadding stringWithPadding = asStringWithPrefix(instruction.toString());
+                StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
 
                 return new Docker.Comment(Tree.randomId(), prefix, Markers.EMPTY,
                         DockerRightPadded.build(createLiteral(stringWithPadding.content()).withPrefix(stringWithPadding.prefix())).withAfter(rightPadding));
@@ -224,7 +273,7 @@ public class DockerParser {
                 // TODO: implement this
                 return new Docker.Copy(Tree.randomId(), prefix, Markers.EMPTY, null, null, null);
             } else if (name.equals(Docker.Directive.class.getSimpleName())) {
-                StringWithPadding stringWithPadding = asStringWithPrefix(instruction.toString());
+                StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
 
                 String[] parts = stringWithPadding.content().split("=", 2);
                 String key = parts.length > 0 ? parts[0] : "";
@@ -240,8 +289,8 @@ public class DockerParser {
                         Markers.EMPTY
                 ));
             } else if (name.equals(Docker.Env.class.getSimpleName())) {
-                // TODO: implement this
-                return new Docker.Env(Tree.randomId(), prefix, Markers.EMPTY, null);
+                List<DockerRightPadded<Docker.KeyArgs>> args = parseArgs(instruction.toString());
+                return new Docker.Env(Tree.randomId(), prefix, Markers.EMPTY, args);
             }  else if (name.equals(Docker.Expose.class.getSimpleName())) {
                 // TODO: implement this
                 return new Docker.Expose(Tree.randomId(), prefix, Markers.EMPTY, null);
@@ -320,40 +369,6 @@ public class DockerParser {
             }
             return null;
         }
-
-        // TODO: maybe have this return a string with prefix and suffix whitespace
-        private @NotNull StringWithPadding asStringWithPrefix(String content) {
-            int idx = 0;
-            for (char c : content.toCharArray()) {
-                if (c == ' ' || c == '\t') {
-                    idx++;
-                } else {
-                    break;
-                }
-            }
-
-            Space rightPadding = Space.EMPTY;
-            Space before = Space.build(content.substring(0, idx));
-            content = content.substring(idx);
-
-            idx = content.length() - 1;
-            // walk line backwards to find the last non-whitespace character
-            for (int i = content.length() - 1; i >= 0; i--) {
-                if (content.charAt(i) != ' ' && content.charAt(i) != '\t') {
-                    // move the pointer to after the current non-whitespace character
-                    idx = i + 1;
-                    break;
-                }
-            }
-
-            if (idx < content.length()) {
-                rightPadding = Space.build(content.substring(idx));
-                content = content.substring(0, idx);
-            }
-
-            return new StringWithPadding(content, before, rightPadding);
-        }
-
     }
 
     public Docker parse(InputStream input) {
@@ -363,7 +378,6 @@ public class DockerParser {
         List<Docker.Instruction> currentInstructions = new ArrayList<>();
 
         Space eof = Space.EMPTY;
-        List<Docker.Instruction> parsed = new ArrayList<>();
         InstructionParser parser = new InstructionParser();
 
         try (Scanner scanner = new Scanner(input)) {
@@ -375,56 +389,24 @@ public class DockerParser {
                     continue;
                 }
 
-                // drain the line of any leading whitespace, storing in parser.addPrefix, then inspect the first "word" to determine the instruction type
-                while (line.startsWith(SPACE) || line.startsWith(TAB)) {
-                    parser.appendPrefix(Space.build(line.substring(0, 1)));
-                    line = line.substring(1);
-                }
-
+                line = handleLeadingWhitespace(line, parser);
                 if (line.isEmpty()) {
                     continue;
                 }
 
-                // take line until the first space character
-                int spaceIndex = line.indexOf(' ');
-                String firstWord = (spaceIndex == -1) ? line : line.substring(0, spaceIndex);
-
-                parser.instructionType = instructionFromText(firstWord);
-
-                // remove the first word from line
-                line = (spaceIndex == -1) ? line : line.substring(spaceIndex);
-
-                int idx = line.length() - 1;
-                // walk line backwards to find the last non-whitespace character
-                for (int i = line.length() - 1; i >= 0; i--) {
-                    if (line.charAt(i) != ' ' && line.charAt(i) != '\t') {
-                        // move the pointer to after the current non-whitespace character
-                        idx = i + 1;
-                        break;
-                    }
-                }
-
-                if (idx < line.length()) {
-                    parser.rightPadding = Space.build(line.substring(idx));
-                    line = line.substring(0, idx);
-                }
-
-                String escapeChar = parser.getEscapeChar();
+                line = handleInstructionType(line, parser);
+                line = handleRightPadding(line, parser);
 
                 if (parser.instructionType == Docker.Comment.class) {
-                    String lower = line.toLowerCase().trim();
-                    // hack: if comment is a directive, change the type accordingly
-                    // directives are used so rarely that I don't care to make this much more robust atm
-                    if ((lower.startsWith("syntax=") || lower.startsWith("escape=") || lower.startsWith("check=")) && !lower.contains(" ")) {
-                        parser.instructionType = Docker.Directive.class;
-                    }
+                    handleDirectiveSpecialCase(line, parser);
                 }
 
                 parser.append(line);
-                if (line.endsWith(escapeChar)) {
+                if (line.endsWith(parser.getEscapeChar())) {
                     parser.append(NEWLINE);
                     continue;
                 }
+
                 Docker.Instruction instr = parser.parse();
                 currentInstructions.add(instr);
                 if (instr instanceof Docker.From) {
@@ -441,6 +423,60 @@ public class DockerParser {
         }
 
         return new Docker.Document(Tree.randomId(), Markers.EMPTY, Paths.get("Dockerfile"), null, null, false, null, stages, eof);
+    }
+
+
+    private String handleLeadingWhitespace(String line, InstructionParser parser) {
+        // drain the line of any leading whitespace, storing in parser.addPrefix, then inspect the first "word" to determine the instruction type
+        while (line.startsWith(SPACE) || line.startsWith(TAB)) {
+            parser.appendPrefix(Space.build(line.substring(0, 1)));
+            line = line.substring(1);
+        }
+        return line;
+    }
+
+    private String handleInstructionType(String line, InstructionParser parser) {
+        // take line until the first space character
+        int spaceIndex = line.indexOf(' ');
+        String firstWord = (spaceIndex == -1) ? line : line.substring(0, spaceIndex);
+        Class<? extends Docker.Instruction> instructionType = instructionFromText(firstWord);
+        if (instructionType != null) {
+            parser.instructionType = instructionType;
+            // remove the first word from line
+            line = (spaceIndex == -1) ? line : line.substring(spaceIndex);
+        } else if (parser.prefix != null && !parser.prefix.isEmpty()) {
+            // if there was any prefix stored previously, add it to the multiline instruction
+            line = parser.prefix.getWhitespace() + line;
+            parser.resetPrefix();
+        }
+        return line;
+    }
+
+    private String handleRightPadding(String line, InstructionParser parser) {
+        int idx = line.length() - 1;
+        // walk line backwards to find the last non-whitespace character
+        for (int i = line.length() - 1; i >= 0; i--) {
+            if (line.charAt(i) != ' ' && line.charAt(i) != '\t') {
+                // move the pointer to after the current non-whitespace character
+                idx = i + 1;
+                break;
+            }
+        }
+
+        if (idx < line.length()) {
+            parser.rightPadding = Space.build(line.substring(idx));
+            line = line.substring(0, idx);
+        }
+        return line;
+    }
+
+    private void handleDirectiveSpecialCase(String line, InstructionParser parser) {
+        String lower = line.toLowerCase().trim();
+        // hack: if comment is a directive, change the type accordingly
+        // directives are used so rarely that I don't care to make this much more robust atm
+        if ((lower.startsWith("syntax=") || lower.startsWith("escape=") || lower.startsWith("check=")) && !lower.contains(" ")) {
+            parser.instructionType = Docker.Directive.class;
+        }
     }
 
     private Class<? extends Docker.Instruction> instructionFromText(String s) {
@@ -463,7 +499,8 @@ public class DockerParser {
             case "USER" -> Docker.User.class;
             case "VOLUME" -> Docker.Volume.class;
             case "WORKDIR" -> Docker.Workdir.class;
-            default -> Docker.Comment.class;
+            case "#" -> Docker.Comment.class;
+            default -> null;
         };
     }
 }
