@@ -6,6 +6,7 @@ import com.github.jimschubert.rewrite.docker.tree.Quoting;
 import com.github.jimschubert.rewrite.docker.tree.Space;
 import org.jetbrains.annotations.NotNull;
 import org.openrewrite.Tree;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.marker.Markers;
 
 import java.io.InputStream;
@@ -15,6 +16,16 @@ import java.util.List;
 import java.util.Scanner;
 
 public class DockerParser {
+    static final String DOUBLE_QUOTE = "\"";
+    static final String SINGLE_QUOTE = "'";
+    static final String BACKSLASH = "\\";
+    static final String TAB = "\t";
+    static final String NEWLINE = "\n";
+    static final String CARRIAGE_RETURN = "\r";
+    static final String EQUAL = "=";
+    static final String SPACE = " ";
+    static final String EMPTY = "";
+
     // InstructionParser is used to collect the parts of an instruction and parse it into the appropriate AST node.
     static class InstructionParser {
         private Space prefix = Space.EMPTY;
@@ -56,22 +67,67 @@ public class DockerParser {
             String content = stringWithPrefix.content();
 
             @SuppressWarnings("RegExpRepeatedSpace")
-            String delim = content.contains("=") ? "=" : " ";
-            String[] parts = content.split(delim, "=".equals(delim) ? 2 : 0);
-            String key = parts.length > 0 ? parts[0] : "";
+            String delim = content.contains(EQUAL) ? EQUAL : SPACE;
+            String[] parts = content.split(delim, EQUAL.equals(delim) ? 2 : 0);
+            String key = parts.length > 0 ? parts[0] : EMPTY;
             String value = parts.length > 1 ? parts[1].trim() : null;
             Quoting q = Quoting.UNQUOTED;
 
             if (value != null) {
-                if (value.startsWith("\"") && value.endsWith("\"")) {
+                if (value.startsWith("\"") && value.endsWith(DOUBLE_QUOTE)) {
                     q = Quoting.DOUBLE_QUOTED;
                     value = value.substring(1, value.length() - 1);
-                } else if (value.startsWith("'") && value.endsWith("'")) {
+                } else if (value.startsWith("'") && value.endsWith(SINGLE_QUOTE)) {
                     q = Quoting.SINGLE_QUOTED;
                     value = value.substring(1, value.length() - 1);
                 }
             }
-            return new Docker.KeyArgs(stringWithPrefix.prefix(), key, value, "=".equals(delim), q);
+            return new Docker.KeyArgs(stringWithPrefix.prefix(), key, value, EQUAL.equals(delim), q);
+        }
+
+
+        List<DockerRightPadded<Docker.KeyArgs>> parseArgs(String input) {
+            List<DockerRightPadded<Docker.KeyArgs>> args = new ArrayList<>();
+            StringBuilder currentArg = new StringBuilder();
+            boolean inQuotes = false;
+            char doubleQuote = DOUBLE_QUOTE.charAt(0);
+            char singleQuote = SINGLE_QUOTE.charAt(0);
+            char escape = this.escapeChar;
+            char space = SPACE.charAt(0);
+            char tab = TAB.charAt(0);
+            char quote = 0;
+            char lastChar = 0;
+
+            for (int i = 0; i < input.length(); i++) {
+                char c = input.charAt(i);
+                if (inQuotes) {
+                    if (c == quote && lastChar != escape) {
+                        inQuotes = false;
+                    }
+                    currentArg.append(c);
+                } else {
+                    if (c == space || c == tab) {
+                        if (!StringUtils.isBlank(currentArg.toString())) {
+                            args.add(DockerRightPadded.build(stringToKeyArgs(currentArg.toString())).withAfter(Space.EMPTY));
+                            currentArg.setLength(0);
+                        }
+                        currentArg.append(c);
+                    } else {
+                        if (c == doubleQuote || c == singleQuote) {
+                            inQuotes = true;
+                            quote = c;
+                        }
+                        currentArg.append(c);
+                    }
+                }
+                lastChar = c;
+            }
+
+            if (!currentArg.isEmpty()) {
+                args.add(DockerRightPadded.build(stringToKeyArgs(currentArg.toString())).withAfter(rightPadding));
+            }
+
+            return args;
         }
 
         private Docker.Literal createLiteral(String s) {
@@ -91,7 +147,8 @@ public class DockerParser {
                 // TODO: implement this
                 return new Docker.Add(Tree.randomId(), prefix, Markers.EMPTY, null, null, null);
             } else if (name.equals(Docker.Arg.class.getSimpleName())) {
-                return new Docker.Arg(Tree.randomId(), prefix, Markers.EMPTY, List.of(DockerRightPadded.build(stringToKeyArgs(instruction.toString()))));
+                List<DockerRightPadded<Docker.KeyArgs>> args = parseArgs(instruction.toString());
+                return new Docker.Arg(Tree.randomId(), prefix, Markers.EMPTY, args);
             } else if (name.equals(Docker.Cmd.class.getSimpleName())) {
                 // TODO: implement this
                 return new Docker.Cmd(Tree.randomId(), prefix, Markers.EMPTY, null, null);
