@@ -428,4 +428,47 @@ class DockerParserTest {
         assertEquals("", shell.getCommands().get(3).getAfter().getWhitespace());
         assertEquals(" ", shell.getExecFormPrefix().getWhitespace());
     }
+
+    @Test
+    void testUserOnly() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("USER root".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.User user = (Docker.User) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, user.getPrefix());
+        assertEquals("root", user.getUsername().getText());
+        assertNull(user.getGroup());
+    }
+
+    @Test
+    void testUserWithGroup() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("USER root:admin".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.User user = (Docker.User) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, user.getPrefix());
+        assertEquals("root", user.getUsername().getText());
+        assertEquals(" ", user.getUsername().getPrefix().getWhitespace());
+        assertEquals("admin", user.getGroup().getText());
+        assertEquals("", user.getGroup().getTrailing().getWhitespace());
+    }
+
+    @Test
+    void testUserWithFunkySpacing() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("USER    root:admin   \t".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.User user = (Docker.User) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, user.getPrefix());
+        assertEquals("root", user.getUsername().getText());
+        assertEquals("    ", user.getUsername().getPrefix().getWhitespace());
+        assertEquals("admin", user.getGroup().getText());
+        assertEquals("   \t", user.getGroup().getTrailing().getWhitespace());
+    }
 }

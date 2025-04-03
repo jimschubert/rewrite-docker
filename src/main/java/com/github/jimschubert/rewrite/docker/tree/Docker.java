@@ -824,8 +824,8 @@ public interface Docker extends Tree {
         Space prefix;
         Markers markers;
 
-        String username;
-        String group;
+        Literal username;
+        Literal group;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {

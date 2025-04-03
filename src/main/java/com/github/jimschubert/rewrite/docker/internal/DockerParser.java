@@ -1,7 +1,6 @@
 package com.github.jimschubert.rewrite.docker.internal;
 
 import com.github.jimschubert.rewrite.docker.tree.*;
-import org.jetbrains.annotations.NotNull;
 import org.openrewrite.Tree;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.marker.Markers;
@@ -405,9 +404,23 @@ public class DockerParser {
                 // TODO: implement this
                 return new Docker.StopSignal(Tree.randomId(), prefix, Markers.EMPTY, null);
             } else if (name.equals(Docker.User.class.getSimpleName())) {
-                // TODO: implement this
-                return new Docker.User(Tree.randomId(), prefix, Markers.EMPTY, null, null);
-            } else if (name.equals(Docker.Volume.class.getSimpleName())) {
+                StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
+                String[] parts = stringWithPadding.content().split(":", 2);
+
+                Docker.Literal user;
+                Docker.Literal group = null;
+                if (parts.length > 1) {
+                    user = Docker.Literal.build(stringWithPadding.prefix(), parts[0], Space.EMPTY, Quoting.UNQUOTED);
+                    group = Docker.Literal.build(Space.EMPTY, parts[1], Space.append(stringWithPadding.suffix(), rightPadding), Quoting.UNQUOTED);
+                } else {
+                    user = Docker.Literal.build(stringWithPadding.prefix(), parts[0], Space.append(stringWithPadding.suffix(), rightPadding), Quoting.UNQUOTED);
+                }
+
+                return new Docker.User(Tree.randomId(), prefix, Markers.EMPTY, user, group);
+            }
+
+
+            else if (name.equals(Docker.Volume.class.getSimpleName())) {
                 return new Docker.Volume(Tree.randomId(), prefix, Markers.EMPTY, instruction.toString());
             } else if (name.equals(Docker.Workdir.class.getSimpleName())) {
                 // TODO: implement this

@@ -191,7 +191,7 @@ public class DockerfileParserVisitor {
     }
 
     public User visitUser(UserInstruction instr) {
-        return new User(Tree.randomId(), Space.EMPTY, Markers.EMPTY, instr.getUser(), instr.getGroup());
+        return new User(Tree.randomId(), Space.EMPTY, Markers.EMPTY, Literal.build(instr.getUser()).withPrefix(Space.build(" ")), Literal.build(instr.getGroup()));
     }
 
     public Workdir visitWorkdir(WorkdirInstruction instr) {

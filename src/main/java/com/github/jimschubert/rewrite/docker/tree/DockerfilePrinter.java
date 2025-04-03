@@ -483,11 +483,15 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     @Override
     public Docker visitUser(Docker.User user, PrintOutputCapture<P> p) {
         beforeSyntax(user, p);
-        p.append("USER ");
-        p.append(user.getUsername());
-        if (user.getGroup() != null && !user.getGroup().isEmpty()) {
+        p.append("USER");
+        visitSpace(user.getUsername().getPrefix(), p);
+        p.append(user.getUsername().getText());
+        visitSpace(user.getUsername().getTrailing(), p);
+        if (user.getGroup() != null && user.getGroup().getText() != null && !user.getGroup().getText().isEmpty()) {
             p.append(":");
-            p.append(user.getGroup());
+            visitSpace(user.getGroup().getPrefix(), p);
+            p.append(user.getGroup().getText());
+            visitSpace(user.getGroup().getTrailing(), p);
         }
         afterSyntax(user, p);
         return user;
