@@ -12,6 +12,7 @@ import org.openrewrite.marker.Markers;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -187,7 +188,12 @@ public class DockerfileParserVisitor {
     }
 
     public Volume visitVolume(VolumeInstruction instr) {
-        return new Volume(Tree.randomId(), Space.EMPTY, Markers.EMPTY, instr.getVolume());
+        List<DockerRightPadded<Literal>> volumes = new ArrayList<>();
+        volumes.add(DockerRightPadded.build(Literal.build(instr.getVolume()).withPrefix(Space.build(" "))));
+        return new Volume(Tree.randomId(), Form.SHELL, Space.EMPTY, Space.EMPTY,
+                volumes,
+                Space.EMPTY,
+                Markers.EMPTY);
     }
 
     public User visitUser(UserInstruction instr) {
@@ -195,7 +201,7 @@ public class DockerfileParserVisitor {
     }
 
     public Workdir visitWorkdir(WorkdirInstruction instr) {
-        return new Workdir(Tree.randomId(), Space.EMPTY, Markers.EMPTY, instr.getWorkdir());
+        return new Workdir(Tree.randomId(), Space.EMPTY, Literal.build(instr.getWorkdir()).withPrefix(Space.build(" ")), Markers.EMPTY);
     }
 
     public Arg visitArg(ArgInstruction instr) {

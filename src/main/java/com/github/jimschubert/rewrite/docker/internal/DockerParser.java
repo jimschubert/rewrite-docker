@@ -268,7 +268,12 @@ public class DockerParser {
             } else if (name.equals(Docker.Arg.class.getSimpleName())) {
                 List<DockerRightPadded<Docker.KeyArgs>> args = parseArgs(instruction.toString());
                 return new Docker.Arg(Tree.randomId(), prefix, Markers.EMPTY, args);
-            } else if (name.equals(Docker.Cmd.class.getSimpleName()) || name.equals(Docker.Entrypoint.class.getSimpleName()) || name.equals(Docker.Shell.class.getSimpleName())) {
+            } else if (
+                    name.equals(Docker.Cmd.class.getSimpleName()) ||
+                    name.equals(Docker.Entrypoint.class.getSimpleName()) ||
+                    name.equals(Docker.Shell.class.getSimpleName()) ||
+                    name.equals(Docker.Volume.class.getSimpleName()) ||
+                    name.equals(Docker.Workdir.class.getSimpleName())){
                 String content = instruction.toString();
                 Form form = Form.SHELL;
                 Space execFormPrefix = Space.EMPTY;
@@ -282,12 +287,16 @@ public class DockerParser {
 
                     execFormSuffix = rightPadding;
                 }
+
                 if (name.equals(Docker.Cmd.class.getSimpleName())) {
                     return new Docker.Cmd(Tree.randomId(), form, prefix, execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY);
-                }
-
-                if (name.equals(Docker.Shell.class.getSimpleName())) {
-                    return new Docker.Shell(Tree.randomId(), prefix, Markers.EMPTY, execFormPrefix, parseLiterals(form, content), execFormSuffix);
+                } else if (name.equals(Docker.Shell.class.getSimpleName())) {
+                    return new Docker.Shell(Tree.randomId(), prefix, execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY);
+                } else if (name.equals(Docker.Volume.class.getSimpleName())) {
+                    return new Docker.Volume(Tree.randomId(), form, prefix, execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY);
+                } else if (name.equals(Docker.Workdir.class.getSimpleName())) {
+                    List<DockerRightPadded<Docker.Literal>> lit = parseLiterals(form, content);
+                    return new Docker.Workdir(Tree.randomId(), prefix, lit.isEmpty()? null: lit.get(0).getElement(), Markers.EMPTY);
                 }
 
                 return new Docker.Entrypoint(Tree.randomId(), form, prefix, execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY);
@@ -419,13 +428,6 @@ public class DockerParser {
                 return new Docker.User(Tree.randomId(), prefix, Markers.EMPTY, user, group);
             }
 
-
-            else if (name.equals(Docker.Volume.class.getSimpleName())) {
-                return new Docker.Volume(Tree.randomId(), prefix, Markers.EMPTY, instruction.toString());
-            } else if (name.equals(Docker.Workdir.class.getSimpleName())) {
-                // TODO: implement this
-                return new Docker.Workdir(Tree.randomId(), prefix, Markers.EMPTY, null);
-            }
             return null;
         }
     }

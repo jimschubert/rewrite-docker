@@ -471,4 +471,64 @@ class DockerParserTest {
         assertEquals("admin", user.getGroup().getText());
         assertEquals("   \t", user.getGroup().getTrailing().getWhitespace());
     }
+
+    @Test
+    void testVolumeShellFormat(){
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("VOLUME [ \"/var/log\", \"/var/log2\" ]\t".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Volume volume = (Docker.Volume) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, volume.getPrefix());
+        assertEquals(" ", volume.getExecFormPrefix().getWhitespace());
+        assertEquals("\t", volume.getExecFormSuffix().getWhitespace());
+
+        List<DockerRightPadded<Docker.Literal>> args = volume.getPaths();
+        assertEquals(2, args.size());
+        assertEquals("/var/log", args.get(0).getElement().getText());
+        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
+        assertEquals("", args.get(0).getAfter().getWhitespace());
+
+        assertEquals("/var/log2", args.get(1).getElement().getText());
+        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
+        assertEquals("", args.get(1).getAfter().getWhitespace());
+    }
+
+    @Test
+    void testVolumeExecFormat() {
+            DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("VOLUME /var/log /var/log2\t".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Volume volume = (Docker.Volume) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, volume.getPrefix());
+        assertEquals("", volume.getExecFormPrefix().getWhitespace());
+        assertEquals("", volume.getExecFormSuffix().getWhitespace());
+
+        List<DockerRightPadded<Docker.Literal>> args = volume.getPaths();
+        assertEquals(2, args.size());
+        assertEquals("/var/log", args.get(0).getElement().getText());
+        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
+        assertEquals("", args.get(0).getAfter().getWhitespace());
+
+        assertEquals("/var/log2", args.get(1).getElement().getText());
+        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
+        assertEquals("\t", args.get(1).getAfter().getWhitespace());
+    }
+
+    @Test
+    void testWorkDir() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("WORKDIR /var/log\t".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Workdir workdir = (Docker.Workdir) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, workdir.getPrefix());
+        assertEquals("/var/log", workdir.getPath().getText());
+        assertEquals(" ", workdir.getPath().getPrefix().getWhitespace());
+        assertEquals("", workdir.getPath().getTrailing().getWhitespace()); // TODO: FIX missing traililng here.
+    }
 }

@@ -763,11 +763,11 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
 
         Space execFormPrefix;
         List<DockerRightPadded<Literal>> commands;
         Space execFormSuffix;
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -781,7 +781,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Shell(Tree.randomId(), prefix, markers, execFormPrefix, commands, execFormSuffix);
+            return new Shell(Tree.randomId(), prefix, execFormPrefix, commands, execFormSuffix, markers);
         }
     }
 
@@ -851,10 +851,15 @@ public interface Docker extends Tree {
         @EqualsAndHashCode.Include
         UUID id;
 
-        Space prefix;
-        Markers markers;
+        Form form;
 
-        String path;
+        Space prefix;
+
+        Space execFormPrefix;
+        List<DockerRightPadded<Literal>> paths;
+        Space execFormSuffix;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -868,7 +873,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Volume(Tree.randomId(), prefix, markers, path);
+            return new Volume(Tree.randomId(), form, prefix, execFormPrefix, paths, execFormSuffix, markers);
         }
     }
 
@@ -906,9 +911,10 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
 
-        String path;
+        Literal path;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -922,7 +928,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Workdir(Tree.randomId(), prefix, markers, path);
+            return new Workdir(Tree.randomId(), prefix, path, markers);
         }
     }
 

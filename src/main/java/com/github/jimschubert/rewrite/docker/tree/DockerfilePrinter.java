@@ -473,9 +473,45 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     @Override
     public Docker visitVolume(Docker.Volume volume, PrintOutputCapture<P> p) {
         beforeSyntax(volume, p);
-        p.append("VOLUME ");
-        // TODO: update with appropriate options
-        p.append(volume.getPath());
+        p.append("VOLUME");
+
+        if (volume.getForm() == Form.EXEC) {
+            Space before = volume.getExecFormPrefix();
+            if (before == null || before.isEmpty()) {
+                before = Space.build(" ");
+            }
+            visitSpace(before, p);
+            p.append("[");
+        }
+
+        for (int i = 0; i < volume.getPaths().size(); i++) {
+            DockerRightPadded<Docker.Literal> padded = volume.getPaths().get(i);
+            Docker.Literal literal = padded.getElement();
+            visitSpace(literal.getPrefix(), p);
+
+            if (volume.getForm() == Form.EXEC) {
+                String text = literal.getText();
+                text = trimDoubleQuotes(text);
+                p.append("\"").append(text).append("\"");
+            } else {
+                p.append(literal.getText());
+            }
+
+            visitSpace(padded.getAfter(), p);
+            if (i < volume.getPaths().size() - 1) {
+                if (volume.getForm() == Form.EXEC) {
+                    p.append(",");
+                } else {
+                    p.append(" ");
+                }
+            }
+        }
+
+        if (volume.getForm() == Form.EXEC) {
+            p.append("]");
+            visitSpace(volume.getExecFormSuffix(), p);
+        }
+
         afterSyntax(volume, p);
         return volume;
     }
@@ -500,8 +536,12 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     @Override
     public Docker visitWorkdir(Docker.Workdir workdir, PrintOutputCapture<P> p) {
         beforeSyntax(workdir, p);
-        p.append("WORKDIR ");
-        p.append(workdir.getPath());
+        p.append("WORKDIR");
+        visitSpace(workdir.getPath().getPrefix(), p);
+        if (!workdir.getPath().getText().isEmpty()) {
+            p.append(workdir.getPath().getText());
+        }
+        visitSpace(workdir.getPath().getTrailing(), p);
         afterSyntax(workdir, p);
         return workdir;
     }
