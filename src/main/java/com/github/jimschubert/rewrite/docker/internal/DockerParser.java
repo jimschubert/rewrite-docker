@@ -113,6 +113,10 @@ public class DockerParser {
             return parseElements(input, SPACE + TAB, true, this::stringToKeyArgs);
         }
 
+        private List<DockerRightPadded<Docker.Literal>> parseLiterals(String input) {
+            return parseElements(input, SPACE, true, this::createLiteral);
+        }
+
         private List<DockerRightPadded<Docker.Literal>> parseLiterals(Form form, String input) {
             // appendRightPadding is true for shell form, false for exec form
             // exec form is a JSON array, so we need to parse it differently where right padding is after the ']'.
@@ -316,8 +320,48 @@ public class DockerParser {
 
                 return new Docker.Expose(Tree.randomId(), prefix, Markers.EMPTY, ports);
             } else if (name.equals(Docker.From.class.getSimpleName())) {
-                // TODO: implement this
-                return new Docker.From(Tree.randomId(), prefix, Markers.EMPTY, null, null, null, null, null);
+                String content = instruction.toString();
+                DockerRightPadded<Docker.Literal> platform = null;
+                DockerRightPadded<Docker.Literal> image = null;
+                DockerRightPadded<Docker.Literal> version = null;
+                DockerRightPadded<Docker.Literal> as = null;
+                DockerRightPadded<Docker.Literal> alias = null;
+
+                List<DockerRightPadded<Docker.Literal>> literals = parseLiterals(content);
+                if (!literals.isEmpty()) {
+                    while (!literals.isEmpty()) {
+                        DockerRightPadded<Docker.Literal> literal = literals.remove(0);
+                        String value = literal.getElement().getText();
+                        if (value.startsWith("--platform")) {
+                            platform = literal;
+                            // remove "--platform=" from the value
+                            value = value.substring(value.indexOf('=') + 1);
+                            platform = platform.withElement(platform.getElement().withText(value));
+                        } else if (value.equalsIgnoreCase("as")) {
+                            as = literal;
+                        } else if (image != null && as != null) {
+                            alias = literal;
+                        } else if (image == null) {
+                            String imageText = literal.getElement().getText();
+                            // walk imageText forwards to find the first ':' or '@' to determine the version
+                            int idx = 0;
+                            for (char c : imageText.toCharArray()) {
+                                if (c == ':' || c == '@') {
+                                    break;
+                                }
+                                idx++;
+                            }
+                            if (idx < imageText.length() - 1) {
+                                image = literal;
+                                version = DockerRightPadded.build(createLiteral(imageText.substring(idx))).withAfter(image.getAfter());
+                                imageText = imageText.substring(0, idx);
+                                image = image.withAfter(Space.EMPTY).withElement(image.getElement().withText(imageText));
+                            }
+                        }
+                    }
+                }
+
+                return new Docker.From(Tree.randomId(), prefix, Markers.EMPTY, platform, image, version, as == null ? null : as.getElement(), alias, rightPadding);
             } else if (name.equals(Docker.Healthcheck.class.getSimpleName())) {
                 // TODO: implement this
                 return new Docker.Healthcheck(Tree.randomId(), prefix, Markers.EMPTY, null, null, null);
@@ -431,7 +475,7 @@ public class DockerParser {
                 Docker.Instruction instr = parser.parse();
                 currentInstructions.add(instr);
                 if (instr instanceof Docker.From) {
-                    stages.add(new Docker.Stage(Tree.randomId(), Markers.EMPTY, currentInstructions));
+                    stages.add(new Docker.Stage(Tree.randomId(), Markers.EMPTY, new ArrayList<>(currentInstructions)));
                     currentInstructions.clear();
                 }
 
@@ -440,7 +484,7 @@ public class DockerParser {
         }
 
         if (stages.isEmpty()) {
-            stages.add(new Docker.Stage(Tree.randomId(), Markers.EMPTY, currentInstructions));
+            stages.add(new Docker.Stage(Tree.randomId(), Markers.EMPTY, new ArrayList<>(currentInstructions)));
         }
 
         return new Docker.Document(Tree.randomId(), Markers.EMPTY, Paths.get("Dockerfile"), null, null, false, null, stages, eof);

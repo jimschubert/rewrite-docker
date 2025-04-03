@@ -322,4 +322,54 @@ class DockerParserTest {
         assertEquals("", ports.get(2).getAfter().getWhitespace());
         assertEquals("tcp", ports.get(2).getElement().getProtocol());
     }
+
+    @Test
+    void testFrom() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("FROM alpine:latest".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.From from = (Docker.From) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, from.getPrefix());
+        assertEquals("alpine", from.getImage().getElement().getText());
+        assertEquals("latest", from.getTag());
+        assertEquals("", from.getImage().getAfter().getWhitespace());
+    }
+
+    @Test
+    void testFullFrom() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("FROM --platform=linux/arm64 alpine:latest as build\t".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.From from = (Docker.From) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, from.getPrefix());
+        assertEquals("linux/arm64", from.getPlatform().getElement().getText());
+        assertEquals("alpine", from.getImage().getElement().getText());
+        assertEquals("latest", from.getTag());
+        assertEquals("", from.getImage().getAfter().getWhitespace());
+
+        assertEquals("as", from.getAs().getText());
+        assertEquals(" ", from.getAs().getPrefix().getWhitespace());
+
+        assertEquals(" ", from.getAlias().getElement().getPrefix().getWhitespace());
+        assertEquals("build", from.getAlias().getElement().getText());
+        assertEquals("\t", from.getAlias().getAfter().getWhitespace());
+    }
+
+    @Test
+    void testFullFromWithDigest() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("FROM alpine@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\t".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.From from = (Docker.From) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, from.getPrefix());
+        assertEquals("alpine", from.getImage().getElement().getText());
+        assertEquals("sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef", from.getDigest());
+        assertEquals("", from.getImage().getAfter().getWhitespace());
+    }
 }

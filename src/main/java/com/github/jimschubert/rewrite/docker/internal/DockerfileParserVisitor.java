@@ -149,7 +149,8 @@ public class DockerfileParserVisitor {
                 DockerRightPadded.build(Literal.build(image).withPrefix(Space.build(" "))),
                 DockerRightPadded.build(Literal.build(null)),
                 Literal.build(as).withPrefix(Space.build(" ")),
-                DockerRightPadded.build(Literal.build(alias).withPrefix(Space.build(" ")))
+                DockerRightPadded.build(Literal.build(alias).withPrefix(Space.build(" "))),
+                Space.EMPTY
         ).withDigest(digest).withTag(tag);
     }
 

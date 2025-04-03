@@ -500,6 +500,9 @@ public interface Docker extends Tree {
         @NonFinal
         DockerRightPadded<Literal> alias;
 
+        @With
+        Space trailing;
+
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitFrom(this, p);
@@ -512,7 +515,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new From(Tree.randomId(), prefix, markers, platform, image, version, as, alias);
+            return new From(Tree.randomId(), prefix, markers, platform, image, version, as, alias, trailing);
         }
 
         public String getImageSpec() {
@@ -925,9 +928,9 @@ public interface Docker extends Tree {
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     class KeyArgs {
         Space prefix;
-        @EqualsAndHashCode.Include
+        @EqualsAndHashCode.Include(rank = 0)
         String key;
-        @EqualsAndHashCode.Include
+        @EqualsAndHashCode.Include(rank = 1)
         String value;
         boolean hasEquals;
         Quoting quoting;
