@@ -258,7 +258,8 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     public Docker visitLabel(Docker.Label label, PrintOutputCapture<P> p) {
         beforeSyntax(label, p);
         p.append("LABEL");
-        for (Docker.KeyArgs kvp : label.getArgs()) {
+        for (DockerRightPadded<Docker.KeyArgs> padded : label.getArgs()) {
+            Docker.KeyArgs kvp = padded.getElement();
             p.append(" ").append(kvp.getKey());
             if (kvp.isHasEquals()) {
                 p.append("=");

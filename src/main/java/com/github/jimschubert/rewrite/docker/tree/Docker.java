@@ -645,7 +645,7 @@ public interface Docker extends Tree {
         Space prefix;
         Markers markers;
 
-        List<KeyArgs> args;
+        List<DockerRightPadded<KeyArgs>> args;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {

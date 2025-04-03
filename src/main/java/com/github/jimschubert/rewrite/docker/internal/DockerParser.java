@@ -265,8 +265,13 @@ public class DockerParser {
             if (name.equals(Docker.Add.class.getSimpleName())) {
                 // TODO: implement this
                 return new Docker.Add(Tree.randomId(), prefix, Markers.EMPTY, null, null, null);
-            } else if (name.equals(Docker.Arg.class.getSimpleName())) {
+            } else if (name.equals(Docker.Arg.class.getSimpleName()) || name.equals(Docker.Label.class.getSimpleName())) {
+
                 List<DockerRightPadded<Docker.KeyArgs>> args = parseArgs(instruction.toString());
+
+                if (name.equals(Docker.Label.class.getSimpleName())) {
+                    return new Docker.Label(Tree.randomId(), prefix, Markers.EMPTY, args);
+                }
                 return new Docker.Arg(Tree.randomId(), prefix, Markers.EMPTY, args);
             } else if (
                     name.equals(Docker.Cmd.class.getSimpleName()) ||
@@ -377,9 +382,6 @@ public class DockerParser {
             } else if (name.equals(Docker.Healthcheck.class.getSimpleName())) {
                 // TODO: implement this
                 return new Docker.Healthcheck(Tree.randomId(), prefix, Markers.EMPTY, null, null, null);
-            } else if (name.equals(Docker.Label.class.getSimpleName())) {
-                // TODO: implement this
-                return new Docker.Label(Tree.randomId(), prefix, Markers.EMPTY, null);
             } else if (name.equals(Docker.Maintainer.class.getSimpleName())) {
                 return new Docker.Maintainer (Tree.randomId(), prefix, Markers.EMPTY, instruction.toString(), quoting);
             } else if (name.equals(Docker.OnBuild.class.getSimpleName())) {

@@ -11,8 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static com.github.jimschubert.rewrite.docker.internal.DockerParserHelpers.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 class DockerParserTest {
     @Test
@@ -530,5 +529,73 @@ class DockerParserTest {
         assertEquals("/var/log", workdir.getPath().getText());
         assertEquals(" ", workdir.getPath().getPrefix().getWhitespace());
         assertEquals("", workdir.getPath().getTrailing().getWhitespace()); // TODO: FIX missing traililng here.
+    }
+
+    @Test
+    void testLabelSingle() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("LABEL foo=bar".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Label label = (Docker.Label) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, label.getPrefix());
+        assertEquals("foo", label.getArgs().get(0).getElement().getKey());
+        assertEquals(" ", label.getArgs().get(0).getElement().getPrefix().getWhitespace());
+        assertTrue(label.getArgs().get(0).getElement().isHasEquals());
+        assertEquals("bar", label.getArgs().get(0).getElement().getValue());
+        assertEquals(Quoting.UNQUOTED, label.getArgs().get(0).getElement().getQuoting());
+    }
+
+    @Test
+    void testLabelMultiple() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("LABEL foo=bar baz=qux".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Label label = (Docker.Label) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, label.getPrefix());
+        assertEquals("foo", label.getArgs().get(0).getElement().getKey());
+        assertEquals(" ", label.getArgs().get(0).getElement().getPrefix().getWhitespace());
+        assertTrue(label.getArgs().get(0).getElement().isHasEquals());
+        assertEquals("bar", label.getArgs().get(0).getElement().getValue());
+        assertEquals(Quoting.UNQUOTED, label.getArgs().get(0).getElement().getQuoting());
+
+        assertEquals("baz", label.getArgs().get(1).getElement().getKey());
+        assertEquals(" ", label.getArgs().get(1).getElement().getPrefix().getWhitespace());
+        assertTrue(label.getArgs().get(1).getElement().isHasEquals());
+        assertEquals("qux", label.getArgs().get(1).getElement().getValue());
+        assertEquals(Quoting.UNQUOTED, label.getArgs().get(1).getElement().getQuoting());
+    }
+
+    @Test
+    void testLabelMultiline() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("LABEL foo=bar \\\n\t\tbaz=qux \\\n\t\tquux=\"Hello World\"".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Label label = (Docker.Label) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, label.getPrefix());
+        assertEquals("foo", label.getArgs().get(0).getElement().getKey());
+        assertEquals(" ", label.getArgs().get(0).getElement().getPrefix().getWhitespace());
+        assertTrue(label.getArgs().get(0).getElement().isHasEquals());
+        assertEquals("bar", label.getArgs().get(0).getElement().getValue());
+        assertEquals(Quoting.UNQUOTED, label.getArgs().get(0).getElement().getQuoting());
+        assertEquals(" \\\n", label.getArgs().get(0).getAfter().getWhitespace());
+
+        assertEquals("baz", label.getArgs().get(1).getElement().getKey());
+        assertEquals("\t\t", label.getArgs().get(1).getElement().getPrefix().getWhitespace());
+        assertTrue(label.getArgs().get(1).getElement().isHasEquals());
+        assertEquals("qux", label.getArgs().get(1).getElement().getValue());
+        assertEquals(Quoting.UNQUOTED, label.getArgs().get(1).getElement().getQuoting());
+        assertEquals(" \\\n", label.getArgs().get(1).getAfter().getWhitespace());
+
+        assertEquals("quux", label.getArgs().get(2).getElement().getKey());
+        assertEquals("\t\t", label.getArgs().get(2).getElement().getPrefix().getWhitespace());
+        assertTrue(label.getArgs().get(2).getElement().isHasEquals());
+        assertEquals("Hello World", label.getArgs().get(2).getElement().getValue());
+        assertEquals(Quoting.DOUBLE_QUOTED, label.getArgs().get(2).getElement().getQuoting());
     }
 }
