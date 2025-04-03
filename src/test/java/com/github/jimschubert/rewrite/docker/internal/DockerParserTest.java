@@ -68,4 +68,75 @@ class DockerParserTest {
         assertArg(args.get(2), "MY_VAR", false, null, " ", "", Quoting.UNQUOTED);
         assertArg(args.get(3), "OTHER_VAR", true, "some default", " ", " \t", Quoting.DOUBLE_QUOTED);
     }
+
+    @Test
+    void testCmdComplexExecForm(){
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("CMD [ \"echo\", \"Hello World\" ]   ".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Cmd cmd = (Docker.Cmd) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, cmd.getPrefix());
+
+        List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
+        assertEquals(2, args.size());
+
+        assertEquals("echo", args.get(0).getElement().getText());
+        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
+        assertEquals("Hello World", args.get(1).getElement().getText());
+        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
+        assertEquals(" ", args.get(1).getElement().getTrailing().getWhitespace());
+        assertEquals("   ", cmd.getExecFormSuffix().getWhitespace());
+    }
+
+    @Test
+    void testCmdShellForm() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("CMD echo Hello World   ".getBytes(StandardCharsets.UTF_8)));
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+        Docker.Cmd cmd = (Docker.Cmd) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, cmd.getPrefix());
+        List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
+        assertEquals(3, args.size());
+        assertEquals("echo", args.get(0).getElement().getText());
+        assertEquals("Hello", args.get(1).getElement().getText());
+        assertEquals("World", args.get(2).getElement().getText());
+        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
+        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
+        assertEquals(" ", args.get(2).getElement().getPrefix().getWhitespace());
+        assertEquals("   ", args.get(2).getAfter().getWhitespace());
+    }
+
+    @Test
+    void testCmdShellFormWithQuotes() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("CMD \"echo Hello World\"   ".getBytes(StandardCharsets.UTF_8)));
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+        Docker.Cmd cmd = (Docker.Cmd) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, cmd.getPrefix());
+        List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
+        assertEquals(1, args.size());
+        assertEquals("echo Hello World", args.get(0).getElement().getText());
+        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
+        assertEquals("   ", args.get(0).getAfter().getWhitespace());
+    }
+
+    @Test
+    void testCmdShellWithoutQuotes() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("CMD echo Hello World   ".getBytes(StandardCharsets.UTF_8)));
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+        Docker.Cmd cmd = (Docker.Cmd) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, cmd.getPrefix());
+        List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
+        assertEquals(3, args.size());
+        assertEquals("echo", args.get(0).getElement().getText());
+        assertEquals("Hello", args.get(1).getElement().getText());
+        assertEquals("World", args.get(2).getElement().getText());
+        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
+        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
+        assertEquals(" ", args.get(2).getElement().getPrefix().getWhitespace());
+        assertEquals("   ", args.get(2).getAfter().getWhitespace());
+    }
 }

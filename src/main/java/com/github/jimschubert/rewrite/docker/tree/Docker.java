@@ -57,7 +57,11 @@ public interface Docker extends Tree {
 
         String text;
 
+        Space trailing;
+
         Markers markers;
+
+        Quoting quoting;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -71,11 +75,17 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Literal(Tree.randomId(), prefix, text, markers == null ? Markers.EMPTY : Markers.build(markers.getMarkers()));
+            return new Literal(Tree.randomId(), prefix, text, trailing,
+                    markers == null ? Markers.EMPTY : Markers.build(markers.getMarkers()),
+                    quoting);
         }
 
         public static Literal build(String text) {
-            return new Literal(Tree.randomId(), Space.EMPTY, text, Markers.EMPTY);
+            return new Literal(Tree.randomId(), Space.EMPTY, text, Space.EMPTY, Markers.EMPTY, Quoting.UNQUOTED);
+        }
+
+        public static Literal build(Space prefix, String text, Space trailing, Quoting quoting) {
+            return new Literal(Tree.randomId(), prefix, text, trailing, Markers.EMPTY, quoting);
         }
     }
 
@@ -230,10 +240,13 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
+        Space execFormPrefix;
         Markers markers;
 
         Form form;
         List<DockerRightPadded<Literal>> commands;
+
+        Space execFormSuffix;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -247,7 +260,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Cmd(Tree.randomId(), prefix, markers, form, commands);
+            return new Cmd(Tree.randomId(), prefix, execFormPrefix, markers, form, commands, execFormSuffix);
         }
     }
 

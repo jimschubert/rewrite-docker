@@ -1,9 +1,6 @@
 package com.github.jimschubert.rewrite.docker.internal;
 
-import com.github.jimschubert.rewrite.docker.tree.Docker;
-import com.github.jimschubert.rewrite.docker.tree.DockerRightPadded;
-import com.github.jimschubert.rewrite.docker.tree.Quoting;
-import com.github.jimschubert.rewrite.docker.tree.Space;
+import com.github.jimschubert.rewrite.docker.tree.*;
 import org.jetbrains.annotations.NotNull;
 import org.openrewrite.Tree;
 import org.openrewrite.internal.StringUtils;
@@ -12,8 +9,10 @@ import org.openrewrite.marker.Markers;
 import java.io.InputStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
+import java.util.function.Function;
 
 public class DockerParser {
     static final String DOUBLE_QUOTE = "\"";
@@ -63,8 +62,8 @@ public class DockerParser {
                 return null;
             }
 
-            StringWithPrefix stringWithPrefix = getResult(s);
-            String content = stringWithPrefix.content();
+            StringWithPadding stringWithPadding = asStringWithPrefix(s);
+            String content = stringWithPadding.content();
 
             @SuppressWarnings("RegExpRepeatedSpace")
             String delim = content.contains(EQUAL) ? EQUAL : SPACE;
@@ -82,21 +81,35 @@ public class DockerParser {
                     value = value.substring(1, value.length() - 1);
                 }
             }
-            return new Docker.KeyArgs(stringWithPrefix.prefix(), key, value, EQUAL.equals(delim), q);
+            return new Docker.KeyArgs(stringWithPadding.prefix(), key, value, EQUAL.equals(delim), q);
         }
 
+        private List<DockerRightPadded<Docker.KeyArgs>> parseArgs(String input) {
+            return parseElements(input, " \t", true, this::stringToKeyArgs);
+        }
 
-        List<DockerRightPadded<Docker.KeyArgs>> parseArgs(String input) {
-            List<DockerRightPadded<Docker.KeyArgs>> args = new ArrayList<>();
-            StringBuilder currentArg = new StringBuilder();
+        private List<DockerRightPadded<Docker.Literal>> parseLiterals(Form form, String input) {
+            // appendRightPadding is true for shell form, false for exec form
+            // exec form is a JSON array, so we need to parse it differently where right padding is after the ']'.
+            return parseElements(input, form == Form.EXEC ? "," : " ", form == Form.SHELL, this::createLiteral);
+        }
+
+        private <T> List<DockerRightPadded<T>> parseElements(String input, String delims, boolean appendRightPadding, Function<String, T> elementCreator) {
+            List<DockerRightPadded<T>> elements = new ArrayList<>();
+            StringBuilder currentElement = new StringBuilder();
             boolean inQuotes = false;
             char doubleQuote = DOUBLE_QUOTE.charAt(0);
             char singleQuote = SINGLE_QUOTE.charAt(0);
             char escape = this.escapeChar;
-            char space = SPACE.charAt(0);
-            char tab = TAB.charAt(0);
             char quote = 0;
             char lastChar = 0;
+            char comma = ',';
+
+            // create a lookup of chars from delims
+            HashSet<Character> delimSet = new HashSet<>();
+            for (char c : delims.toCharArray()) {
+                delimSet.add(c);
+            }
 
             for (int i = 0; i < input.length(); i++) {
                 char c = input.charAt(i);
@@ -104,34 +117,67 @@ public class DockerParser {
                     if (c == quote && lastChar != escape) {
                         inQuotes = false;
                     }
-                    currentArg.append(c);
+                    currentElement.append(c);
                 } else {
-                    if (c == space || c == tab) {
-                        if (!StringUtils.isBlank(currentArg.toString())) {
-                            args.add(DockerRightPadded.build(stringToKeyArgs(currentArg.toString())).withAfter(Space.EMPTY));
-                            currentArg.setLength(0);
+                    if (delimSet.contains(c) && lastChar != escape) {
+                        if (!StringUtils.isBlank(currentElement.toString())) {
+                            elements.add(DockerRightPadded.build(elementCreator.apply(currentElement.toString())).withAfter(Space.EMPTY));
+                            currentElement.setLength(0);
                         }
-                        currentArg.append(c);
+                        // drop comma, assuming we are creating a list of elements
+                        if (c != comma) {
+                            currentElement.append(c);
+                        }
                     } else {
                         if (c == doubleQuote || c == singleQuote) {
                             inQuotes = true;
                             quote = c;
                         }
-                        currentArg.append(c);
+                        currentElement.append(c);
                     }
                 }
                 lastChar = c;
             }
 
-            if (!currentArg.isEmpty()) {
-                args.add(DockerRightPadded.build(stringToKeyArgs(currentArg.toString())).withAfter(rightPadding));
+            if (!currentElement.isEmpty()) {
+                // if it's whitespace only, add it as "after" to the last element
+                if (StringUtils.isBlank(currentElement.toString())) {
+                    if (!elements.isEmpty()) {
+                        int idx = elements.size() - 1;
+                        elements.set(idx, elements.get(idx).withAfter(Space.build(currentElement.toString())));
+                    }
+                    return elements;
+                } else {
+                    DockerRightPadded<T> element = DockerRightPadded.build(elementCreator.apply(currentElement.toString()));
+                    if (appendRightPadding) {
+                        element = element.withAfter(rightPadding);
+                    }
+                    elements.add(element);
+                }
             }
 
-            return args;
+            return elements;
         }
 
         private Docker.Literal createLiteral(String s) {
-            return new Docker.Literal(Tree.randomId(), prefix, s, Markers.EMPTY);
+            if (s == null || s.isEmpty()) {
+                return null;
+            }
+            StringWithPadding stringWithPadding = asStringWithPrefix(s);
+            String content = stringWithPadding.content();
+            Quoting q = Quoting.UNQUOTED;
+            if (content.startsWith(DOUBLE_QUOTE) && content.endsWith(DOUBLE_QUOTE)) {
+                q = Quoting.DOUBLE_QUOTED;
+                content = content.substring(1, content.length() - 1);
+            } else if (content.startsWith(SINGLE_QUOTE) && content.endsWith(SINGLE_QUOTE)) {
+                q = Quoting.SINGLE_QUOTED;
+                content = content.substring(1, content.length() - 1);
+            }
+            return Docker.Literal.build(
+                    stringWithPadding.prefix(),
+                    content,
+                    stringWithPadding.suffix(),
+                    q);
         }
 
         private Docker.Option createOption(String s) {
@@ -150,20 +196,32 @@ public class DockerParser {
                 List<DockerRightPadded<Docker.KeyArgs>> args = parseArgs(instruction.toString());
                 return new Docker.Arg(Tree.randomId(), prefix, Markers.EMPTY, args);
             } else if (name.equals(Docker.Cmd.class.getSimpleName())) {
-                // TODO: implement this
-                return new Docker.Cmd(Tree.randomId(), prefix, Markers.EMPTY, null, null);
+                String content = instruction.toString();
+                Form form = Form.SHELL;
+                Space execFormPrefix = Space.EMPTY;
+                Space execFormSuffix = Space.EMPTY;
+                if (content.trim().startsWith("[")) {
+                    StringWithPadding stringWithPadding = asStringWithPrefix(content);
+                    content = stringWithPadding.content();
+                    execFormPrefix = stringWithPadding.prefix();
+                    content = content.substring(1, content.length() - 1);
+                    form = Form.EXEC;
+
+                    execFormSuffix = rightPadding;
+                }
+                return new Docker.Cmd(Tree.randomId(), prefix, execFormPrefix, Markers.EMPTY, form, parseLiterals(form, content), execFormSuffix);
             } else if (name.equals(Docker.Comment.class.getSimpleName())) {
-                StringWithPrefix stringWithPrefix = getResult(instruction.toString());
+                StringWithPadding stringWithPadding = asStringWithPrefix(instruction.toString());
 
                 return new Docker.Comment(Tree.randomId(), prefix, Markers.EMPTY,
-                        DockerRightPadded.build(createLiteral(stringWithPrefix.content()).withPrefix(stringWithPrefix.prefix())).withAfter(rightPadding));
+                        DockerRightPadded.build(createLiteral(stringWithPadding.content()).withPrefix(stringWithPadding.prefix())).withAfter(rightPadding));
             } else if (name.equals(Docker.Copy.class.getSimpleName())) {
                 // TODO: implement this
                 return new Docker.Copy(Tree.randomId(), prefix, Markers.EMPTY, null, null, null);
             } else if (name.equals(Docker.Directive.class.getSimpleName())) {
-                StringWithPrefix stringWithPrefix = getResult(instruction.toString());
+                StringWithPadding stringWithPadding = asStringWithPrefix(instruction.toString());
 
-                String[] parts = stringWithPrefix.content().split("=", 2);
+                String[] parts = stringWithPadding.content().split("=", 2);
                 String key = parts.length > 0 ? parts[0] : "";
                 String value = parts.length > 1 ? parts[1] : "";
 
@@ -172,7 +230,7 @@ public class DockerParser {
                 }
 
                 return new Docker.Directive(Tree.randomId(), prefix, Markers.EMPTY, new DockerRightPadded<>(
-                        new Docker.KeyArgs(stringWithPrefix.prefix, key, value, true, quoting),
+                        new Docker.KeyArgs(stringWithPadding.prefix, key, value, true, quoting),
                         rightPadding,
                         Markers.EMPTY
                 ));
@@ -261,7 +319,8 @@ public class DockerParser {
             return null;
         }
 
-        private @NotNull DockerParser.InstructionParser.StringWithPrefix getResult(String content) {
+        // TODO: maybe have this return a string with prefix and suffix whitespace
+        private @NotNull DockerParser.InstructionParser.StringWithPadding asStringWithPrefix(String content) {
             int idx = 0;
             for (char c : content.toCharArray()) {
                 if (c == ' ' || c == '\t') {
@@ -271,12 +330,29 @@ public class DockerParser {
                 }
             }
 
+            Space rightPadding = Space.EMPTY;
             Space before = Space.build(content.substring(0, idx));
             content = content.substring(idx);
-            return new StringWithPrefix(content, before);
+
+            idx = content.length() - 1;
+            // walk line backwards to find the last non-whitespace character
+            for (int i = content.length() - 1; i >= 0; i--) {
+                if (content.charAt(i) != ' ' && content.charAt(i) != '\t') {
+                    // move the pointer to after the current non-whitespace character
+                    idx = i + 1;
+                    break;
+                }
+            }
+
+            if (idx < content.length()) {
+                rightPadding = Space.build(content.substring(idx));
+                content = content.substring(0, idx);
+            }
+
+            return new StringWithPadding(content, before, rightPadding);
         }
 
-        private record StringWithPrefix(String content, Space prefix) { }
+        private record StringWithPadding(String content, Space prefix, Space suffix) { }
     }
 
     public Docker parse(InputStream input) {
