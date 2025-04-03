@@ -583,8 +583,12 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     @Override
     public Docker visitStopSignal(Docker.StopSignal stopSignal, PrintOutputCapture<P> p) {
         beforeSyntax(stopSignal, p);
-        p.append("STOPSIGNAL ");
-        p.append(stopSignal.getSignal());
+        p.append("STOPSIGNAL");
+        visitSpace(stopSignal.getPrefix(), p);
+        if (stopSignal.getSignal() != null) {
+            p.append(stopSignal.getSignal().getText());
+        }
+        visitSpace(stopSignal.getSignal().getTrailing(), p);
         afterSyntax(stopSignal, p);
         return stopSignal;
     }

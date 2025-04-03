@@ -598,4 +598,17 @@ class DockerParserTest {
         assertEquals("Hello World", label.getArgs().get(2).getElement().getValue());
         assertEquals(Quoting.DOUBLE_QUOTED, label.getArgs().get(2).getElement().getQuoting());
     }
+
+    @Test
+    void testStopSignal() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("STOPSIGNAL SIGKILL".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.StopSignal stopSignal = (Docker.StopSignal) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, stopSignal.getPrefix());
+        assertEquals("SIGKILL", stopSignal.getSignal().getText());
+        assertEquals(" ", stopSignal.getSignal().getPrefix().getWhitespace());
+    }
 }

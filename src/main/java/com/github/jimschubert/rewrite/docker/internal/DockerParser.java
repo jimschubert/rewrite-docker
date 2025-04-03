@@ -329,9 +329,19 @@ public class DockerParser {
                         rightPadding,
                         Markers.EMPTY
                 ));
-            } else if (name.equals(Docker.Env.class.getSimpleName())) {
+            } else if (name.equals(Docker.Env.class.getSimpleName()) || name.equals(Docker.StopSignal.class.getSimpleName())) {
                 List<DockerRightPadded<Docker.KeyArgs>> args = parseArgs(instruction.toString());
-                return new Docker.Env(Tree.randomId(), prefix, Markers.EMPTY, args);
+                if (name.equals(Docker.Env.class.getSimpleName())) {
+                    return new Docker.Env(Tree.randomId(), prefix, Markers.EMPTY, args);
+                }
+
+                Docker.Literal signal = null;
+                if (!args.isEmpty()) {
+                    DockerRightPadded<Docker.KeyArgs> arg = args.get(0);
+                    signal = Docker.Literal.build(arg.getElement().getPrefix(), arg.getElement().getKey(), arg.getAfter(), Quoting.UNQUOTED);
+                }
+
+                return new Docker.StopSignal(Tree.randomId(), prefix, Markers.EMPTY, signal);
             }  else if (name.equals(Docker.Expose.class.getSimpleName())) {
                 List<DockerRightPadded<Docker.Port>> ports = parsePorts(instruction.toString());
 
@@ -411,9 +421,6 @@ public class DockerParser {
 
                 // TODO: implement this Options should be a list of KeyArgs, Commands should be a list of RightPadded literals
                 return new Docker.Run(Tree.randomId(), prefix, Markers.EMPTY, null, null, null, null, null, null);
-            } else if (name.equals(Docker.StopSignal.class.getSimpleName())) {
-                // TODO: implement this
-                return new Docker.StopSignal(Tree.randomId(), prefix, Markers.EMPTY, null);
             } else if (name.equals(Docker.User.class.getSimpleName())) {
                 StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
                 String[] parts = stringWithPadding.content().split(":", 2);
