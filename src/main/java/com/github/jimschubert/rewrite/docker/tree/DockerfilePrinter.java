@@ -458,10 +458,11 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
             text = trimDoubleQuotes(text);
             visitSpace(literal.getPrefix(), p);
             p.append("\"").append(text).append("\"");
-            visitSpace(padded.getAfter(), p);
+            visitSpace(literal.getTrailing(), p);
             if (i < entrypoint.getCommands().size() - 1) {
                 p.append(",");
             }
+            visitSpace(padded.getAfter(), p);
         }
         p.append("]");
         visitSpace(entrypoint.getExecFormSuffix(), p);
@@ -557,13 +558,25 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         beforeSyntax(shell, p);
         p.append("SHELL ");
         p.append("[");
+        visitSpace(shell.getExecFormPrefix(), p);
+
         for (int i = 0; i < shell.getCommands().size(); i++) {
-            p.append("\"").append(shell.getCommands().get(i)).append("\"");
+            DockerRightPadded<Docker.Literal> padded = shell.getCommands().get(i);
+            Docker.Literal literal = padded.getElement();
+            String text = literal.getText();
+            text = trimDoubleQuotes(text);
+            visitSpace(literal.getPrefix(), p);
+            p.append("\"").append(text).append("\"");
+            visitSpace(literal.getTrailing(), p);
             if (i < shell.getCommands().size() - 1) {
-                p.append(", ");
+                p.append(",");
             }
+            visitSpace(padded.getAfter(), p);
         }
+
         p.append("]");
+
+        visitSpace(shell.getExecFormSuffix(), p);
         afterSyntax(shell, p);
         return shell;
     }

@@ -765,7 +765,9 @@ public interface Docker extends Tree {
         Space prefix;
         Markers markers;
 
-        List<String> commands;
+        Space execFormPrefix;
+        List<DockerRightPadded<Literal>> commands;
+        Space execFormSuffix;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -779,7 +781,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Shell(Tree.randomId(), prefix, markers, commands);
+            return new Shell(Tree.randomId(), prefix, markers, execFormPrefix, commands, execFormSuffix);
         }
     }
 

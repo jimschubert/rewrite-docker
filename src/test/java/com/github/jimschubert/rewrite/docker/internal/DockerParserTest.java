@@ -12,6 +12,7 @@ import java.util.List;
 
 import static com.github.jimschubert.rewrite.docker.internal.DockerParserHelpers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class DockerParserTest {
     @Test
@@ -371,5 +372,60 @@ class DockerParserTest {
         assertEquals("alpine", from.getImage().getElement().getText());
         assertEquals("sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef", from.getDigest());
         assertEquals("", from.getImage().getAfter().getWhitespace());
+    }
+
+    @Test
+    void testShell() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("SHELL [  \"powershell\", \"-Command\"   ]\t".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Shell shell = (Docker.Shell) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, shell.getPrefix());
+        assertEquals("powershell", shell.getCommands().get(0).getElement().getText());
+        assertEquals("  ", shell.getCommands().get(0).getElement().getPrefix().getWhitespace());
+        assertEquals("-Command", shell.getCommands().get(1).getElement().getText());
+        assertEquals(" ", shell.getCommands().get(1).getElement().getPrefix().getWhitespace());
+        assertEquals(" ", shell.getExecFormPrefix().getWhitespace());
+        assertEquals("   ", shell.getCommands().get(1).getElement().getTrailing().getWhitespace());
+        assertEquals("\t", shell.getExecFormSuffix().getWhitespace());
+    }
+
+    @Test
+    void testShellMultiline(){
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("SHELL [  \"powershell\", \"-Command\" , \t\\\n\t\t  \"bash\", \"-c\"   ]".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Shell shell = (Docker.Shell) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, shell.getPrefix());
+
+        assertEquals("  ", shell.getCommands().get(0).getElement().getPrefix().getWhitespace());
+        assertEquals("powershell", shell.getCommands().get(0).getElement().getText());
+        assertEquals(Quoting.DOUBLE_QUOTED, shell.getCommands().get(0).getElement().getQuoting());
+        assertEquals("", shell.getCommands().get(0).getElement().getTrailing().getWhitespace());
+        assertEquals("", shell.getCommands().get(0).getAfter().getWhitespace());
+
+        assertEquals(" ", shell.getCommands().get(1).getElement().getPrefix().getWhitespace());
+        assertEquals("-Command", shell.getCommands().get(1).getElement().getText());
+        assertEquals(Quoting.DOUBLE_QUOTED, shell.getCommands().get(1).getElement().getQuoting());
+        assertEquals(" ", shell.getCommands().get(1).getElement().getTrailing().getWhitespace());
+        assertEquals(" \t\\\n\t\t  ", shell.getCommands().get(1).getAfter().getWhitespace());
+
+
+        assertEquals("", shell.getCommands().get(2).getElement().getPrefix().getWhitespace());
+        assertEquals("bash", shell.getCommands().get(2).getElement().getText());
+        assertEquals(Quoting.DOUBLE_QUOTED, shell.getCommands().get(2).getElement().getQuoting());
+        assertEquals("", shell.getCommands().get(2).getElement().getTrailing().getWhitespace());
+        assertEquals("", shell.getCommands().get(2).getAfter().getWhitespace());
+
+        assertEquals(" ", shell.getCommands().get(3).getElement().getPrefix().getWhitespace());
+        assertEquals("-c", shell.getCommands().get(3).getElement().getText());
+        assertEquals(Quoting.DOUBLE_QUOTED, shell.getCommands().get(3).getElement().getQuoting());
+        assertEquals("   ", shell.getCommands().get(3).getElement().getTrailing().getWhitespace());
+        assertEquals("", shell.getCommands().get(3).getAfter().getWhitespace());
+        assertEquals(" ", shell.getExecFormPrefix().getWhitespace());
     }
 }

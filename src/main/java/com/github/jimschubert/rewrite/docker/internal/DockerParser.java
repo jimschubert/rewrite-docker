@@ -269,7 +269,7 @@ public class DockerParser {
             } else if (name.equals(Docker.Arg.class.getSimpleName())) {
                 List<DockerRightPadded<Docker.KeyArgs>> args = parseArgs(instruction.toString());
                 return new Docker.Arg(Tree.randomId(), prefix, Markers.EMPTY, args);
-            } else if (name.equals(Docker.Cmd.class.getSimpleName()) || name.equals(Docker.Entrypoint.class.getSimpleName())) {
+            } else if (name.equals(Docker.Cmd.class.getSimpleName()) || name.equals(Docker.Entrypoint.class.getSimpleName()) || name.equals(Docker.Shell.class.getSimpleName())) {
                 String content = instruction.toString();
                 Form form = Form.SHELL;
                 Space execFormPrefix = Space.EMPTY;
@@ -285,6 +285,10 @@ public class DockerParser {
                 }
                 if (name.equals(Docker.Cmd.class.getSimpleName())) {
                     return new Docker.Cmd(Tree.randomId(), form, prefix, execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY);
+                }
+
+                if (name.equals(Docker.Shell.class.getSimpleName())) {
+                    return new Docker.Shell(Tree.randomId(), prefix, Markers.EMPTY, execFormPrefix, parseLiterals(form, content), execFormSuffix);
                 }
 
                 return new Docker.Entrypoint(Tree.randomId(), form, prefix, execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY);
@@ -397,30 +401,7 @@ public class DockerParser {
 
                 // TODO: implement this Options should be a list of KeyArgs, Commands should be a list of RightPadded literals
                 return new Docker.Run(Tree.randomId(), prefix, Markers.EMPTY, null, null, null, null, null, null);
-            } else if (name.equals(Docker.Shell.class.getSimpleName())) {
-                List<String> commands = new ArrayList<>();
-                if (instruction.toString().contains(escapeChar + NEWLINE)) {
-                    Space indent = Space.EMPTY;
-                    String[] parts = instruction.toString().split(escapeChar + "\\n");
-                    if (parts.length > 1) {
-                        // collect all leading whitespace of the first part
-                        int idx = 0;
-                        for (char c : parts[0].toCharArray()) {
-                            if (c == ' ' || c == '\t') {
-                                idx++;
-                                indent = indent.withWhitespace(indent.getWhitespace() + c);
-                            } else {
-                                break;
-                            }
-                        }
-                        commands.add(parts[0].substring(idx));
-                    }
-                } else {
-                    commands.add(instruction.toString());
-                }
-
-                return new Docker.Shell(Tree.randomId(), prefix, Markers.EMPTY, commands);
-            }else if (name.equals(Docker.StopSignal.class.getSimpleName())) {
+            } else if (name.equals(Docker.StopSignal.class.getSimpleName())) {
                 // TODO: implement this
                 return new Docker.StopSignal(Tree.randomId(), prefix, Markers.EMPTY, null);
             } else if (name.equals(Docker.User.class.getSimpleName())) {
