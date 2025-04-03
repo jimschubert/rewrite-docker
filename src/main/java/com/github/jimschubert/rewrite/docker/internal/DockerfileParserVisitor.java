@@ -1,11 +1,9 @@
 package com.github.jimschubert.rewrite.docker.internal;
 
 import com.github.jimschubert.docker.ast.*;
-import com.github.jimschubert.rewrite.docker.tree.Docker;
+import com.github.jimschubert.rewrite.docker.tree.*;
 import com.github.jimschubert.rewrite.docker.tree.Docker.*;
-import com.github.jimschubert.rewrite.docker.tree.DockerRightPadded;
 import com.github.jimschubert.rewrite.docker.tree.Quoting;
-import com.github.jimschubert.rewrite.docker.tree.Space;
 import org.openrewrite.FileAttributes;
 import org.openrewrite.Tree;
 import org.openrewrite.internal.EncodingDetectingInputStream;
@@ -160,11 +158,31 @@ public class DockerfileParserVisitor {
     }
 
     public Entrypoint visitEntrypoint(EntrypointInstruction instr) {
-        return new Entrypoint(Tree.randomId(), Space.EMPTY, Markers.EMPTY,
+        Form form = instr.getForm() == CommandInstruction.Form.EXEC ? Form.EXEC : Form.SHELL;
+        return new Entrypoint(Tree.randomId(),
+                form,
+                Space.EMPTY,
+                Space.EMPTY,
                 instr.getEntrypoint().stream().map(e ->
-                        DockerRightPadded.build(Literal.build(e).withPrefix(Space.build(" ")))
-                                .withAfter(Space.build(" "))
-                ).toList(), Space.EMPTY);
+                        DockerRightPadded.build(
+                            Literal.build(Space.EMPTY, e, Space.EMPTY, form == Form.EXEC ? Quoting.DOUBLE_QUOTED : Quoting.UNQUOTED)
+                                    .withPrefix(Space.build(" "))
+                        ).withAfter(Space.build(" "))
+                ).toList(), Space.EMPTY, Markers.EMPTY);
+    }
+
+    public Cmd visitCmd(CmdInstruction instr) {
+        Form form = instr.getForm() == CommandInstruction.Form.EXEC ? Form.EXEC : Form.SHELL;
+        return new Cmd(Tree.randomId(),
+                form,
+                Space.EMPTY,
+                Space.EMPTY,
+                instr.getCommand().stream().map(e ->
+                        DockerRightPadded.build(
+                                Literal.build(Space.EMPTY, e, Space.EMPTY, form == Form.EXEC ? Quoting.DOUBLE_QUOTED : Quoting.UNQUOTED)
+                                        .withPrefix(Space.build(" "))
+                        ).withAfter(Space.build(" "))
+                ).toList(), Space.EMPTY, Markers.EMPTY);
     }
 
     public Volume visitVolume(VolumeInstruction instr) {

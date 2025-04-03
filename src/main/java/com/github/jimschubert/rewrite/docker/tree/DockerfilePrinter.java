@@ -451,20 +451,20 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     public Docker visitEntrypoint(Docker.Entrypoint entrypoint, PrintOutputCapture<P> p) {
         beforeSyntax(entrypoint, p);
         p.append("ENTRYPOINT [");
-        for (int i = 0; i < entrypoint.getCommand().size(); i++) {
-            DockerRightPadded<Docker.Literal> padded = entrypoint.getCommand().get(i);
+        for (int i = 0; i < entrypoint.getCommands().size(); i++) {
+            DockerRightPadded<Docker.Literal> padded = entrypoint.getCommands().get(i);
             Docker.Literal literal = padded.getElement();
             String text = literal.getText();
             text = trimDoubleQuotes(text);
             visitSpace(literal.getPrefix(), p);
             p.append("\"").append(text).append("\"");
             visitSpace(padded.getAfter(), p);
-            if (i < entrypoint.getCommand().size() - 1) {
+            if (i < entrypoint.getCommands().size() - 1) {
                 p.append(",");
             }
         }
         p.append("]");
-        visitSpace(entrypoint.getTrailing(), p);
+        visitSpace(entrypoint.getExecFormSuffix(), p);
         afterSyntax(entrypoint, p);
         return entrypoint;
     }

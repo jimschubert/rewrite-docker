@@ -238,15 +238,12 @@ public interface Docker extends Tree {
     class Cmd implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
-
+        Form form;
         Space prefix;
         Space execFormPrefix;
-        Markers markers;
-
-        Form form;
         List<DockerRightPadded<Literal>> commands;
-
         Space execFormSuffix;
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -260,7 +257,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Cmd(Tree.randomId(), prefix, execFormPrefix, markers, form, commands, execFormSuffix);
+            return new Cmd(Tree.randomId(), form, prefix, execFormPrefix, commands, execFormSuffix, markers);
         }
     }
 
@@ -395,13 +392,12 @@ public interface Docker extends Tree {
     class Entrypoint implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
-
+        Form form;
         Space prefix;
+        Space execFormPrefix;
+        List<DockerRightPadded<Literal>> commands;
+        Space execFormSuffix;
         Markers markers;
-
-        List<DockerRightPadded<Literal>> command;
-
-        Space trailing;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -415,7 +411,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Entrypoint(Tree.randomId(), prefix, markers, command, trailing);
+            return new Entrypoint(Tree.randomId(), form, prefix,execFormPrefix, commands, execFormSuffix, markers);
         }
     }
 

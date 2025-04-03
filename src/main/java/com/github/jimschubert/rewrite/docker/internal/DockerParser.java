@@ -24,6 +24,7 @@ public class DockerParser {
     static final String EQUAL = "=";
     static final String SPACE = " ";
     static final String EMPTY = "";
+    static final String COMMA = ",";
 
     // InstructionParser is used to collect the parts of an instruction and parse it into the appropriate AST node.
     static class InstructionParser {
@@ -73,10 +74,10 @@ public class DockerParser {
             Quoting q = Quoting.UNQUOTED;
 
             if (value != null) {
-                if (value.startsWith("\"") && value.endsWith(DOUBLE_QUOTE)) {
+                if (value.startsWith(DOUBLE_QUOTE) && value.endsWith(DOUBLE_QUOTE)) {
                     q = Quoting.DOUBLE_QUOTED;
                     value = value.substring(1, value.length() - 1);
-                } else if (value.startsWith("'") && value.endsWith(SINGLE_QUOTE)) {
+                } else if (value.startsWith(SINGLE_QUOTE) && value.endsWith(SINGLE_QUOTE)) {
                     q = Quoting.SINGLE_QUOTED;
                     value = value.substring(1, value.length() - 1);
                 }
@@ -85,13 +86,13 @@ public class DockerParser {
         }
 
         private List<DockerRightPadded<Docker.KeyArgs>> parseArgs(String input) {
-            return parseElements(input, " \t", true, this::stringToKeyArgs);
+            return parseElements(input, SPACE + TAB, true, this::stringToKeyArgs);
         }
 
         private List<DockerRightPadded<Docker.Literal>> parseLiterals(Form form, String input) {
             // appendRightPadding is true for shell form, false for exec form
             // exec form is a JSON array, so we need to parse it differently where right padding is after the ']'.
-            return parseElements(input, form == Form.EXEC ? "," : " ", form == Form.SHELL, this::createLiteral);
+            return parseElements(input, form == Form.EXEC ? COMMA : SPACE, form == Form.SHELL, this::createLiteral);
         }
 
         private <T> List<DockerRightPadded<T>> parseElements(String input, String delims, boolean appendRightPadding, Function<String, T> elementCreator) {
@@ -195,7 +196,7 @@ public class DockerParser {
             } else if (name.equals(Docker.Arg.class.getSimpleName())) {
                 List<DockerRightPadded<Docker.KeyArgs>> args = parseArgs(instruction.toString());
                 return new Docker.Arg(Tree.randomId(), prefix, Markers.EMPTY, args);
-            } else if (name.equals(Docker.Cmd.class.getSimpleName())) {
+            } else if (name.equals(Docker.Cmd.class.getSimpleName()) || name.equals(Docker.Entrypoint.class.getSimpleName())) {
                 String content = instruction.toString();
                 Form form = Form.SHELL;
                 Space execFormPrefix = Space.EMPTY;
@@ -209,7 +210,11 @@ public class DockerParser {
 
                     execFormSuffix = rightPadding;
                 }
-                return new Docker.Cmd(Tree.randomId(), prefix, execFormPrefix, Markers.EMPTY, form, parseLiterals(form, content), execFormSuffix);
+                if (name.equals(Docker.Cmd.class.getSimpleName())) {
+                    return new Docker.Cmd(Tree.randomId(), form, prefix, execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY);
+                }
+
+                return new Docker.Entrypoint(Tree.randomId(), form, prefix, execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY);
             } else if (name.equals(Docker.Comment.class.getSimpleName())) {
                 StringWithPadding stringWithPadding = asStringWithPrefix(instruction.toString());
 
@@ -230,13 +235,10 @@ public class DockerParser {
                 }
 
                 return new Docker.Directive(Tree.randomId(), prefix, Markers.EMPTY, new DockerRightPadded<>(
-                        new Docker.KeyArgs(stringWithPadding.prefix, key, value, true, quoting),
+                        new Docker.KeyArgs(stringWithPadding.prefix(), key, value, true, quoting),
                         rightPadding,
                         Markers.EMPTY
                 ));
-            } else if (name.equals(Docker.Entrypoint.class.getSimpleName())) {
-                // TODO: implement this
-                return new Docker.Entrypoint(Tree.randomId(), prefix, Markers.EMPTY, null, null);
             } else if (name.equals(Docker.Env.class.getSimpleName())) {
                 // TODO: implement this
                 return new Docker.Env(Tree.randomId(), prefix, Markers.EMPTY, null);
@@ -259,7 +261,7 @@ public class DockerParser {
                 return new Docker.OnBuild(Tree.randomId(), prefix, Markers.EMPTY, null);
             }  else if (name.equals(Docker.Run.class.getSimpleName())) {
                 List<String> commands = new ArrayList<>();
-                if (instruction.toString().contains(escapeChar + "\n")) {
+                if (instruction.toString().contains(escapeChar + NEWLINE)) {
                     Space indent = Space.EMPTY;
                     String[] parts = instruction.toString().split(escapeChar + "\\n");
                     if (parts.length > 1) {
@@ -283,7 +285,7 @@ public class DockerParser {
                 return new Docker.Run(Tree.randomId(), prefix, Markers.EMPTY, null, null, null, null, null, null);
             } else if (name.equals(Docker.Shell.class.getSimpleName())) {
                 List<String> commands = new ArrayList<>();
-                if (instruction.toString().contains(escapeChar + "\n")) {
+                if (instruction.toString().contains(escapeChar + NEWLINE)) {
                     Space indent = Space.EMPTY;
                     String[] parts = instruction.toString().split(escapeChar + "\\n");
                     if (parts.length > 1) {
@@ -320,7 +322,7 @@ public class DockerParser {
         }
 
         // TODO: maybe have this return a string with prefix and suffix whitespace
-        private @NotNull DockerParser.InstructionParser.StringWithPadding asStringWithPrefix(String content) {
+        private @NotNull StringWithPadding asStringWithPrefix(String content) {
             int idx = 0;
             for (char c : content.toCharArray()) {
                 if (c == ' ' || c == '\t') {
@@ -352,7 +354,6 @@ public class DockerParser {
             return new StringWithPadding(content, before, rightPadding);
         }
 
-        private record StringWithPadding(String content, Space prefix, Space suffix) { }
     }
 
     public Docker parse(InputStream input) {
@@ -370,12 +371,12 @@ public class DockerParser {
                 String line = scanner.nextLine();
                 if (line.isEmpty()) {
                     // tracks newlines for continuations and prefixes
-                    parser.appendPrefix(Space.build("\n"));
+                    parser.appendPrefix(Space.build(NEWLINE));
                     continue;
                 }
 
                 // drain the line of any leading whitespace, storing in parser.addPrefix, then inspect the first "word" to determine the instruction type
-                while (line.startsWith(" ") || line.startsWith("\t")) {
+                while (line.startsWith(SPACE) || line.startsWith(TAB)) {
                     parser.appendPrefix(Space.build(line.substring(0, 1)));
                     line = line.substring(1);
                 }
@@ -421,7 +422,7 @@ public class DockerParser {
 
                 parser.append(line);
                 if (line.endsWith(escapeChar)) {
-                    parser.append("\n");
+                    parser.append(NEWLINE);
                     continue;
                 }
                 Docker.Instruction instr = parser.parse();

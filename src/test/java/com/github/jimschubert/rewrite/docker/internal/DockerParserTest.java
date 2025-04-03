@@ -139,4 +139,57 @@ class DockerParserTest {
         assertEquals(" ", args.get(2).getElement().getPrefix().getWhitespace());
         assertEquals("   ", args.get(2).getAfter().getWhitespace());
     }
+
+    @Test
+    void testEntrypointComplexExecForm(){
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("ENTRYPOINT [ \"echo\", \"Hello World\" ]   ".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Entrypoint entrypoint = (Docker.Entrypoint) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, entrypoint.getPrefix());
+
+        List<DockerRightPadded<Docker.Literal>> args = entrypoint.getCommands();
+        assertEquals(2, args.size());
+
+        assertEquals("echo", args.get(0).getElement().getText());
+        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
+        assertEquals("Hello World", args.get(1).getElement().getText());
+        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
+        assertEquals(" ", args.get(1).getElement().getTrailing().getWhitespace());
+        assertEquals("   ", entrypoint.getExecFormSuffix().getWhitespace());
+    }
+
+    @Test
+    void testEntrypointShellForm() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("ENTRYPOINT echo Hello World   ".getBytes(StandardCharsets.UTF_8)));
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+        Docker.Entrypoint entrypoint = (Docker.Entrypoint) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, entrypoint.getPrefix());
+        List<DockerRightPadded<Docker.Literal>> args = entrypoint.getCommands();
+        assertEquals(3, args.size());
+        assertEquals("echo", args.get(0).getElement().getText());
+        assertEquals("Hello", args.get(1).getElement().getText());
+        assertEquals("World", args.get(2).getElement().getText());
+        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
+        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
+        assertEquals(" ", args.get(2).getElement().getPrefix().getWhitespace());
+        assertEquals("   ", args.get(2).getAfter().getWhitespace());
+    }
+
+    @Test
+    void testEntrypointShellFormWithQuotes() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("ENTRYPOINT \"echo Hello World\"   ".getBytes(StandardCharsets.UTF_8)));
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+        Docker.Entrypoint entrypoint = (Docker.Entrypoint) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, entrypoint.getPrefix());
+        List<DockerRightPadded<Docker.Literal>> args = entrypoint.getCommands();
+        assertEquals(1, args.size());
+        assertEquals("echo Hello World", args.get(0).getElement().getText());
+        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
+        assertEquals("   ", args.get(0).getAfter().getWhitespace());
+    }
 }
