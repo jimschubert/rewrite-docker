@@ -262,7 +262,7 @@ public class DockerParser {
 
         Docker.Instruction parse() {
             String name = instructionType.getSimpleName();
-            if (name.equals(Docker.Add.class.getSimpleName())) {
+            if (name.equals(Docker.Add.class.getSimpleName()) || name.equals(Docker.Copy.class.getSimpleName())) {
                 List<DockerRightPadded<Docker.Literal>> literals = parseLiterals(instruction.toString());
 
                 List<DockerRightPadded<Docker.Option>> options = new ArrayList<>();
@@ -290,7 +290,11 @@ public class DockerParser {
                     }
                 }
 
-                return new Docker.Add(Tree.randomId(), prefix, Markers.EMPTY, options, sources, destination);
+                if (name.equals(Docker.Add.class.getSimpleName())) {
+                    return new Docker.Add(Tree.randomId(), prefix, options, sources, destination, Markers.EMPTY);
+                }
+
+                return new Docker.Copy(Tree.randomId(), prefix, options, sources, destination, Markers.EMPTY);
             } else if (name.equals(Docker.Arg.class.getSimpleName()) || name.equals(Docker.Label.class.getSimpleName())) {
 
                 List<DockerRightPadded<Docker.KeyArgs>> args = parseArgs(instruction.toString());
@@ -336,9 +340,6 @@ public class DockerParser {
 
                 return new Docker.Comment(Tree.randomId(), prefix, Markers.EMPTY,
                         DockerRightPadded.build(createLiteral(stringWithPadding.content()).withPrefix(stringWithPadding.prefix())).withAfter(rightPadding));
-            } else if (name.equals(Docker.Copy.class.getSimpleName())) {
-                // TODO: implement this
-                return new Docker.Copy(Tree.randomId(), prefix, Markers.EMPTY, null, null, null);
             } else if (name.equals(Docker.Directive.class.getSimpleName())) {
                 StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
 

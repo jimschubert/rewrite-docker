@@ -180,12 +180,13 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
 
         List<DockerRightPadded<Option>> options;
 
         List<DockerRightPadded<Literal>> sources;
         DockerRightPadded<Literal> destination;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -199,7 +200,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Add(Tree.randomId(), prefix, markers, options, sources, destination);
+            return new Add(Tree.randomId(), prefix, options, sources, destination, markers);
         }
     }
 
@@ -300,12 +301,12 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
 
+        List<DockerRightPadded<Option>> options;
         List<DockerRightPadded<Literal>> sources;
         DockerRightPadded<Literal> destination;
 
-        List<DockerRightPadded<Option>> options;
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -319,7 +320,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Copy(Tree.randomId(), prefix, markers, sources, destination, new ArrayList<>(options));
+            return new Copy(Tree.randomId(), prefix, new ArrayList<>(options), sources, destination, markers);
         }
     }
 

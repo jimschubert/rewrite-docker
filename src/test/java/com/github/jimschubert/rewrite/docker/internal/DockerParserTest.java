@@ -756,6 +756,39 @@ class DockerParserTest {
         assertEquals("sha256:24454f830c", option.getElement().getKeyArgs().getValue());
         assertTrue(option.getElement().getKeyArgs().isHasEquals());
         assertEquals("", option.getAfter().getWhitespace());
+    }
 
+    @Test
+    void testCopy() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("COPY foo.txt \\\n\t\tbar.txt \\\n\t\tbaz.txt \\\n\t\tqux.txt /tmp/\t".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Copy copy = (Docker.Copy) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, copy.getPrefix());
+
+        List<DockerRightPadded<Docker.Literal>> args = copy.getSources();
+        assertEquals(4, args.size());
+        assertEquals("foo.txt", args.get(0).getElement().getText());
+        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
+        assertEquals(" \\\n\t\t", args.get(0).getAfter().getWhitespace());
+
+        assertEquals("bar.txt", args.get(1).getElement().getText());
+        assertEquals("", args.get(1).getElement().getPrefix().getWhitespace());
+        assertEquals(" \\\n\t\t", args.get(1).getAfter().getWhitespace());
+
+        assertEquals("baz.txt", args.get(2).getElement().getText());
+        assertEquals("", args.get(2).getElement().getPrefix().getWhitespace());
+        assertEquals(" \\\n\t\t", args.get(2).getAfter().getWhitespace());
+
+        assertEquals("qux.txt", args.get(3).getElement().getText());
+        assertEquals("", args.get(3).getElement().getPrefix().getWhitespace());
+        assertEquals("", args.get(3).getAfter().getWhitespace());
+
+        DockerRightPadded<Docker.Literal> dest = copy.getDestination();
+        assertEquals("/tmp/", dest.getElement().getText());
+        assertEquals(" ", dest.getElement().getPrefix().getWhitespace());
+        assertEquals("\t", dest.getAfter().getWhitespace());
     }
 }
