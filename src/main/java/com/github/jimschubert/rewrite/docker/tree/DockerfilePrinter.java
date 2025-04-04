@@ -159,44 +159,18 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     @Override
     public Docker visitRun(Docker.Run run, PrintOutputCapture<P> p) {
         beforeSyntax(run, p);
-        p.append("RUN ");
-        if (run.getMounts() != null) {
-            run.getMounts().forEach(m -> {
-                p.append("--mount=type=");
-                p.append(m.getType());
-                if (m.getOptions() != null) {
-                    m.getOptions().forEach(
-                            o -> {
-                                p.append(",");
-                                p.append(o.getKey());
-                                p.append("=");
-                                p.append(o.getValue());
-                            }
-                    );
-                }
+        p.append("RUN");
+        if (run.getOptions() != null) {
+            run.getOptions().forEach(o -> {
+                visitOption(o.getElement(), p);
+                visitSpace(o.getAfter(), p);
             });
-        }
-
-        if (run.getNetworkOption() != null) {
-            p.append("--network=");
-            p.append(run.getNetworkOption().getName());
         }
 
         if (run.getCommands() != null) {
             for (int i = 0; i < run.getCommands().size(); i++) {
-                p.append(run.getCommands().get(i));
-                if (i < run.getCommands().size() - 1) {
-                    // TODO: retain multiline and indents
-                    p.append(" && ");
-                }
+                visitDockerRightPaddedLiteral(run.getCommands().get(i), p);
             }
-        }
-
-        if (run.getHeredoc() != null && !run.getHeredoc().isEmpty()) {
-            p.append(" <<" + run.getHeredocName() + "\n");
-            p.append(run.getHeredoc());
-            p.append("\n");
-            p.append(run.getHeredocName());
         }
 
         afterSyntax(run, p);

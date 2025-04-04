@@ -25,12 +25,21 @@ public class DockerParser {
     static final String EMPTY = "";
     static final String COMMA = ",";
 
+    /**
+     * Heredoc syntax is <<[-]\s*[WORD].
+     *
+     * @param indicator The full heredoc syntax to find in a string.
+     * @param delimiter The name of the heredoc (delimiter) used to determine when to stop reading as a heredoc.
+     */
+    record Heredoc(String indicator, String delimiter) { }
+
     // InstructionParser is used to collect the parts of an instruction and parse it into the appropriate AST node.
     static class InstructionParser {
         private Space prefix = Space.EMPTY;
         private Space rightPadding = Space.EMPTY;
         private Quoting quoting = Quoting.UNQUOTED;
         private char escapeChar = 0x5C; // backslash
+        private Heredoc heredoc = null;
         private Class<? extends Docker.Instruction> instructionType = null;
 
         private final StringBuilder instruction = new StringBuilder();
@@ -53,12 +62,24 @@ public class DockerParser {
             instruction.append(s);
         }
 
+        InstructionParser copy() {
+            InstructionParser clone = new InstructionParser();
+            clone.instructionType = this.instructionType;
+            clone.prefix = this.prefix;
+            clone.rightPadding = this.rightPadding;
+            clone.quoting = this.quoting;
+            clone.escapeChar = this.escapeChar;
+            clone.instruction.append(this.instruction);
+            return clone;
+        }
+
         void reset(){
             instructionType = null;
             prefix = Space.EMPTY;
             rightPadding = Space.EMPTY;
             quoting = Quoting.UNQUOTED;
             instruction.setLength(0);
+            heredoc = null;
         }
 
         Docker.Port stringToPorts(String s) {
@@ -121,7 +142,6 @@ public class DockerParser {
             // exec form is a JSON array, so we need to parse it differently where right padding is after the ']'.
             return parseElements(input, form == Form.EXEC ? COMMA : SPACE, form == Form.SHELL, this::createLiteral);
         }
-
         private <T> List<DockerRightPadded<T>> parseElements(String input, String delims, boolean appendRightPadding, Function<String, T> elementCreator) {
             List<DockerRightPadded<T>> elements = new ArrayList<>();
             StringBuilder currentElement = new StringBuilder();
@@ -139,6 +159,8 @@ public class DockerParser {
             for (char c : delims.toCharArray()) {
                 delimSet.add(c);
             }
+
+            boolean inHeredoc = false;
 
             for (int i = 0; i < input.length(); i++) {
                 char c = input.charAt(i);
@@ -162,6 +184,37 @@ public class DockerParser {
                         if (c == doubleQuote || c == singleQuote) {
                             inQuotes = true;
                             quote = c;
+                        }
+
+                        // Check if within a heredoc and set escape character to '\n'
+                        if (heredoc != null && c == '\n' && !inHeredoc) {
+                            inHeredoc = true;
+                            afterBuilder.append(c);
+                            if (!currentElement.isEmpty() && currentElement.toString().endsWith(heredoc.indicator)) {
+                                elements.add(DockerRightPadded.build(elementCreator.apply(currentElement.toString()))
+                                        .withAfter(Space.build(afterBuilder.toString())));
+                                currentElement.setLength(0);
+                                afterBuilder.setLength(0);
+                            }
+                            continue;
+                        } else //noinspection ConstantValue
+                            if (heredoc != null && c == '\n' && inHeredoc) {
+                                // IntelliJ incorrectly flags inHeredoc as a constant 'true', but it's obviously not.
+                                if (!currentElement.toString().endsWith(heredoc.delimiter)) {
+                                    afterBuilder.append(c);
+                                    // this check allows us to accumulate "after" newlines and whitespace after for the last element
+                                    if (!currentElement.isEmpty()) {
+                                        elements.add(DockerRightPadded.build(elementCreator.apply(currentElement.toString()))
+                                                .withAfter(Space.build(afterBuilder.toString())));
+                                        currentElement.setLength(0);
+                                        afterBuilder.setLength(0);
+                                    }
+                                    continue;
+                                }
+
+                                // if we have a heredoc delimiter, we are done with the heredoc
+                                inHeredoc = false;
+                                currentElement.append('\n');
                         }
 
                         // "peek": if the current character is an escape and the next character is newline or carriage return, 'after' and advance
@@ -199,7 +252,7 @@ public class DockerParser {
                         if (!elements.isEmpty() && !afterBuilder.isEmpty()) {
                             int idx = elements.size() - 1;
                             DockerRightPadded<T> element = elements.get(idx);
-                            elements.set(idx, element.withAfter( Space.append(element.getAfter(), Space.build(afterBuilder.toString()))));
+                            elements.set(idx, element.withAfter(Space.append(element.getAfter(), Space.build(afterBuilder.toString()))));
                             afterBuilder.setLength(0);
                         }
 
@@ -444,32 +497,41 @@ public class DockerParser {
             } else if (name.equals(Docker.Maintainer.class.getSimpleName())) {
                 return new Docker.Maintainer (Tree.randomId(), prefix, Markers.EMPTY, instruction.toString(), quoting);
             } else if (name.equals(Docker.OnBuild.class.getSimpleName())) {
-                // TODO: implement this
-                return new Docker.OnBuild(Tree.randomId(), prefix, Markers.EMPTY, null);
-            }  else if (name.equals(Docker.Run.class.getSimpleName())) {
-                List<String> commands = new ArrayList<>();
-                if (instruction.toString().contains(escapeChar + NEWLINE)) {
-                    Space indent = Space.EMPTY;
-                    String[] parts = instruction.toString().split(escapeChar + "\\n");
-                    if (parts.length > 1) {
-                        // collect all leading whitespace of the first part
-                        int idx = 0;
-                        for (char c : parts[0].toCharArray()) {
-                            if (c == ' ' || c == '\t') {
-                                idx++;
-                                indent = indent.withWhitespace(indent.getWhitespace() + c);
-                            } else {
-                                break;
-                            }
-                        }
-                        commands.add(parts[0].substring(idx));
-                    }
-                } else {
-                    commands.add(instruction.toString());
+                StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
+                prefix = Space.append(prefix, stringWithPadding.prefix());
+
+                String content = stringWithPadding.content();
+                if (stringWithPadding.suffix() != null) {
+                    rightPadding = Space.append(rightPadding, stringWithPadding.suffix());
                 }
 
-                // TODO: implement this Options should be a list of KeyArgs, Commands should be a list of RightPadded literals
-                return new Docker.Run(Tree.randomId(), prefix, Markers.EMPTY, null, null, null, null, null, null);
+                InstructionParser nestedInstruction = this.copy();
+                content = handleInstructionType(content, nestedInstruction, false);
+                nestedInstruction.instruction.append(content);
+                Docker nested = nestedInstruction.parse();
+
+                return new Docker.OnBuild(Tree.randomId(), prefix, nested, rightPadding, Markers.EMPTY);
+            }  else if (name.equals(Docker.Run.class.getSimpleName())) {
+                List<DockerRightPadded<Docker.Literal>> literals = parseLiterals(instruction.toString());
+                List<DockerRightPadded<Docker.Option>> options = new ArrayList<>();
+                List<DockerRightPadded<Docker.Literal>> commands = new ArrayList<>();
+
+                boolean doneWithOptions = false;
+                for (DockerRightPadded<Docker.Literal> literal : literals) {
+                    String value = literal.getElement().getText();
+                    if (!doneWithOptions && (value.startsWith("--mount") || value.startsWith("--network") || value.startsWith("--security"))) {
+                        options.add(DockerRightPadded.build(new Docker.Option(
+                                Tree.randomId(),
+                                literal.getElement().getPrefix(),
+                                stringToKeyArgs(literal.getElement().getText()),
+                                Markers.EMPTY)).withAfter(literal.getAfter()));
+                    } else {
+                        doneWithOptions = true;
+                        commands.add(literal);
+                    }
+                }
+
+                return new Docker.Run(Tree.randomId(), prefix, options, commands, Markers.EMPTY);
             } else if (name.equals(Docker.User.class.getSimpleName())) {
                 StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
                 String[] parts = stringWithPadding.content().split(":", 2);
@@ -516,6 +578,7 @@ public class DockerParser {
 
                 line = handleRightPadding(line, parser);
                 line = handleInstructionType(line, parser, lastLineContinued);
+                line = handleHeredoc(line, parser, scanner);
 
                 if (parser.instructionType == Docker.Comment.class) {
                     handleDirectiveSpecialCase(line, parser);
@@ -547,6 +610,51 @@ public class DockerParser {
         return new Docker.Document(Tree.randomId(), Markers.EMPTY, Paths.get("Dockerfile"), null, null, false, null, stages, eof);
     }
 
+    private String handleHeredoc(String line, InstructionParser parser, Scanner scanner) {
+        // if the end of the line is heredoc syntax <<[-]\s*[WORD], consume the heredoc until the delimiter WORD is found.
+        int heredocIndex = line.indexOf("<<-");
+        if (heredocIndex == -1) {
+            heredocIndex = line.indexOf("<<");
+            if (heredocIndex == -1) {
+                return line;
+            }
+        }
+
+        String heredocFullText = line.substring(heredocIndex + 2);
+        StringWithPadding stringWithPadding = StringWithPadding.of(heredocFullText.trim());
+
+        // if stringWithPadding.content() is all a single word, we have a heredoc
+        boolean hasSpaces = false;
+        for (char c : stringWithPadding.content().toCharArray()) {
+            // if we find any whitespace, we don't have a heredoc
+            if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+                hasSpaces = true;
+                break;
+            }
+        }
+
+        if (hasSpaces) {
+            return line;
+        }
+
+        String heredocFullTextWithoutCRLF = heredocFullText.replaceAll("[\r\n]", EMPTY);
+        parser.heredoc = new Heredoc(heredocFullTextWithoutCRLF, stringWithPadding.content());
+
+        String delimiter = stringWithPadding.content();
+        StringBuilder heredocContent = new StringBuilder(line);
+        heredocContent.append(NEWLINE);
+        while (scanner.hasNextLine()) {
+            line = scanner.nextLine();
+            if (line.trim().equals(delimiter)) {
+                heredocContent.append(line);
+                break;
+            }
+            heredocContent.append(line).append(NEWLINE);
+        }
+        parser.append(heredocContent.toString());
+
+        return heredocContent.toString();
+    }
 
     private String handleLeadingWhitespace(String line, InstructionParser parser) {
         // drain the line of any leading whitespace, storing in parser.addPrefix, then inspect the first "word" to determine the instruction type
@@ -557,7 +665,7 @@ public class DockerParser {
         return line;
     }
 
-    private String handleInstructionType(String line, InstructionParser parser, boolean isContinuation) {
+    private static String handleInstructionType(String line, InstructionParser parser, boolean isContinuation) {
         // take line until the first space character
         int spaceIndex = line.indexOf(' ');
         String firstWord = (spaceIndex == -1) ? line : line.substring(0, spaceIndex);
@@ -609,7 +717,7 @@ public class DockerParser {
         }
     }
 
-    private Class<? extends Docker.Instruction> instructionFromText(String s) {
+    private static Class<? extends Docker.Instruction> instructionFromText(String s) {
         return switch (s.toUpperCase()) {
             case "ADD" -> Docker.Add.class;
             case "ARG" -> Docker.Arg.class;

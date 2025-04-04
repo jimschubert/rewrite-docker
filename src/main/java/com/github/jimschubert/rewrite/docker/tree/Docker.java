@@ -684,9 +684,10 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
-
         Docker instruction;
+        Space trailing;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -700,7 +701,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new OnBuild(Tree.randomId(), prefix, markers, instruction.copyPaste());
+            return new OnBuild(Tree.randomId(), prefix, instruction.copyPaste(), trailing, markers);
         }
     }
 
@@ -712,14 +713,11 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
 
-        List<String> commands;
-        List<Mount> mounts;
-        NetworkOption networkOption;
-        SecurityOption securityOption;
-        String heredoc;
-        String heredocName;
+        List<DockerRightPadded<Option>> options;
+        List<DockerRightPadded<Literal>> commands;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -733,7 +731,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Run(Tree.randomId(), prefix, markers, commands, mounts, networkOption, securityOption, heredoc, heredocName);
+            return new Run(Tree.randomId(), prefix, options, commands, markers);
         }
     }
 

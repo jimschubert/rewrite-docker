@@ -791,4 +791,194 @@ class DockerParserTest {
         assertEquals(" ", dest.getElement().getPrefix().getWhitespace());
         assertEquals("\t", dest.getAfter().getWhitespace());
     }
+
+    @Test
+    void testRun() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("RUN echo Hello World\t".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Run cmd = (Docker.Run) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, cmd.getPrefix());
+
+        List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
+        assertEquals(3, args.size());
+        assertEquals("echo", args.get(0).getElement().getText());
+        assertEquals("Hello", args.get(1).getElement().getText());
+        assertEquals("World", args.get(2).getElement().getText());
+        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
+        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
+        assertEquals(" ", args.get(2).getElement().getPrefix().getWhitespace());
+        assertEquals("\t", args.get(2).getAfter().getWhitespace());
+    }
+
+    @Test
+    void testRunMultiline() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream(
+                """
+                RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \\
+                  --mount=type=cache,target=/var/lib/apt,sharing=locked \\
+                  apt update && apt-get --no-install-recommends install -y gcc
+                """.getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Run cmd = (Docker.Run) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, cmd.getPrefix());
+
+        List<DockerRightPadded<Docker.Option>> opts = cmd.getOptions();
+        assertEquals(2, opts.size());
+        assertEquals(" ", opts.get(0).getElement().getPrefix().getWhitespace());
+        assertEquals("--mount", opts.get(0).getElement().getKeyArgs().getKey());
+        assertEquals("type=cache,target=/var/cache/apt,sharing=locked", opts.get(0).getElement().getKeyArgs().getValue());
+        assertTrue(opts.get(0).getElement().getKeyArgs().isHasEquals());
+        assertEquals(" \\\n", opts.get(0).getAfter().getWhitespace());
+        assertEquals("  ", opts.get(1).getElement().getPrefix().getWhitespace());
+        assertEquals("--mount", opts.get(1).getElement().getKeyArgs().getKey());
+        assertEquals("type=cache,target=/var/lib/apt,sharing=locked", opts.get(1).getElement().getKeyArgs().getValue());
+        assertTrue(opts.get(1).getElement().getKeyArgs().isHasEquals());
+        assertEquals(" \\\n", opts.get(1).getAfter().getWhitespace());
+
+        List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
+        assertEquals(8, args.size());
+
+        assertEquals("  ", args.get(0).getElement().getPrefix().getWhitespace());
+        assertEquals("apt", args.get(0).getElement().getText());
+        assertEquals("", args.get(0).getAfter().getWhitespace());
+
+        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
+        assertEquals("update", args.get(1).getElement().getText());
+        assertEquals("", args.get(1).getAfter().getWhitespace());
+
+        assertEquals(" ", args.get(2).getElement().getPrefix().getWhitespace());
+        assertEquals("&&", args.get(2).getElement().getText());
+        assertEquals("", args.get(2).getAfter().getWhitespace());
+
+        assertEquals(" ", args.get(3).getElement().getPrefix().getWhitespace());
+        assertEquals("apt-get", args.get(3).getElement().getText());
+        assertEquals("", args.get(3).getAfter().getWhitespace());
+
+        assertEquals(" ", args.get(4).getElement().getPrefix().getWhitespace());
+        assertEquals("--no-install-recommends", args.get(4).getElement().getText());
+        assertEquals("", args.get(4).getElement().getTrailing().getWhitespace());
+        assertEquals("", args.get(4).getAfter().getWhitespace());
+
+        assertEquals(" ", args.get(5).getElement().getPrefix().getWhitespace());
+        assertEquals("install", args.get(5).getElement().getText());
+        assertEquals("", args.get(5).getElement().getTrailing().getWhitespace());
+        assertEquals("", args.get(5).getAfter().getWhitespace());
+
+        assertEquals(" ", args.get(6).getElement().getPrefix().getWhitespace());
+        assertEquals("-y", args.get(6).getElement().getText());
+        assertEquals("", args.get(6).getElement().getTrailing().getWhitespace());
+        assertEquals("", args.get(6).getAfter().getWhitespace());
+
+        assertEquals(" ", args.get(7).getElement().getPrefix().getWhitespace());
+        assertEquals("gcc", args.get(7).getElement().getText());
+        assertEquals("", args.get(7).getAfter().getWhitespace());
+    }
+
+    /**
+     * Test this example heredoc from the Dockerfile reference:
+     * RUN <<EOF
+     * apt-get update
+     * apt-get install -y curl
+     * EOF
+     */
+    @Test
+    void testRunWithHeredoc() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream(
+                """
+                RUN <<EOF
+                apt-get update
+                apt-get install -y curl
+                EOF
+                """.getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Run cmd = (Docker.Run) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, cmd.getPrefix());
+
+        List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
+        assertEquals(14, args.size());
+
+        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
+        assertEquals("<<EOF", args.get(0).getElement().getText());
+        assertEquals("", args.get(0).getElement().getTrailing().getWhitespace());
+
+        assertEquals("\n", args.get(0).getAfter().getWhitespace());
+
+        assertEquals("", args.get(1).getElement().getPrefix().getWhitespace());
+        assertEquals("apt-get", args.get(1).getElement().getText());
+
+        assertEquals(" ", args.get(2).getElement().getPrefix().getWhitespace());
+        assertEquals("update", args.get(2).getElement().getText());
+        assertEquals("\n", args.get(2).getAfter().getWhitespace());
+
+        assertEquals("", args.get(3).getElement().getPrefix().getWhitespace());
+        assertEquals("apt-get", args.get(3).getElement().getText());
+        assertEquals(" ", args.get(4).getElement().getPrefix().getWhitespace());
+        assertEquals("install", args.get(4).getElement().getText());
+
+        assertEquals(" ", args.get(5).getElement().getPrefix().getWhitespace());
+        assertEquals("-y", args.get(5).getElement().getText());
+        assertEquals("curl", args.get(6).getElement().getText());
+    }
+
+    @Test
+    public void testRunWithHeredocAfterOtherCommands() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream(
+                """
+                RUN echo Hello World <<EOF
+                apt-get update
+                apt-get install -y curl
+                EOF
+                """.getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Run cmd = (Docker.Run) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, cmd.getPrefix());
+
+        List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
+        assertEquals(20, args.size());
+
+        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
+        assertEquals("echo", args.get(0).getElement().getText());
+
+        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
+        assertEquals("Hello", args.get(1).getElement().getText());
+
+        assertEquals(" ", args.get(2).getElement().getPrefix().getWhitespace());
+        assertEquals("World", args.get(2).getElement().getText());
+        assertEquals("", args.get(2).getAfter().getWhitespace());
+
+        assertEquals(" ", args.get(3).getElement().getPrefix().getWhitespace());
+        assertEquals("<<EOF", args.get(3).getElement().getText());
+        assertEquals("\n", args.get(3).getAfter().getWhitespace());
+
+        assertEquals("", args.get(4).getElement().getPrefix().getWhitespace());
+        assertEquals("apt-get", args.get(4).getElement().getText());
+        assertEquals("", args.get(4).getElement().getTrailing().getWhitespace());
+
+        assertEquals(" ", args.get(5).getElement().getPrefix().getWhitespace());
+        assertEquals("update", args.get(5).getElement().getText());
+        assertEquals("", args.get(5).getElement().getTrailing().getWhitespace());
+
+        assertEquals("\n", args.get(5).getAfter().getWhitespace());
+
+        assertEquals("", args.get(6).getElement().getPrefix().getWhitespace());
+        assertEquals("apt-get", args.get(6).getElement().getText());
+        assertEquals(" ", args.get(7).getElement().getPrefix().getWhitespace());
+
+        assertEquals(" ", args.get(7).getElement().getPrefix().getWhitespace());
+        assertEquals("install", args.get(7).getElement().getText());
+        assertEquals("-y", args.get(8).getElement().getText());
+        assertEquals(" ", args.get(8).getElement().getPrefix().getWhitespace());
+    }
 }
