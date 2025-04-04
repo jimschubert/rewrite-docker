@@ -219,13 +219,20 @@ public class DockerParser {
                         int idx = elements.size() - 1;
                         elements.set(idx, elements.get(idx).withAfter(Space.build(currentElement.toString())));
                     }
-                    return elements;
                 } else {
                     DockerRightPadded<T> element = DockerRightPadded.build(elementCreator.apply(currentElement.toString()));
                     if (appendRightPadding) {
                         element = element.withAfter(rightPadding);
                     }
                     elements.add(element);
+                }
+            }
+
+            if (!afterBuilder.isEmpty()) {
+                int idx = elements.size() - 1;
+                if (idx >= 0) {
+                    DockerRightPadded<T> element = elements.get(idx);
+                    elements.set(idx, element.withAfter(Space.append(element.getAfter(), Space.build(afterBuilder.toString()))));
                 }
             }
 
@@ -390,8 +397,30 @@ public class DockerParser {
 
                 return new Docker.From(Tree.randomId(), prefix, Markers.EMPTY, platform, image, version, as == null ? null : as.getElement(), alias, rightPadding);
             } else if (name.equals(Docker.Healthcheck.class.getSimpleName())) {
-                // TODO: implement this
-                return new Docker.Healthcheck(Tree.randomId(), prefix, Markers.EMPTY, null, null, null);
+                StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
+                String content = stringWithPadding.content();
+                List<DockerRightPadded<Docker.Literal>> commands;
+                if (content.equalsIgnoreCase("NONE")) {
+                    commands = new ArrayList<>();
+                    Docker.Literal none = Docker.Literal.build(stringWithPadding.prefix(), content, stringWithPadding.suffix(), Quoting.UNQUOTED);
+                    commands.add(DockerRightPadded.build(none).withAfter(rightPadding));
+                    return new Docker.Healthcheck(Tree.randomId(), prefix, Docker.Healthcheck.Type.NONE, null, commands, Markers.EMPTY);
+                }
+
+                List<DockerRightPadded<Docker.KeyArgs>> args;
+                String[] parts = instruction.toString().split("CMD", 2);
+                if (parts.length > 1) {
+                    // the first part is the options, but keyargs don't support trailing spaces
+                    StringWithPadding swp = StringWithPadding.of(parts[0]);
+                    args = parseArgs(swp.prefix().getWhitespace() + swp.content());
+                    // the second part is the command, prefix it with any keyargs trailing whitespace
+                    commands = parseLiterals(Form.SHELL, swp.suffix().getWhitespace() + "CMD" + parts[1]);
+                } else {
+                    args = new ArrayList<>();
+                    commands = parseLiterals(Form.SHELL, content);
+                }
+
+                return new Docker.Healthcheck(Tree.randomId(), stringWithPadding.prefix(), Docker.Healthcheck.Type.CMD, args, commands, Markers.EMPTY);
             } else if (name.equals(Docker.Maintainer.class.getSimpleName())) {
                 return new Docker.Maintainer (Tree.randomId(), prefix, Markers.EMPTY, instruction.toString(), quoting);
             } else if (name.equals(Docker.OnBuild.class.getSimpleName())) {
@@ -510,7 +539,14 @@ public class DockerParser {
         int spaceIndex = line.indexOf(' ');
         String firstWord = (spaceIndex == -1) ? line : line.substring(0, spaceIndex);
         Class<? extends Docker.Instruction> instructionType = instructionFromText(firstWord);
-        if (instructionType != null) {
+        if (Docker.Healthcheck.class == parser.instructionType && instructionType == Docker.Cmd.class) {
+            // special case for healthcheck in which CMD can exist on a continuation line
+            //noinspection DataFlowIssue
+            parser.instructionType = Docker.Healthcheck.class;
+            // if there was any prefix stored previously, add it to the multiline instruction
+            line = parser.prefix.getWhitespace() + line;
+            parser.resetPrefix();
+        } else if (instructionType != null) {
             parser.instructionType = instructionType;
             // remove the first word from line
             line = (spaceIndex == -1) ? line : line.substring(spaceIndex);

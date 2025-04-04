@@ -585,22 +585,16 @@ public interface Docker extends Tree {
 
         @EqualsAndHashCode.Include
         UUID id;
-
         Space prefix;
-        Markers markers;
-
         Type type;
-        String command;
-        LinkedHashMap<String, String> options;
 
-        public Healthcheck(UUID id, Space prefix, Markers markers, Type type, String command, LinkedHashMap<String, String> options) {
-            this.id = id;
-            this.prefix = prefix;
-            this.markers = markers;
-            this.type = type;
-            this.command = command;
-            this.options = new LinkedHashMap<>(options);
-        }
+        @NonFinal
+        List<DockerRightPadded<KeyArgs>> options;
+
+        @NonFinal
+        List<DockerRightPadded<Literal>> commands;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -614,23 +608,12 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Healthcheck(Tree.randomId(), prefix, markers, type, command, new LinkedHashMap<>(options));
-        }
-
-        public LinkedHashMap<String, String> getOptions() {
-            return new LinkedHashMap<>(options);
-        }
-
-        public void clearOptions() {
-            this.options.clear();
-        }
-
-        public void addOption(String key, String value) {
-            this.options.put(key, value);
-        }
-
-        public void removeOption(String key) {
-            this.options.remove(key);
+            return new Healthcheck(Tree.randomId(),
+                    prefix,
+                    type,
+                    options == null ? new ArrayList<>() : new ArrayList<>(options),
+                    commands == null ? new ArrayList<>() : new ArrayList<>(commands),
+                    markers);
         }
     }
 

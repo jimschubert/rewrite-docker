@@ -596,8 +596,50 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     @Override
     public Docker visitHealthcheck(Docker.Healthcheck healthcheck, PrintOutputCapture<P> p) {
         beforeSyntax(healthcheck, p);
-        p.append("HEALTHCHECK ");
-        p.append(healthcheck.getCommand());
+        p.append("HEALTHCHECK");
+
+        if (healthcheck.getOptions() != null) {
+            healthcheck.getOptions().forEach(o -> {
+                Docker.KeyArgs arg = o.getElement();
+                visitSpace(arg.getPrefix(), p);
+                String argName;
+                if (!arg.getKey().startsWith("--")) {
+                    argName = "--" + arg.getKey();
+                } else {
+                    argName = arg.getKey();
+                }
+                p.append(argName);
+                if (arg.isHasEquals()) {
+                    p.append("=");
+                }
+
+                if (arg.getQuoting() == Quoting.SINGLE_QUOTED) {
+                    p.append("'").append(arg.getValue()).append("'");
+                } else if (arg.getQuoting() == Quoting.DOUBLE_QUOTED) {
+                    p.append("\"").append(arg.getValue()).append("\"");
+                } else {
+                    p.append(arg.getValue());
+                }
+                visitSpace(o.getAfter(), p);
+            });
+        }
+
+        if (healthcheck.getCommands() != null) {
+            for (int i = 0; i < healthcheck.getCommands().size(); i++) {
+                DockerRightPadded<Docker.Literal> padded = healthcheck.getCommands().get(i);
+                Docker.Literal literal = padded.getElement();
+                String text = literal.getText();
+                text = trimDoubleQuotes(text);
+                visitSpace(literal.getPrefix(), p);
+                p.append("\"").append(text).append("\"");
+                visitSpace(literal.getTrailing(), p);
+                if (i < healthcheck.getCommands().size() - 1) {
+                    p.append(",");
+                }
+                visitSpace(padded.getAfter(), p);
+            }
+        }
+
         afterSyntax(healthcheck, p);
         return healthcheck;
     }

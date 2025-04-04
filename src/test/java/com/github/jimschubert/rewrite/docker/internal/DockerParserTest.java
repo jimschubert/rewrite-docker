@@ -611,4 +611,57 @@ class DockerParserTest {
         assertEquals("SIGKILL", stopSignal.getSignal().getText());
         assertEquals(" ", stopSignal.getSignal().getPrefix().getWhitespace());
     }
+
+    @Test
+    void testHealthCheckNone() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("HEALTHCHECK NONE".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+
+        Docker.Healthcheck healthCheck = (Docker.Healthcheck) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, healthCheck.getPrefix());
+        assertEquals(1, healthCheck.getCommands().size());
+        assertEquals("NONE", healthCheck.getCommands().get(0).getElement().getText());
+        assertEquals(" ", healthCheck.getCommands().get(0).getElement().getPrefix().getWhitespace());
+    }
+
+    @Test
+    void testHealthCheckWithCmd() {
+        DockerParser parser = new DockerParser();
+        Docker doc = parser.parse(new ByteArrayInputStream("HEALTHCHECK --interval=5m --timeout=3s \\\n  CMD curl -f http://localhost/ || exit 1".getBytes(StandardCharsets.UTF_8)));
+        Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
+        Docker.Healthcheck healthCheck = (Docker.Healthcheck) stage.getChildren().get(0);
+        assertEquals(" ", healthCheck.getPrefix().getWhitespace());
+        assertEquals(7, healthCheck.getCommands().size());
+
+        assertEquals(" ", healthCheck.getOptions().get(0).getElement().getPrefix().getWhitespace());
+        assertEquals("--interval", healthCheck.getOptions().get(0).getElement().getKey());
+        assertEquals("5m", healthCheck.getOptions().get(0).getElement().getValue());
+        assertTrue(healthCheck.getOptions().get(0).getElement().isHasEquals());
+        assertEquals("", healthCheck.getOptions().get(0).getAfter().getWhitespace());
+
+        assertEquals(" ", healthCheck.getOptions().get(1).getElement().getPrefix().getWhitespace());
+        assertEquals("--timeout", healthCheck.getOptions().get(1).getElement().getKey());
+        assertEquals("3s", healthCheck.getOptions().get(1).getElement().getValue());
+        assertTrue(healthCheck.getOptions().get(1).getElement().isHasEquals());
+        assertEquals(" \\\n", healthCheck.getOptions().get(1).getAfter().getWhitespace());
+
+        assertEquals("", healthCheck.getCommands().get(0).getAfter().getWhitespace());
+        assertEquals("CMD", healthCheck.getCommands().get(0).getElement().getText());
+        assertEquals("  ", healthCheck.getCommands().get(0).getElement().getPrefix().getWhitespace());
+        assertEquals("", healthCheck.getCommands().get(0).getAfter().getWhitespace());
+
+        assertEquals("curl", healthCheck.getCommands().get(1).getElement().getText());
+        assertEquals(" ", healthCheck.getCommands().get(1).getElement().getPrefix().getWhitespace());
+        assertEquals("-f", healthCheck.getCommands().get(2).getElement().getText());
+        assertEquals(" ", healthCheck.getCommands().get(2).getElement().getPrefix().getWhitespace());
+        assertEquals("http://localhost/", healthCheck.getCommands().get(3).getElement().getText());
+        assertEquals(" ", healthCheck.getCommands().get(3).getElement().getPrefix().getWhitespace());
+        assertEquals("||", healthCheck.getCommands().get(4).getElement().getText());
+        assertEquals(" ", healthCheck.getCommands().get(4).getElement().getPrefix().getWhitespace());
+        assertEquals("exit", healthCheck.getCommands().get(5).getElement().getText());
+        assertEquals(" ", healthCheck.getCommands().get(5).getElement().getPrefix().getWhitespace());
+        assertEquals("1", healthCheck.getCommands().get(6).getElement().getText());
+    }
 }

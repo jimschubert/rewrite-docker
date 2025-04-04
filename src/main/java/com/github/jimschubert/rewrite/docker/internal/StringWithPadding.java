@@ -5,6 +5,7 @@ import com.github.jimschubert.rewrite.docker.tree.Space;
 public record StringWithPadding(String content, Space prefix, Space suffix) {
     public static StringWithPadding of(String value) {
         int idx = 0;
+        value = value == null ? "" : value;
         for (char c : value.toCharArray()) {
             if (c == ' ' || c == '\t') {
                 idx++;
