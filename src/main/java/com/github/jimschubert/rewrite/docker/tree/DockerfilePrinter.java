@@ -6,6 +6,7 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.PrintOutputCapture;
 import org.openrewrite.Tree;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.Markers;
 
@@ -99,17 +100,26 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     public Docker visitFrom(Docker.From from, PrintOutputCapture<P> p) {
         beforeSyntax(from, p);
         p.append("FROM");
-        if (from.getPlatform() != null && from.getPlatform().getElement().getText() != null) {
-            p.append(" --platform=");
-            p.append(from.getPlatform().getElement().getText());
+        if (from.getPlatform() != null && !StringUtils.isBlank(from.getPlatform().getElement().getText())) {
+            visitSpace(from.getPlatform().getElement().getPrefix(), p);
+            if (!from.getPlatform().getElement().getText().startsWith("--")) {
+                if (from.getPlatform().getElement().getPrefix().getWhitespace() == "") {
+                    p.append(" ");
+                }
+                p.append("--platform=");
+            }
 
+            p.append(from.getPlatform().getElement().getText());
+            visitSpace(from.getPlatform().getElement().getTrailing(), p);
             visitSpace(from.getPlatform().getAfter(), p);
         }
 
         appendRightPaddedLiteral(from.getImage(), p);
         appendRightPaddedLiteral(from.getVersion(), p);
 
-        if (from.getAlias() != null && from.getAlias().getElement().getText() != null && !from.getAlias().getElement().getText().isEmpty()) {
+        if (from.getAlias() != null &&
+                from.getAlias().getElement() != null &&
+                from.getAlias().getElement().getText() != null) {
             visitSpace(from.getAs().getPrefix(), p);
             p.append(from.getAs().getText());
             appendRightPaddedLiteral(from.getAlias(), p);

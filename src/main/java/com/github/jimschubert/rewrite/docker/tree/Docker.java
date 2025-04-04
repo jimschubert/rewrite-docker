@@ -531,46 +531,59 @@ public interface Docker extends Tree {
 
         public String getDigest() {
             String v = version.getElement().getText();
+            if (v == null) {
+                return null;
+            }
             return v.startsWith("@") ? v.substring(1) : null;
         }
 
         public From withPlatform(String platform) {
-            Space prefix = this.platform.getElement() == null ? Space.EMPTY : this.platform.getElement().getPrefix();
-            this.platform = this.platform.withElement(Literal.build(platform).withPrefix(prefix).withMarkers(Markers.EMPTY));
+            if (this.platform == null) {
+                this.platform = DockerRightPadded.build(Literal.build(null));
+            }
+            this.platform = this.platform.withElement(this.platform.getElement().withText(platform));
             return this;
         }
 
         public From withImage(String image) {
-            Space prefix = this.image.getElement() == null ? Space.build(" ") : this.image.getElement().getPrefix();
-            this.image = this.image.withElement(Literal.build(image).withPrefix(prefix).withMarkers(Markers.EMPTY));
+            if (this.image == null) {
+                this.image = DockerRightPadded.build(Literal.build(null));
+            }
+            this.image = this.image.withElement(this.image.getElement().withText(image));
             return this;
         }
 
         public From withVersion(String version) {
-            this.version = this.version.withElement(Literal.build(version).withMarkers(Markers.EMPTY));
+            if (this.version == null) {
+                this.version = DockerRightPadded.build(Literal.build(null));
+            }
+
+            this.version = this.version.withElement(this.version.getElement().withText(version));
             return this;
         }
 
         public From withDigest(String digest) {
             if (digest == null) {
-                return this;
+                return withVersion(null);
             }
             digest = digest.indexOf('@') == 0 ? digest : "@" + digest;
-            version = version.withElement(Literal.build(digest).withMarkers(Markers.EMPTY));
-            return this;
+            return withVersion(digest);
         }
 
         public From withTag(String tag) {
             if (tag == null) {
-                return this;
+                return withVersion(null);
             }
             tag = tag.indexOf(':') == 0 ? tag : ":" + tag;
-            version = version.withElement(Literal.build(tag).withMarkers(Markers.EMPTY));
-            return this;
+            return withVersion(tag);
         }
 
         public String getTag() {
             String v = version.getElement().getText();
+            if (v == null) {
+                return null;
+            }
+
             return v.startsWith(":") ? v.substring(1) : null;
         }
     }

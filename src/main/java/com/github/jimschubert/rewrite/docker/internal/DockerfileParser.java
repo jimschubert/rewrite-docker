@@ -428,11 +428,11 @@ public class DockerfileParser {
                 return new Docker.Expose(Tree.randomId(), prefix, Markers.EMPTY, ports);
             } else if (name.equals(Docker.From.class.getSimpleName())) {
                 String content = instruction.toString();
-                DockerRightPadded<Docker.Literal> platform = null;
-                DockerRightPadded<Docker.Literal> image = null;
-                DockerRightPadded<Docker.Literal> version = null;
-                DockerRightPadded<Docker.Literal> as = null;
-                DockerRightPadded<Docker.Literal> alias = null;
+                DockerRightPadded<Docker.Literal> platform = DockerRightPadded.build(Docker.Literal.build(Space.EMPTY, null, Space.EMPTY, Quoting.UNQUOTED));
+                DockerRightPadded<Docker.Literal> image = DockerRightPadded.build(Docker.Literal.build(Space.EMPTY, null, Space.EMPTY, Quoting.UNQUOTED));
+                DockerRightPadded<Docker.Literal> version = DockerRightPadded.build(Docker.Literal.build(Space.EMPTY, null, Space.EMPTY, Quoting.UNQUOTED));
+                DockerRightPadded<Docker.Literal> as = DockerRightPadded.build(Docker.Literal.build(Space.EMPTY, null, Space.EMPTY, Quoting.UNQUOTED));
+                DockerRightPadded<Docker.Literal> alias = DockerRightPadded.build(Docker.Literal.build(Space.EMPTY, null, Space.EMPTY, Quoting.UNQUOTED));
 
                 List<DockerRightPadded<Docker.Literal>> literals = parseLiterals(content);
                 if (!literals.isEmpty()) {
@@ -441,14 +441,12 @@ public class DockerfileParser {
                         String value = literal.getElement().getText();
                         if (value.startsWith("--platform")) {
                             platform = literal;
-                            // remove "--platform=" from the value
-                            value = value.substring(value.indexOf('=') + 1);
-                            platform = platform.withElement(platform.getElement().withText(value));
-                        } else if (value.equalsIgnoreCase("as")) {
+                        } else if (image.getElement().getText() != null && "as".equalsIgnoreCase(value)) {
                             as = literal;
-                        } else if (image != null && as != null) {
+                        } else if ("as".equalsIgnoreCase(as.getElement().getText())) {
                             alias = literal;
-                        } else if (image == null) {
+                        } else if (image.getElement().getText() == null) {
+                            image = literal;
                             String imageText = literal.getElement().getText();
                             // walk imageText forwards to find the first ':' or '@' to determine the version
                             int idx = 0;
@@ -458,8 +456,8 @@ public class DockerfileParser {
                                 }
                                 idx++;
                             }
+
                             if (idx < imageText.length() - 1) {
-                                image = literal;
                                 version = DockerRightPadded.build(createLiteral(imageText.substring(idx))).withAfter(image.getAfter());
                                 imageText = imageText.substring(0, idx);
                                 image = image.withAfter(Space.EMPTY).withElement(image.getElement().withText(imageText));
@@ -468,7 +466,7 @@ public class DockerfileParser {
                     }
                 }
 
-                return new Docker.From(Tree.randomId(), prefix, Markers.EMPTY, platform, image, version, as == null ? null : as.getElement(), alias, rightPadding);
+                return new Docker.From(Tree.randomId(), prefix, Markers.EMPTY, platform, image, version, as.getElement(), alias, rightPadding);
             } else if (name.equals(Docker.Healthcheck.class.getSimpleName())) {
                 StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
                 String content = stringWithPadding.content();
@@ -552,7 +550,7 @@ public class DockerfileParser {
         }
     }
 
-    public Docker parse(InputStream input) {
+    public Docker.Document parse(InputStream input) {
         // scan the input stream and maintain state. A newline is the delimiter for a complete instruction unless escaped.
         // when a complete instruction is found, parse it into an AST node
         List<Docker.Stage> stages = new ArrayList<>();
