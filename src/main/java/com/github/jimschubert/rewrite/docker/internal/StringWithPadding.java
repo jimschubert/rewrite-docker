@@ -4,14 +4,21 @@ import com.github.jimschubert.rewrite.docker.tree.Space;
 
 public record StringWithPadding(String content, Space prefix, Space suffix) {
     public static StringWithPadding of(String value) {
+        if (value == null || value.isEmpty()) {
+            return new StringWithPadding("", Space.EMPTY, Space.EMPTY);
+        }
+
         int idx = 0;
-        value = value == null ? "" : value;
         for (char c : value.toCharArray()) {
             if (c == ' ' || c == '\t') {
                 idx++;
             } else {
                 break;
             }
+        }
+
+        if (idx == value.length()) {
+            return new StringWithPadding("", Space.build(value), Space.EMPTY);
         }
 
         Space rightPadding = Space.EMPTY;
