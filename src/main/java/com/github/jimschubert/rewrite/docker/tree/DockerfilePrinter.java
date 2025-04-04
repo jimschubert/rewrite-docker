@@ -150,18 +150,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         p.append("#");
         DockerRightPadded<Docker.KeyArgs> padded = directive.getDirective();
         Docker.KeyArgs keyArgs = padded.getElement();
-        visitSpace(keyArgs.getPrefix(), p);
-        p.append(keyArgs.getKey());
-        if (keyArgs.isHasEquals()) {
-            p.append("=");
-        }
-        if (keyArgs.getQuoting() == Quoting.SINGLE_QUOTED) {
-            p.append("'").append(keyArgs.getValue()).append("'");
-        } else if (keyArgs.getQuoting() == Quoting.DOUBLE_QUOTED) {
-            p.append("\"").append(keyArgs.getValue()).append("\"");
-        } else {
-            p.append(keyArgs.getValue());
-        }
+        visitKeyArgs(keyArgs, p);
         visitSpace(padded.getAfter(), p);
         afterSyntax(directive, p);
         return directive;
@@ -247,6 +236,74 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         return cmd;
     }
 
+    private Docker.Literal visitFormLiteral(Form form, Docker.Literal literal, PrintOutputCapture<P> p) {
+        if (literal == null) {
+            return null;
+        }
+        visitSpace(literal.getPrefix(), p);
+        if (literal.getText() != null) {
+            p.append(literal.getText());
+        }
+        visitSpace(literal.getTrailing(), p);
+        return literal;
+    }
+
+    @Override
+    public Docker visitLiteral(Docker.Literal literal, PrintOutputCapture<P> p) {
+        beforeSyntax(literal, p);
+        if (literal.getText() != null) {
+            p.append(literal.getText());
+        }
+        visitSpace(literal.getTrailing(), p);
+        afterSyntax(literal, p);
+        return literal;
+    }
+
+    @Override
+    public Docker visitOption(Docker.Option option, PrintOutputCapture<P> p) {
+        if (option == null) {
+            return null;
+        }
+
+        beforeSyntax(option, p);
+        visitKeyArgs(option.getKeyArgs(), p);
+        afterSyntax(option, p);
+        return option;
+    }
+
+    private DockerRightPadded<Docker.Literal> visitDockerRightPaddedLiteral(DockerRightPadded<Docker.Literal> padded, PrintOutputCapture<P> p) {
+        if (padded == null) {
+            return null;
+        }
+
+        visitLiteral(padded.getElement(), p);
+        visitSpace(padded.getAfter(), p);
+        afterSyntax(padded.getMarkers(), p);
+
+        return  padded;
+    }
+
+    private Docker.KeyArgs visitKeyArgs(Docker.KeyArgs keyArgs, PrintOutputCapture<P> p) {
+        if (keyArgs == null) {
+            return null;
+        }
+        visitSpace(keyArgs.getPrefix(), p);
+        if (keyArgs.getKey() != null && !keyArgs.getKey().isEmpty()) {
+            p.append(keyArgs.getKey());
+        }
+        if (keyArgs.isHasEquals()) {
+            p.append("=");
+        }
+        if (keyArgs.getQuoting() == Quoting.SINGLE_QUOTED) {
+            p.append("'").append(keyArgs.getValue()).append("'");
+        } else if (keyArgs.getQuoting() == Quoting.DOUBLE_QUOTED) {
+            p.append("\"").append(keyArgs.getValue()).append("\"");
+        } else {
+            p.append(keyArgs.getValue());
+        }
+        return keyArgs;
+    }
+
     private static @NotNull String trimDoubleQuotes(String text) {
         if (text.startsWith("\"") && text.endsWith("\"")) {
             text = text.substring(1, text.length() - 1);
@@ -259,18 +316,8 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         beforeSyntax(label, p);
         p.append("LABEL");
         for (DockerRightPadded<Docker.KeyArgs> padded : label.getArgs()) {
-            Docker.KeyArgs kvp = padded.getElement();
-            p.append(" ").append(kvp.getKey());
-            if (kvp.isHasEquals()) {
-                p.append("=");
-            }
-            if (kvp.getQuoting() == Quoting.SINGLE_QUOTED) {
-                p.append("'").append(kvp.getValue()).append("'");
-            } else if (kvp.getQuoting() == Quoting.DOUBLE_QUOTED) {
-                p.append("\"").append(kvp.getValue()).append("\"");
-            } else {
-                p.append(kvp.getValue());
-            }
+            visitKeyArgs(padded.getElement(), p);
+            visitSpace(padded.getAfter(), p);
         }
         afterSyntax(label, p);
         return label;
@@ -342,50 +389,18 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
 
         if (add.getOptions() != null) {
             add.getOptions().forEach(o -> {
-                    Docker.Option element = o.getElement();
-                    if (element.getName() != null && !element.getName().isEmpty()) {
-                        visitSpace(element.getPrefix(), p);
-                        p.append("--");
-                        p.append(element.getName());
-                        if (element.getKeyArgs() != null) {
-                            p.append("=");
-                            for (Docker.KeyArgs kvp : element.getKeyArgs()) {
-                                p.append(kvp.getKey());
-                                if (kvp.isHasEquals()) {
-                                    p.append("=");
-                                }
-                                if (kvp.getQuoting() == Quoting.SINGLE_QUOTED) {
-                                    p.append("'").append(kvp.getValue()).append("'");
-                                } else if (kvp.getQuoting() == Quoting.DOUBLE_QUOTED) {
-                                    p.append("\"").append(kvp.getValue()).append("\"");
-                                } else {
-                                    p.append(kvp.getValue());
-                                }
-                                p.append(" ");
-                            }
-                        }
-                    }
-                }
-            );
+                visitOption(o.getElement(), p);
+                visitSpace(o.getAfter(), p);
+            });
         }
 
         if (add.getSources() != null ) {
             for (int i = 0; i < add.getSources().size(); i++) {
-                DockerRightPadded<Docker.Literal> literalPadded = add.getSources().get(i);
-                Docker.Literal literal = literalPadded.getElement();
-                visitSpace(literal.getPrefix(), p);
-                p.append(literal.getText());
-                visitSpace(literalPadded.getAfter(), p);
+                visitDockerRightPaddedLiteral(add.getSources().get(i), p);
             }
         }
 
-        if (add.getDestination() != null) {
-            DockerRightPadded<Docker.Literal> literalPadded = add.getDestination();
-            Docker.Literal literal = literalPadded.getElement();
-            visitSpace(literal.getPrefix(), p);
-            p.append(literal.getText());
-            visitSpace(literalPadded.getAfter(), p);
-        }
+        visitDockerRightPaddedLiteral(add.getDestination(), p);
 
         afterSyntax(add, p);
         return add;
@@ -398,51 +413,18 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
 
         if (copy.getOptions() != null) {
             copy.getOptions().forEach(o -> {
-                        Docker.Option element = o.getElement();
-                        if (element.getName() != null && !element.getName().isEmpty()) {
-                            visitSpace(element.getPrefix(), p);
-                            p.append("--");
-                            p.append(element.getName());
-                            if (element.getKeyArgs() != null) {
-                                p.append("=");
-                                for (Docker.KeyArgs kvp : element.getKeyArgs()) {
-                                    p.append(kvp.getKey());
-                                    if (kvp.isHasEquals()) {
-                                        p.append("=");
-                                    }
-                                    if (kvp.getQuoting() == Quoting.SINGLE_QUOTED) {
-                                        p.append("'").append(kvp.getValue()).append("'");
-                                    } else if (kvp.getQuoting() == Quoting.DOUBLE_QUOTED) {
-                                        p.append("\"").append(kvp.getValue()).append("\"");
-                                    } else {
-                                        p.append(kvp.getValue());
-                                    }
-                                    p.append(" ");
-                                }
-                            }
-                        }
-                    }
-            );
+                visitOption(o.getElement(), p);
+                visitSpace(o.getAfter(), p);
+            });
         }
 
         if (copy.getSources() != null ) {
             for (int i = 0; i < copy.getSources().size(); i++) {
-                DockerRightPadded<Docker.Literal> literalPadded = copy.getSources().get(i);
-                Docker.Literal literal = literalPadded.getElement();
-                visitSpace(literal.getPrefix(), p);
-                p.append(literal.getText());
-                visitSpace(literalPadded.getAfter(), p);
+                visitDockerRightPaddedLiteral(copy.getSources().get(i), p);
             }
         }
 
-        if (copy.getDestination() != null) {
-            DockerRightPadded<Docker.Literal> literalPadded = copy.getDestination();
-            Docker.Literal literal = literalPadded.getElement();
-            visitSpace(literal.getPrefix(), p);
-            p.append(literal.getText());
-            visitSpace(literalPadded.getAfter(), p);
-        }
-
+        visitDockerRightPaddedLiteral(copy.getDestination(), p);
 
         afterSyntax(copy, p);
         return copy;
@@ -452,19 +434,9 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     public Docker visitEntrypoint(Docker.Entrypoint entrypoint, PrintOutputCapture<P> p) {
         beforeSyntax(entrypoint, p);
         p.append("ENTRYPOINT [");
-        for (int i = 0; i < entrypoint.getCommands().size(); i++) {
-            DockerRightPadded<Docker.Literal> padded = entrypoint.getCommands().get(i);
-            Docker.Literal literal = padded.getElement();
-            String text = literal.getText();
-            text = trimDoubleQuotes(text);
-            visitSpace(literal.getPrefix(), p);
-            p.append("\"").append(text).append("\"");
-            visitSpace(literal.getTrailing(), p);
-            if (i < entrypoint.getCommands().size() - 1) {
-                p.append(",");
-            }
-            visitSpace(padded.getAfter(), p);
-        }
+        entrypoint.getCommands().forEach(padded -> {
+            visitDockerRightPaddedLiteral(padded, p);
+        });
         p.append("]");
         visitSpace(entrypoint.getExecFormSuffix(), p);
         afterSyntax(entrypoint, p);
@@ -538,11 +510,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     public Docker visitWorkdir(Docker.Workdir workdir, PrintOutputCapture<P> p) {
         beforeSyntax(workdir, p);
         p.append("WORKDIR");
-        visitSpace(workdir.getPath().getPrefix(), p);
-        if (!workdir.getPath().getText().isEmpty()) {
-            p.append(workdir.getPath().getText());
-        }
-        visitSpace(workdir.getPath().getTrailing(), p);
+        visitLiteral(workdir.getPath(), p);
         afterSyntax(workdir, p);
         return workdir;
     }
@@ -552,19 +520,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         beforeSyntax(arg, p);
         p.append("ARG");
         arg.getArgs().forEach(padded -> {
-            Docker.KeyArgs kvp = padded.getElement();
-            visitSpace(kvp.getPrefix(), p);
-            p.append(kvp.getKey());
-            if (kvp.isHasEquals()) {
-                p.append("=");
-            }
-            if (kvp.getQuoting() == Quoting.SINGLE_QUOTED) {
-                p.append("'").append(kvp.getValue()).append("'");
-            } else if (kvp.getQuoting() == Quoting.DOUBLE_QUOTED) {
-                p.append("\"").append(kvp.getValue()).append("\"");
-            } else {
-                p.append(kvp.getValue());
-            }
+            visitKeyArgs(padded.getElement(), p);
             visitSpace(padded.getAfter(), p);
         });
         afterSyntax(arg, p);
@@ -585,10 +541,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         beforeSyntax(stopSignal, p);
         p.append("STOPSIGNAL");
         visitSpace(stopSignal.getPrefix(), p);
-        if (stopSignal.getSignal() != null) {
-            p.append(stopSignal.getSignal().getText());
-        }
-        visitSpace(stopSignal.getSignal().getTrailing(), p);
+        visitLiteral(stopSignal.getSignal(), p);
         afterSyntax(stopSignal, p);
         return stopSignal;
     }
@@ -601,25 +554,10 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         if (healthcheck.getOptions() != null) {
             healthcheck.getOptions().forEach(o -> {
                 Docker.KeyArgs arg = o.getElement();
-                visitSpace(arg.getPrefix(), p);
-                String argName;
                 if (!arg.getKey().startsWith("--")) {
-                    argName = "--" + arg.getKey();
-                } else {
-                    argName = arg.getKey();
+                    arg = new Docker.KeyArgs(arg.getPrefix(), "--" + arg.getKey(), arg.getValue(), arg.isHasEquals(), arg.getQuoting());
                 }
-                p.append(argName);
-                if (arg.isHasEquals()) {
-                    p.append("=");
-                }
-
-                if (arg.getQuoting() == Quoting.SINGLE_QUOTED) {
-                    p.append("'").append(arg.getValue()).append("'");
-                } else if (arg.getQuoting() == Quoting.DOUBLE_QUOTED) {
-                    p.append("\"").append(arg.getValue()).append("\"");
-                } else {
-                    p.append(arg.getValue());
-                }
+                visitKeyArgs(arg, p);
                 visitSpace(o.getAfter(), p);
             });
         }

@@ -97,8 +97,7 @@ public interface Docker extends Tree {
         UUID id;
         Space prefix;
 
-        String name;
-        List<KeyArgs> keyArgs;
+        KeyArgs keyArgs;
 
         Markers markers;
 
@@ -114,7 +113,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Option(Tree.randomId(), prefix, name, keyArgs, markers == null ? Markers.EMPTY : Markers.build(markers.getMarkers()));
+            return new Option(Tree.randomId(), prefix, keyArgs, markers == null ? Markers.EMPTY : Markers.build(markers.getMarkers()));
         }
     }
 

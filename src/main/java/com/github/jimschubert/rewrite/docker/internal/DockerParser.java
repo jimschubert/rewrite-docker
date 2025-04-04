@@ -260,18 +260,37 @@ public class DockerParser {
                     q);
         }
 
-        private Docker.Option createOption(String s) {
-            String[] parts = s.split("=", 2);
-            String key = parts.length > 0 ? parts[0] : "";
-            String value = parts.length > 1 ? parts[1] : "";
-            return new Docker.Option(Tree.randomId(), prefix, key, List.of(stringToKeyArgs(value)), Markers.EMPTY);
-        }
-
         Docker.Instruction parse() {
             String name = instructionType.getSimpleName();
             if (name.equals(Docker.Add.class.getSimpleName())) {
-                // TODO: implement this
-                return new Docker.Add(Tree.randomId(), prefix, Markers.EMPTY, null, null, null);
+                List<DockerRightPadded<Docker.Literal>> literals = parseLiterals(instruction.toString());
+
+                List<DockerRightPadded<Docker.Option>> options = new ArrayList<>();
+                List<DockerRightPadded<Docker.Literal>> sources = new ArrayList<>();
+                DockerRightPadded<Docker.Literal> destination = null;
+
+                // reverse literals iteration
+                for (int i = literals.size() - 1; i >= 0; i--) {
+                    DockerRightPadded<Docker.Literal> literal = literals.get(i);
+                    if (i == literals.size() - 1) {
+                        // the last literal is the destination
+                        destination = literal;
+                        continue;
+                    }
+
+                    String value = literal.getElement().getText();
+                    if (value.startsWith("--")) {
+                        options.add(0, DockerRightPadded.build(new Docker.Option(
+                                Tree.randomId(),
+                                literal.getElement().getPrefix(),
+                                stringToKeyArgs(literal.getElement().getText()),
+                                Markers.EMPTY)).withAfter(literal.getAfter()));
+                    } else {
+                        sources.add(0, literal);
+                    }
+                }
+
+                return new Docker.Add(Tree.randomId(), prefix, Markers.EMPTY, options, sources, destination);
             } else if (name.equals(Docker.Arg.class.getSimpleName()) || name.equals(Docker.Label.class.getSimpleName())) {
 
                 List<DockerRightPadded<Docker.KeyArgs>> args = parseArgs(instruction.toString());
@@ -480,6 +499,7 @@ public class DockerParser {
         InstructionParser parser = new InstructionParser();
 
         try (Scanner scanner = new Scanner(input)) {
+            boolean lastLineContinued = false;
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 if (line.isEmpty()) {
@@ -493,8 +513,8 @@ public class DockerParser {
                     continue;
                 }
 
-                line = handleInstructionType(line, parser);
                 line = handleRightPadding(line, parser);
+                line = handleInstructionType(line, parser, lastLineContinued);
 
                 if (parser.instructionType == Docker.Comment.class) {
                     handleDirectiveSpecialCase(line, parser);
@@ -503,6 +523,7 @@ public class DockerParser {
                 parser.append(line);
                 if (line.endsWith(parser.getEscapeChar())) {
                     parser.append(NEWLINE);
+                    lastLineContinued = true;
                     continue;
                 }
 
@@ -514,6 +535,7 @@ public class DockerParser {
                 }
 
                 parser.reset();
+                lastLineContinued = false;
             }
         }
 
@@ -534,12 +556,12 @@ public class DockerParser {
         return line;
     }
 
-    private String handleInstructionType(String line, InstructionParser parser) {
+    private String handleInstructionType(String line, InstructionParser parser, boolean isContinuation) {
         // take line until the first space character
         int spaceIndex = line.indexOf(' ');
         String firstWord = (spaceIndex == -1) ? line : line.substring(0, spaceIndex);
         Class<? extends Docker.Instruction> instructionType = instructionFromText(firstWord);
-        if (Docker.Healthcheck.class == parser.instructionType && instructionType == Docker.Cmd.class) {
+        if (isContinuation && Docker.Healthcheck.class == parser.instructionType && instructionType == Docker.Cmd.class) {
             // special case for healthcheck in which CMD can exist on a continuation line
             //noinspection DataFlowIssue
             parser.instructionType = Docker.Healthcheck.class;
@@ -552,6 +574,7 @@ public class DockerParser {
             line = (spaceIndex == -1) ? line : line.substring(spaceIndex);
         } else if (parser.prefix != null && !parser.prefix.isEmpty()) {
             // if there was any prefix stored previously, add it to the multiline instruction
+            // this is a special case for multi-line instructions like comments
             line = parser.prefix.getWhitespace() + line;
             parser.resetPrefix();
         }
