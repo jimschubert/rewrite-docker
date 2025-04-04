@@ -13,28 +13,25 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.function.Function;
 
+/**
+ * Parses a Dockerfile into an AST.
+ * <p>
+ * This parser is not a full implementation of the Dockerfile syntax. It is designed to parse the most common
+ * instructions and handle the most common cases. It does not handle all edge cases or all possible syntax.
+ */
 public class DockerfileParser {
     static final String DOUBLE_QUOTE = "\"";
     static final String SINGLE_QUOTE = "'";
-    static final String BACKSLASH = "\\";
     static final String TAB = "\t";
     static final String NEWLINE = "\n";
-    static final String CARRIAGE_RETURN = "\r";
     static final String EQUAL = "=";
     static final String SPACE = " ";
     static final String EMPTY = "";
     static final String COMMA = ",";
 
-    /**
-     * Heredoc syntax is <<[-]\s*[WORD].
-     *
-     * @param indicator The full heredoc syntax to find in a string.
-     * @param delimiter The name of the heredoc (delimiter) used to determine when to stop reading as a heredoc.
-     */
-    record Heredoc(String indicator, String delimiter) { }
-
+    // region InstructionParser (private)
     // InstructionParser is used to collect the parts of an instruction and parse it into the appropriate AST node.
-    static class InstructionParser {
+    private static class InstructionParser {
         private Space prefix = Space.EMPTY;
         private Space rightPadding = Space.EMPTY;
         private Quoting quoting = Quoting.UNQUOTED;
@@ -142,6 +139,7 @@ public class DockerfileParser {
             // exec form is a JSON array, so we need to parse it differently where right padding is after the ']'.
             return parseElements(input, form == Form.EXEC ? COMMA : SPACE, form == Form.SHELL, this::createLiteral);
         }
+
         private <T> List<DockerRightPadded<T>> parseElements(String input, String delims, boolean appendRightPadding, Function<String, T> elementCreator) {
             List<DockerRightPadded<T>> elements = new ArrayList<>();
             StringBuilder currentElement = new StringBuilder();
@@ -549,8 +547,16 @@ public class DockerfileParser {
             return null;
         }
     }
+    // endregion
 
+    /**
+     * Parses a Dockerfile into an AST.
+     * @param input The input stream to parse.
+     * @return The parsed Dockerfile as a {@link Docker.Document}.
+     */
     public Docker.Document parse(InputStream input) {
+        // TODO: handle parser errors, such as unmatched quotes, invalid syntax, etc.
+        // TODO: handle syntax version differences (or just support the latest according to https://docs.docker.com/engine/reference/builder/ ??)
         // scan the input stream and maintain state. A newline is the delimiter for a complete instruction unless escaped.
         // when a complete instruction is found, parse it into an AST node
         List<Docker.Stage> stages = new ArrayList<>();
@@ -663,31 +669,6 @@ public class DockerfileParser {
         return line;
     }
 
-    private static String handleInstructionType(String line, InstructionParser parser, boolean isContinuation) {
-        // take line until the first space character
-        int spaceIndex = line.indexOf(' ');
-        String firstWord = (spaceIndex == -1) ? line : line.substring(0, spaceIndex);
-        Class<? extends Docker.Instruction> instructionType = instructionFromText(firstWord);
-        if (isContinuation && Docker.Healthcheck.class == parser.instructionType && instructionType == Docker.Cmd.class) {
-            // special case for healthcheck in which CMD can exist on a continuation line
-            //noinspection DataFlowIssue
-            parser.instructionType = Docker.Healthcheck.class;
-            // if there was any prefix stored previously, add it to the multiline instruction
-            line = parser.prefix.getWhitespace() + line;
-            parser.resetPrefix();
-        } else if (instructionType != null) {
-            parser.instructionType = instructionType;
-            // remove the first word from line
-            line = (spaceIndex == -1) ? line : line.substring(spaceIndex);
-        } else if (parser.prefix != null && !parser.prefix.isEmpty()) {
-            // if there was any prefix stored previously, add it to the multiline instruction
-            // this is a special case for multi-line instructions like comments
-            line = parser.prefix.getWhitespace() + line;
-            parser.resetPrefix();
-        }
-        return line;
-    }
-
     private String handleRightPadding(String line, InstructionParser parser) {
         int idx = line.length() - 1;
         // walk line backwards to find the last non-whitespace character
@@ -715,6 +696,31 @@ public class DockerfileParser {
         }
     }
 
+    private static String handleInstructionType(String line, InstructionParser parser, boolean isContinuation) {
+        // take line until the first space character
+        int spaceIndex = line.indexOf(' ');
+        String firstWord = (spaceIndex == -1) ? line : line.substring(0, spaceIndex);
+        Class<? extends Docker.Instruction> instructionType = instructionFromText(firstWord);
+        if (isContinuation && Docker.Healthcheck.class == parser.instructionType && instructionType == Docker.Cmd.class) {
+            // special case for healthcheck in which CMD can exist on a continuation line
+            //noinspection DataFlowIssue
+            parser.instructionType = Docker.Healthcheck.class;
+            // if there was any prefix stored previously, add it to the multiline instruction
+            line = parser.prefix.getWhitespace() + line;
+            parser.resetPrefix();
+        } else if (instructionType != null) {
+            parser.instructionType = instructionType;
+            // remove the first word from line
+            line = (spaceIndex == -1) ? line : line.substring(spaceIndex);
+        } else if (parser.prefix != null && !parser.prefix.isEmpty()) {
+            // if there was any prefix stored previously, add it to the multiline instruction
+            // this is a special case for multi-line instructions like comments
+            line = parser.prefix.getWhitespace() + line;
+            parser.resetPrefix();
+        }
+        return line;
+    }
+
     private static Class<? extends Docker.Instruction> instructionFromText(String s) {
         return switch (s.toUpperCase()) {
             case "ADD" -> Docker.Add.class;
@@ -739,4 +745,12 @@ public class DockerfileParser {
             default -> null;
         };
     }
+
+    /**
+     * Heredoc syntax is <<[-]\s*[WORD].
+     *
+     * @param indicator The full heredoc syntax to find in a string.
+     * @param delimiter The name of the heredoc (delimiter) used to determine when to stop reading as a heredoc.
+     */
+    private record Heredoc(String indicator, String delimiter) { }
 }
