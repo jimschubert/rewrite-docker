@@ -16,6 +16,11 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
+// TODO: maybe revisit some of the types here to determine if any can be simplified (e.g. DockerRightPadded<Literal>)
+// TODO: maybe add helper methods to simplify setting of (most) fields?
+/**
+ * A Dockerfile AST.
+ */
 public interface Docker extends Tree {
 
     interface Instruction extends Docker {}
@@ -89,6 +94,11 @@ public interface Docker extends Tree {
         }
     }
 
+    /**
+     * A Dockerfile option, such as --platform or --chown.
+     * This is different from KeyArgs, which is intended to be a hashable key-value pair.
+     * We use Option to allow for key-value pairs which can be repeated (e.g. --exclude in COPY/ADD).
+     */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
