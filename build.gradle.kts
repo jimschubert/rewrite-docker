@@ -14,8 +14,6 @@ java {
 dependencies {
     implementation(platform("org.openrewrite.recipe:rewrite-recipe-bom:latest.release"))
 
-    implementation("com.github.jimschubert:docker-parser:1.0.3")
-
     // lombok is optional, but recommended for authoring recipes
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")

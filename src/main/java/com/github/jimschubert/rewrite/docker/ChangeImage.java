@@ -19,10 +19,10 @@ import java.util.regex.Pattern;
 @NoArgsConstructor(force = true)
 public class ChangeImage extends Recipe {
 
-    @Option(displayName = "Old image",
+    @Option(displayName = "Match image",
             description = "A regular expression to locate an image entry.",
             example = ".*/ubuntu/.*")
-    String oldImage;
+    String matchImage;
 
     @Option(displayName = "New image",
             description = "The new image for the image found by `oldImage`. Can be format `registry/image`, `image`, `image:tag`, etc.",
@@ -37,6 +37,16 @@ public class ChangeImage extends Recipe {
             example = ":latest",
             required = false)
     String newVersion;
+
+    @Nullable
+    @Option(displayName = "New platform",
+            description = "The new platform for the image found by `matchImage`. Can be full format " +
+                    "(`--platform=linux/amd64`), partial (`linux/amd64`)" +
+                    "If not provided, the platform will be left as-is. " +
+                    "To unset a platform, newPlatform must be set to an empty string.",
+            example = "--platform=linux/amd64",
+            required = false)
+    String newPlatform;
 
     @Override
     public String getDisplayName() {
@@ -54,51 +64,63 @@ public class ChangeImage extends Recipe {
             @Override
             public Docker.From visitFrom(Docker.From from, ExecutionContext executionContext) {
                 Docker.From newFrom = super.visitFrom(from, executionContext);
-                if (oldImage == null || newImage == null) {
+                if (matchImage == null || newImage == null) {
                     return newFrom;
                 }
 
-                if (newFrom.getMarkers().findFirst(Modified.class).filter(m -> m.oldImage.equals(oldImage) && m.newImage.equals(newImage)).isPresent()) {
+                if (newFrom.getMarkers().findFirst(Modified.class).filter(m -> m.matchImage.equals(matchImage)
+                        && m.newImage.equals(newImage)
+                        && m.newPlatform.equals(newPlatform)
+                        && m.newVersion.equals(newVersion)
+                ).isPresent()) {
                     // already changed
                     return newFrom;
                 }
 
-                Matcher matcher = Pattern.compile(oldImage).matcher(from.getImageSpecWithVersion());
+                Matcher matcher = Pattern.compile(matchImage).matcher(from.getImageSpecWithVersion());
                 if (matcher.matches()) {
-                    Marker modifiedMarker = new Modified(UUID.randomUUID(), oldImage, newImage);
+                    Marker modifiedMarker = new Modified(
+                            UUID.randomUUID(),
+                            matchImage,
+                            newImage,
+                            newPlatform == null ? "" : newPlatform,
+                            newVersion == null ? "" : newVersion);
+
+                    String image = from.getImage().getElement().getText();
+                    String version = from.getVersion().getElement().getText();
+                    String platform = from.getPlatform().getElement().getText();
 
                     // if newImage contains tag, we need to replace it via withTag, else with '@' digest we replace via withDigest
-                    if (newImage.contains(":")) {
-                        String[] parts = newImage.split(":");
-                        String image = parts[0];
-                        String tag = null;
-                        if (parts.length > 1) {
-                            tag = parts[1];
-                        }
-
-                        newFrom = newFrom.withImage(image)
-                            .withTag(tag)
-                            .withMarkers(newFrom.getMarkers().addIfAbsent(modifiedMarker));
-                    } else if (newImage.contains("@")) {
+                    if (newImage.contains("@")) {
                         String[] parts = newImage.split("@");
-                        String image = parts[0];
-                        String digest = null;
+                        image = parts[0];
                         if (parts.length > 1) {
-                            digest = parts[1];
+                            version = parts[1];
                         }
-
-                        newFrom = newFrom.withImage(image)
-                            .withDigest(digest)
-                            .withMarkers(newFrom.getMarkers().addIfAbsent(modifiedMarker));
-                    } else if (newVersion == null) {
-                        return newFrom.withImage(newImage)
-                            .withMarkers(newFrom.getMarkers().addIfAbsent(modifiedMarker));
+                    } else if (newImage.contains(":")) {
+                        String[] parts = newImage.split(":");
+                        image = parts[0];
+                        if (parts.length > 1) {
+                            version = parts[1];
+                        }
                     } else {
-                        // remove version (no tag or digest specified)
-                        return newFrom.withImage(newImage)
-                            .withVersion(null)
-                            .withMarkers(newFrom.getMarkers().addIfAbsent(modifiedMarker));
+                        image = newImage;
                     }
+
+                    if (newVersion != null) {
+                        version = newVersion;
+                    }
+
+                    if (newPlatform != null) {
+                        platform = newPlatform;
+                    } else {
+                        platform = from.getPlatform().getElement().getText();
+                    }
+
+                    return newFrom.withImage(image)
+                            .withVersion(version)
+                            .withPlatform(platform)
+                            .withMarkers(newFrom.getMarkers().add(modifiedMarker));
                 }
 
                 return newFrom;
@@ -112,7 +134,9 @@ public class ChangeImage extends Recipe {
         @With
         UUID id;
 
-        String oldImage;
+        String matchImage;
         String newImage;
+        String newPlatform;
+        String newVersion;
     }
 }

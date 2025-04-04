@@ -43,6 +43,16 @@ public class Space {
         return new Space(whitespace);
     }
 
+    public static Space append(Space prefix, Space suffix) {
+        if (prefix == null || prefix.isEmpty()) {
+            return suffix;
+        }
+        if (suffix == null || suffix.isEmpty()) {
+            return prefix;
+        }
+        return build(prefix.getWhitespace() + suffix.getWhitespace());
+    }
+
     public String getIndent() {
         return getWhitespaceIndent(whitespace);
     }

@@ -16,6 +16,11 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
+// TODO: maybe revisit some of the types here to determine if any can be simplified (e.g. DockerRightPadded<Literal>)
+// TODO: maybe add helper methods to simplify setting of (most) fields?
+/**
+ * A Dockerfile AST.
+ */
 public interface Docker extends Tree {
 
     interface Instruction extends Docker {}
@@ -57,7 +62,11 @@ public interface Docker extends Tree {
 
         String text;
 
+        Space trailing;
+
         Markers markers;
+
+        Quoting quoting;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -71,23 +80,34 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Literal(Tree.randomId(), prefix, text, markers == null ? Markers.EMPTY : Markers.build(markers.getMarkers()));
+            return new Literal(Tree.randomId(), prefix, text, trailing,
+                    markers == null ? Markers.EMPTY : Markers.build(markers.getMarkers()),
+                    quoting);
         }
 
         public static Literal build(String text) {
-            return new Literal(Tree.randomId(), Space.EMPTY, text, Markers.EMPTY);
+            return new Literal(Tree.randomId(), Space.EMPTY, text, Space.EMPTY, Markers.EMPTY, Quoting.UNQUOTED);
+        }
+
+        public static Literal build(Space prefix, String text, Space trailing, Quoting quoting) {
+            return new Literal(Tree.randomId(), prefix, text, trailing, Markers.EMPTY, quoting);
         }
     }
 
+    /**
+     * A Dockerfile option, such as --platform or --chown.
+     * This is different from KeyArgs, which is intended to be a hashable key-value pair.
+     * We use Option to allow for key-value pairs which can be repeated (e.g. --exclude in COPY/ADD).
+     */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
     class Option implements Docker {
         @EqualsAndHashCode.Include
         UUID id;
+        Space prefix;
 
-        String name;
-        List<KeyArgs> keyArgs;
+        KeyArgs keyArgs;
 
         Markers markers;
 
@@ -103,7 +123,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Option(Tree.randomId(), name, keyArgs, markers == null ? Markers.EMPTY : Markers.build(markers.getMarkers()));
+            return new Option(Tree.randomId(), prefix, keyArgs, markers == null ? Markers.EMPTY : Markers.build(markers.getMarkers()));
         }
     }
 
@@ -170,12 +190,13 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
 
         List<DockerRightPadded<Option>> options;
 
         List<DockerRightPadded<Literal>> sources;
         DockerRightPadded<Literal> destination;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -189,7 +210,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Add(Tree.randomId(), prefix, markers, options, sources, destination);
+            return new Add(Tree.randomId(), prefix, options, sources, destination, markers);
         }
     }
 
@@ -227,12 +248,12 @@ public interface Docker extends Tree {
     class Cmd implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
-
-        Space prefix;
-        Markers markers;
-
         Form form;
+        Space prefix;
+        Space execFormPrefix;
         List<DockerRightPadded<Literal>> commands;
+        Space execFormSuffix;
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -246,7 +267,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Cmd(Tree.randomId(), prefix, markers, form, commands);
+            return new Cmd(Tree.randomId(), form, prefix, execFormPrefix, commands, execFormSuffix, markers);
         }
     }
 
@@ -290,12 +311,12 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
 
+        List<DockerRightPadded<Option>> options;
         List<DockerRightPadded<Literal>> sources;
         DockerRightPadded<Literal> destination;
 
-        List<DockerRightPadded<Option>> options;
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -309,7 +330,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Copy(Tree.randomId(), prefix, markers, sources, destination, new ArrayList<>(options));
+            return new Copy(Tree.randomId(), prefix, new ArrayList<>(options), sources, destination, markers);
         }
     }
 
@@ -381,13 +402,12 @@ public interface Docker extends Tree {
     class Entrypoint implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
-
+        Form form;
         Space prefix;
+        Space execFormPrefix;
+        List<DockerRightPadded<Literal>> commands;
+        Space execFormSuffix;
         Markers markers;
-
-        List<DockerRightPadded<Literal>> command;
-
-        Space trailing;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -401,7 +421,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Entrypoint(Tree.randomId(), prefix, markers, command, trailing);
+            return new Entrypoint(Tree.randomId(), form, prefix,execFormPrefix, commands, execFormSuffix, markers);
         }
     }
 
@@ -490,6 +510,9 @@ public interface Docker extends Tree {
         @NonFinal
         DockerRightPadded<Literal> alias;
 
+        @With
+        Space trailing;
+
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitFrom(this, p);
@@ -502,7 +525,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new From(Tree.randomId(), prefix, markers, platform, image, version, as, alias);
+            return new From(Tree.randomId(), prefix, markers, platform, image, version, as, alias, trailing);
         }
 
         public String getImageSpec() {
@@ -518,46 +541,59 @@ public interface Docker extends Tree {
 
         public String getDigest() {
             String v = version.getElement().getText();
+            if (v == null) {
+                return null;
+            }
             return v.startsWith("@") ? v.substring(1) : null;
         }
 
         public From withPlatform(String platform) {
-            Space prefix = this.platform.getElement() == null ? Space.EMPTY : this.platform.getElement().getPrefix();
-            this.platform = this.platform.withElement(Literal.build(platform).withPrefix(prefix).withMarkers(Markers.EMPTY));
+            if (this.platform == null) {
+                this.platform = DockerRightPadded.build(Literal.build(null));
+            }
+            this.platform = this.platform.withElement(this.platform.getElement().withText(platform));
             return this;
         }
 
         public From withImage(String image) {
-            Space prefix = this.image.getElement() == null ? Space.build(" ") : this.image.getElement().getPrefix();
-            this.image = this.image.withElement(Literal.build(image).withPrefix(prefix).withMarkers(Markers.EMPTY));
+            if (this.image == null) {
+                this.image = DockerRightPadded.build(Literal.build(null));
+            }
+            this.image = this.image.withElement(this.image.getElement().withText(image));
             return this;
         }
 
         public From withVersion(String version) {
-            this.version = this.version.withElement(Literal.build(version).withMarkers(Markers.EMPTY));
+            if (this.version == null) {
+                this.version = DockerRightPadded.build(Literal.build(null));
+            }
+
+            this.version = this.version.withElement(this.version.getElement().withText(version));
             return this;
         }
 
         public From withDigest(String digest) {
             if (digest == null) {
-                return this;
+                return withVersion(null);
             }
             digest = digest.indexOf('@') == 0 ? digest : "@" + digest;
-            version = version.withElement(Literal.build(digest).withMarkers(Markers.EMPTY));
-            return this;
+            return withVersion(digest);
         }
 
         public From withTag(String tag) {
             if (tag == null) {
-                return this;
+                return withVersion(null);
             }
             tag = tag.indexOf(':') == 0 ? tag : ":" + tag;
-            version = version.withElement(Literal.build(tag).withMarkers(Markers.EMPTY));
-            return this;
+            return withVersion(tag);
         }
 
         public String getTag() {
             String v = version.getElement().getText();
+            if (v == null) {
+                return null;
+            }
+
             return v.startsWith(":") ? v.substring(1) : null;
         }
     }
@@ -572,22 +608,16 @@ public interface Docker extends Tree {
 
         @EqualsAndHashCode.Include
         UUID id;
-
         Space prefix;
-        Markers markers;
-
         Type type;
-        String command;
-        LinkedHashMap<String, String> options;
 
-        public Healthcheck(UUID id, Space prefix, Markers markers, Type type, String command, LinkedHashMap<String, String> options) {
-            this.id = id;
-            this.prefix = prefix;
-            this.markers = markers;
-            this.type = type;
-            this.command = command;
-            this.options = new LinkedHashMap<>(options);
-        }
+        @NonFinal
+        List<DockerRightPadded<KeyArgs>> options;
+
+        @NonFinal
+        List<DockerRightPadded<Literal>> commands;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -601,23 +631,12 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Healthcheck(Tree.randomId(), prefix, markers, type, command, new LinkedHashMap<>(options));
-        }
-
-        public LinkedHashMap<String, String> getOptions() {
-            return new LinkedHashMap<>(options);
-        }
-
-        public void clearOptions() {
-            this.options.clear();
-        }
-
-        public void addOption(String key, String value) {
-            this.options.put(key, value);
-        }
-
-        public void removeOption(String key) {
-            this.options.remove(key);
+            return new Healthcheck(Tree.randomId(),
+                    prefix,
+                    type,
+                    options == null ? new ArrayList<>() : new ArrayList<>(options),
+                    commands == null ? new ArrayList<>() : new ArrayList<>(commands),
+                    markers);
         }
     }
 
@@ -632,7 +651,7 @@ public interface Docker extends Tree {
         Space prefix;
         Markers markers;
 
-        List<KeyArgs> args;
+        List<DockerRightPadded<KeyArgs>> args;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -688,9 +707,10 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
-
         Docker instruction;
+        Space trailing;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -704,7 +724,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new OnBuild(Tree.randomId(), prefix, markers, instruction.copyPaste());
+            return new OnBuild(Tree.randomId(), prefix, instruction.copyPaste(), trailing, markers);
         }
     }
 
@@ -716,14 +736,11 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
 
-        List<String> commands;
-        List<Mount> mounts;
-        NetworkOption networkOption;
-        SecurityOption securityOption;
-        String heredoc;
-        String heredocName;
+        List<DockerRightPadded<Option>> options;
+        List<DockerRightPadded<Literal>> commands;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -737,7 +754,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Run(Tree.randomId(), prefix, markers, commands, mounts, networkOption, securityOption, heredoc, heredocName);
+            return new Run(Tree.randomId(), prefix, options, commands, markers);
         }
     }
 
@@ -750,9 +767,11 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
 
-        List<String> commands;
+        Space execFormPrefix;
+        List<DockerRightPadded<Literal>> commands;
+        Space execFormSuffix;
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -766,7 +785,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Shell(Tree.randomId(), prefix, markers, commands);
+            return new Shell(Tree.randomId(), prefix, execFormPrefix, commands, execFormSuffix, markers);
         }
     }
 
@@ -780,7 +799,7 @@ public interface Docker extends Tree {
         Space prefix;
         Markers markers;
 
-        String signal;
+        Literal signal;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -809,8 +828,8 @@ public interface Docker extends Tree {
         Space prefix;
         Markers markers;
 
-        String username;
-        String group;
+        Literal username;
+        Literal group;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -836,10 +855,15 @@ public interface Docker extends Tree {
         @EqualsAndHashCode.Include
         UUID id;
 
-        Space prefix;
-        Markers markers;
+        Form form;
 
-        String path;
+        Space prefix;
+
+        Space execFormPrefix;
+        List<DockerRightPadded<Literal>> paths;
+        Space execFormSuffix;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -853,7 +877,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Volume(Tree.randomId(), prefix, markers, path);
+            return new Volume(Tree.randomId(), form, prefix, execFormPrefix, paths, execFormSuffix, markers);
         }
     }
 
@@ -891,9 +915,10 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
 
-        String path;
+        Literal path;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -907,7 +932,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Workdir(Tree.randomId(), prefix, markers, path);
+            return new Workdir(Tree.randomId(), prefix, path, markers);
         }
     }
 
@@ -915,9 +940,9 @@ public interface Docker extends Tree {
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     class KeyArgs {
         Space prefix;
-        @EqualsAndHashCode.Include
+        @EqualsAndHashCode.Include(rank = 0)
         String key;
-        @EqualsAndHashCode.Include
+        @EqualsAndHashCode.Include(rank = 1)
         String value;
         boolean hasEquals;
         Quoting quoting;

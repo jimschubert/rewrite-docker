@@ -1,7 +1,6 @@
 package com.github.jimschubert.rewrite.docker;
 
-import com.github.jimschubert.docker.parser.DockerfileParser;
-import com.github.jimschubert.rewrite.docker.internal.DockerfileParserVisitor;
+import com.github.jimschubert.rewrite.docker.internal.DockerfileParser;
 import com.github.jimschubert.rewrite.docker.tree.Docker;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
@@ -22,17 +21,18 @@ public class DockerParser implements Parser {
         return acceptedInputs(sources).map(input ->{
             parsingListener.startedParsing(input);
             try (EncodingDetectingInputStream is = input.getSource(ctx)) {
-                DockerfileParser parser = new DockerfileParser(false);
+                DockerfileParser parser = new DockerfileParser();
 
-                Docker.Document document = new DockerfileParserVisitor(
-                        input.getRelativePath(relativeTo),
-                        input.getFileAttributes(),
-                        input.getSource(ctx)
-                ).visit(parser.parseDockerfile(is));
+                Docker.Document document = parser.parse(is)
+                        .withFileAttributes(input.getFileAttributes());
 
                 parsingListener.parsed(input, document);
 
-                return requirePrintEqualsInput(document, input, relativeTo, ctx);
+                return requirePrintEqualsInput(
+                        document.withCharset(is.getCharset()),
+                        input,
+                        relativeTo,
+                        ctx);
             } catch (Throwable t) {
                 ctx.getOnError().accept(t);
                 return ParseError.build(this, input, relativeTo, ctx, t);
