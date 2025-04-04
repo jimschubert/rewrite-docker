@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.function.Function;
 
-public class DockerParser {
+public class DockerfileParser {
     static final String DOUBLE_QUOTE = "\"";
     static final String SINGLE_QUOTE = "'";
     static final String BACKSLASH = "\\";

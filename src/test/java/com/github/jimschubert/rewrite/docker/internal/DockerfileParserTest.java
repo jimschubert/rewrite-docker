@@ -13,10 +13,10 @@ import java.util.List;
 import static com.github.jimschubert.rewrite.docker.internal.DockerParserHelpers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-class DockerParserTest {
+class DockerfileParserTest {
     @Test
     void testCommentSingleWithTrailingSpace() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("# This is a comment\t\t".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -27,7 +27,7 @@ class DockerParserTest {
 
     @Test
     void testDirective() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("#    syntax=docker/dockerfile:1".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -38,7 +38,7 @@ class DockerParserTest {
 
     @Test
     void testArgNoAssignment() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("ARG foo".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -52,7 +52,7 @@ class DockerParserTest {
 
     @Test
     void testArgComplex() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("ARG foo=bar baz MY_VAR OTHER_VAR=\"some default\" \t".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -71,7 +71,7 @@ class DockerParserTest {
 
     @Test
     void testArgMultiline() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("ARG foo=bar baz MY_VAR \\\nOTHER_VAR=\"some default\" \t\\\n\t\tLAST".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -91,7 +91,7 @@ class DockerParserTest {
 
     @Test
     void testCmdComplexExecForm(){
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("CMD [ \"echo\", \"Hello World\" ]   ".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -112,7 +112,7 @@ class DockerParserTest {
 
     @Test
     void testCmdShellForm() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("CMD echo Hello World   ".getBytes(StandardCharsets.UTF_8)));
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
         Docker.Cmd cmd = (Docker.Cmd) stage.getChildren().get(0);
@@ -130,7 +130,7 @@ class DockerParserTest {
 
     @Test
     void testCmdShellFormWithQuotes() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("CMD \"echo Hello World\"   ".getBytes(StandardCharsets.UTF_8)));
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
         Docker.Cmd cmd = (Docker.Cmd) stage.getChildren().get(0);
@@ -144,7 +144,7 @@ class DockerParserTest {
 
     @Test
     void testCmdShellWithoutQuotes() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("CMD echo Hello World   ".getBytes(StandardCharsets.UTF_8)));
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
         Docker.Cmd cmd = (Docker.Cmd) stage.getChildren().get(0);
@@ -162,7 +162,7 @@ class DockerParserTest {
 
     @Test
     void testEntrypointComplexExecForm(){
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("ENTRYPOINT [ \"echo\", \"Hello World\" ]   ".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -183,7 +183,7 @@ class DockerParserTest {
 
     @Test
     void testEntrypointShellForm() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("ENTRYPOINT echo Hello World   ".getBytes(StandardCharsets.UTF_8)));
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
         Docker.Entrypoint entrypoint = (Docker.Entrypoint) stage.getChildren().get(0);
@@ -201,7 +201,7 @@ class DockerParserTest {
 
     @Test
     void testEntrypointShellFormWithQuotes() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("ENTRYPOINT \"echo Hello World\"   ".getBytes(StandardCharsets.UTF_8)));
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
         Docker.Entrypoint entrypoint = (Docker.Entrypoint) stage.getChildren().get(0);
@@ -215,7 +215,7 @@ class DockerParserTest {
 
     @Test
     void testEnvComplex() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("ENV MY_NAME=\"John Doe\" MY_DOG=Rex\\ The\\ Dog MY_CAT=fluffy".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -233,7 +233,7 @@ class DockerParserTest {
 
     @Test
     void testEnvMultiline() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("ENV MY_NAME=\"John Doe\" MY_DOG=Rex\\ The\\ Dog \\\nMY_CAT=fluffy ".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -251,7 +251,7 @@ class DockerParserTest {
 
     @Test
     void testExposeSingle() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("EXPOSE 8080".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -269,7 +269,7 @@ class DockerParserTest {
 
     @Test
     void testExposeMultiple() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("EXPOSE 8080 8081/udp 9999".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -297,7 +297,7 @@ class DockerParserTest {
 
     @Test
     void testExposeMultiline() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("EXPOSE 8080 \\\n\t\t8081/udp \\\n9999".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -325,7 +325,7 @@ class DockerParserTest {
 
     @Test
     void testFrom() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("FROM alpine:latest".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -339,7 +339,7 @@ class DockerParserTest {
 
     @Test
     void testFullFrom() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("FROM --platform=linux/arm64 alpine:latest as build\t".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -361,7 +361,7 @@ class DockerParserTest {
 
     @Test
     void testFullFromWithDigest() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("FROM alpine@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\t".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -375,7 +375,7 @@ class DockerParserTest {
 
     @Test
     void testShell() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("SHELL [  \"powershell\", \"-Command\"   ]\t".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -393,7 +393,7 @@ class DockerParserTest {
 
     @Test
     void testShellMultiline(){
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("SHELL [  \"powershell\", \"-Command\" , \t\\\n\t\t  \"bash\", \"-c\"   ]".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -430,7 +430,7 @@ class DockerParserTest {
 
     @Test
     void testUserOnly() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("USER root".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -443,7 +443,7 @@ class DockerParserTest {
 
     @Test
     void testUserWithGroup() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("USER root:admin".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -458,7 +458,7 @@ class DockerParserTest {
 
     @Test
     void testUserWithFunkySpacing() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("USER    root:admin   \t".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -473,7 +473,7 @@ class DockerParserTest {
 
     @Test
     void testVolumeShellFormat(){
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("VOLUME [ \"/var/log\", \"/var/log2\" ]\t".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -496,7 +496,7 @@ class DockerParserTest {
 
     @Test
     void testVolumeExecFormat() {
-            DockerParser parser = new DockerParser();
+            DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("VOLUME /var/log /var/log2\t".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -519,7 +519,7 @@ class DockerParserTest {
 
     @Test
     void testWorkDir() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("WORKDIR /var/log\t".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -533,7 +533,7 @@ class DockerParserTest {
 
     @Test
     void testLabelSingle() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("LABEL foo=bar".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -549,7 +549,7 @@ class DockerParserTest {
 
     @Test
     void testLabelMultiple() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("LABEL foo=bar baz=qux".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -571,7 +571,7 @@ class DockerParserTest {
 
     @Test
     void testLabelMultiline() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("LABEL foo=bar \\\n\t\tbaz=qux \\\n\t\tquux=\"Hello World\"".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -601,7 +601,7 @@ class DockerParserTest {
 
     @Test
     void testStopSignal() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("STOPSIGNAL SIGKILL".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -614,7 +614,7 @@ class DockerParserTest {
 
     @Test
     void testHealthCheckNone() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("HEALTHCHECK NONE".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -628,7 +628,7 @@ class DockerParserTest {
 
     @Test
     void testHealthCheckWithCmd() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("HEALTHCHECK --interval=5m --timeout=3s \\\n  CMD curl -f http://localhost/ || exit 1".getBytes(StandardCharsets.UTF_8)));
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
         Docker.Healthcheck healthCheck = (Docker.Healthcheck) stage.getChildren().get(0);
@@ -667,7 +667,7 @@ class DockerParserTest {
 
     @Test
     void testAdd() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("ADD foo.txt \\\n\t\tbar.txt \\\n\t\tbaz.txt \\\n\t\tqux.txt /tmp/\t".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -701,7 +701,7 @@ class DockerParserTest {
 
     @Test
     void testAddWithOptions() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("ADD --chown=foo:bar --keep-git-dir --checksum=sha256:24454f830c foo.txt \\\n\t\tbar.txt \\\n\t\tbaz.txt \\\n\t\tqux.txt /tmp/\t".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -760,7 +760,7 @@ class DockerParserTest {
 
     @Test
     void testCopy() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("COPY foo.txt \\\n\t\tbar.txt \\\n\t\tbaz.txt \\\n\t\tqux.txt /tmp/\t".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -794,7 +794,7 @@ class DockerParserTest {
 
     @Test
     void testRun() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream("RUN echo Hello World\t".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount((Docker.Document) doc, 1);
@@ -815,7 +815,7 @@ class DockerParserTest {
 
     @Test
     void testRunMultiline() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream(
                 """
                 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \\
@@ -889,7 +889,7 @@ class DockerParserTest {
      */
     @Test
     void testRunWithHeredoc() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream(
                 """
                 RUN <<EOF
@@ -931,7 +931,7 @@ class DockerParserTest {
 
     @Test
     public void testRunWithHeredocAfterOtherCommands() {
-        DockerParser parser = new DockerParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker doc = parser.parse(new ByteArrayInputStream(
                 """
                 RUN echo Hello World <<EOF
