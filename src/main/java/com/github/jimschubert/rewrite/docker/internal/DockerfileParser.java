@@ -600,6 +600,9 @@ public class DockerfileParser {
                 if (instr instanceof Docker.From) {
                     stages.add(new Docker.Stage(Tree.randomId(), Markers.EMPTY, new ArrayList<>(currentInstructions)));
                     currentInstructions.clear();
+                } else if (!stages.isEmpty()) {
+                    // if we have a stage, add the instruction to it
+                    stages.get(stages.size() - 1).getChildren().add(instr);
                 }
 
                 parser.reset();
