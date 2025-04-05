@@ -1,9 +1,6 @@
 package com.github.jimschubert.rewrite.docker.internal;
 
-import com.github.jimschubert.rewrite.docker.tree.Docker;
-import com.github.jimschubert.rewrite.docker.tree.DockerRightPadded;
-import com.github.jimschubert.rewrite.docker.tree.Quoting;
-import com.github.jimschubert.rewrite.docker.tree.Space;
+import com.github.jimschubert.rewrite.docker.tree.*;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -11,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static com.github.jimschubert.rewrite.docker.internal.DockerParserHelpers.*;
+import static com.github.jimschubert.rewrite.docker.internal.DockerParserHelpers.assertRightPaddedLiteral;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DockerfileParserTest {
@@ -22,7 +20,7 @@ class DockerfileParserTest {
         Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
 
         Docker.Comment comment = (Docker.Comment) stage.getChildren().get(0);
-        assertComment(comment, "This is a comment", " ", "\t\t");
+        assertComment(comment, " ", "This is a comment", "\t\t");
     }
 
     @Test
@@ -33,7 +31,7 @@ class DockerfileParserTest {
         Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
 
         Docker.Directive directive = (Docker.Directive) stage.getChildren().get(0);
-        assertDirective(directive, "syntax", true, "docker/dockerfile:1", "    ", "");
+        assertDirective(directive, "    ", "syntax", true, "docker/dockerfile:1", "");
     }
 
     @Test
@@ -47,7 +45,7 @@ class DockerfileParserTest {
         assertEquals(Space.EMPTY, arg.getPrefix());
         List<DockerRightPadded<Docker.KeyArgs>> args = arg.getArgs();
 
-        assertArg(args.get(0), "foo", false, null, " ", "", Quoting.UNQUOTED);
+        assertRightPaddedArg(args.get(0), Quoting.UNQUOTED, " ", "foo", false, null, "");
     }
 
     @Test
@@ -63,10 +61,10 @@ class DockerfileParserTest {
         List<DockerRightPadded<Docker.KeyArgs>> args = arg.getArgs();
         assertEquals(4, args.size());
 
-        assertArg(args.get(0), "foo", true, "bar", " ", "", Quoting.UNQUOTED);
-        assertArg(args.get(1), "baz", false, null, " ", "", Quoting.UNQUOTED);
-        assertArg(args.get(2), "MY_VAR", false, null, " ", "", Quoting.UNQUOTED);
-        assertArg(args.get(3), "OTHER_VAR", true, "some default", " ", " \t", Quoting.DOUBLE_QUOTED);
+        assertRightPaddedArg(args.get(0), Quoting.UNQUOTED, " ", "foo", true, "bar", "");
+        assertRightPaddedArg(args.get(1), Quoting.UNQUOTED, " ", "baz", false, null, "");
+        assertRightPaddedArg(args.get(2), Quoting.UNQUOTED, " ", "MY_VAR", false, null, "");
+        assertRightPaddedArg(args.get(3), Quoting.DOUBLE_QUOTED, " ", "OTHER_VAR", true, "some default", " \t");
     }
 
     @Test
@@ -82,15 +80,15 @@ class DockerfileParserTest {
         List<DockerRightPadded<Docker.KeyArgs>> args = arg.getArgs();
         assertEquals(5, args.size());
 
-        assertArg(args.get(0), "foo", true, "bar", " ", "", Quoting.UNQUOTED);
-        assertArg(args.get(1), "baz", false, null, " ", "", Quoting.UNQUOTED);
-        assertArg(args.get(2), "MY_VAR", false, null, " ", " \\\n", Quoting.UNQUOTED);
-        assertArg(args.get(3), "OTHER_VAR", true, "some default", "", " \t\\\n", Quoting.DOUBLE_QUOTED);
-        assertArg(args.get(4), "LAST", false, null, "\t\t", "", Quoting.UNQUOTED);
+        assertRightPaddedArg(args.get(0), Quoting.UNQUOTED, " ", "foo", true, "bar", "");
+        assertRightPaddedArg(args.get(1), Quoting.UNQUOTED, " ", "baz", false, null, "");
+        assertRightPaddedArg(args.get(2), Quoting.UNQUOTED, " ", "MY_VAR", false, null, " \\\n");
+        assertRightPaddedArg(args.get(3), Quoting.DOUBLE_QUOTED, "", "OTHER_VAR", true, "some default", " \t\\\n");
+        assertRightPaddedArg(args.get(4), Quoting.UNQUOTED, "\t\t", "LAST", false, null, "");
     }
 
     @Test
-    void testCmdComplexExecForm(){
+    void testCmdComplexExecForm() {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream("CMD [ \"echo\", \"Hello World\" ]   ".getBytes(StandardCharsets.UTF_8)));
 
@@ -102,11 +100,10 @@ class DockerfileParserTest {
         List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
         assertEquals(2, args.size());
 
-        assertEquals("echo", args.get(0).getElement().getText());
-        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
-        assertEquals("Hello World", args.get(1).getElement().getText());
-        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
-        assertEquals(" ", args.get(1).getElement().getTrailing().getWhitespace());
+        assertRightPaddedLiteral(args.get(0), Quoting.DOUBLE_QUOTED, " ", "echo", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.DOUBLE_QUOTED, " ", "Hello World", " ", "");
+
+        assertEquals(" ", cmd.getExecFormPrefix().getWhitespace());
         assertEquals("   ", cmd.getExecFormSuffix().getWhitespace());
     }
 
@@ -114,54 +111,58 @@ class DockerfileParserTest {
     void testCmdShellForm() {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream("CMD echo Hello World   ".getBytes(StandardCharsets.UTF_8)));
+
         Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
+
         Docker.Cmd cmd = (Docker.Cmd) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, cmd.getPrefix());
+
         List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
         assertEquals(3, args.size());
-        assertEquals("echo", args.get(0).getElement().getText());
-        assertEquals("Hello", args.get(1).getElement().getText());
-        assertEquals("World", args.get(2).getElement().getText());
-        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
-        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
-        assertEquals(" ", args.get(2).getElement().getPrefix().getWhitespace());
-        assertEquals("   ", args.get(2).getAfter().getWhitespace());
+
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "echo", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "Hello", "", "");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, " ", "World", "", "   ");
     }
 
     @Test
     void testCmdShellFormWithQuotes() {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream("CMD \"echo Hello World\"   ".getBytes(StandardCharsets.UTF_8)));
+
         Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
+
         Docker.Cmd cmd = (Docker.Cmd) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, cmd.getPrefix());
+
         List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
         assertEquals(1, args.size());
-        assertEquals("echo Hello World", args.get(0).getElement().getText());
-        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
-        assertEquals("   ", args.get(0).getAfter().getWhitespace());
+
+        assertRightPaddedLiteral(args.get(0), Quoting.DOUBLE_QUOTED, " ", "echo Hello World", "", "   ");
+        assertEquals("", cmd.getExecFormSuffix().getWhitespace());
+        assertEquals("", cmd.getExecFormPrefix().getWhitespace());
     }
 
     @Test
     void testCmdShellWithoutQuotes() {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream("CMD echo Hello World   ".getBytes(StandardCharsets.UTF_8)));
+
         Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
+
         Docker.Cmd cmd = (Docker.Cmd) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, cmd.getPrefix());
+
         List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
         assertEquals(3, args.size());
-        assertEquals("echo", args.get(0).getElement().getText());
-        assertEquals("Hello", args.get(1).getElement().getText());
-        assertEquals("World", args.get(2).getElement().getText());
-        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
-        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
-        assertEquals(" ", args.get(2).getElement().getPrefix().getWhitespace());
-        assertEquals("   ", args.get(2).getAfter().getWhitespace());
+
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "echo", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "Hello", "", "");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, " ", "World", "", "   ");
     }
 
     @Test
-    void testEntrypointComplexExecForm(){
+    void testEntrypointComplexExecForm() {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream("ENTRYPOINT [ \"echo\", \"Hello World\" ]   ".getBytes(StandardCharsets.UTF_8)));
 
@@ -173,11 +174,9 @@ class DockerfileParserTest {
         List<DockerRightPadded<Docker.Literal>> args = entrypoint.getCommands();
         assertEquals(2, args.size());
 
-        assertEquals("echo", args.get(0).getElement().getText());
-        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
-        assertEquals("Hello World", args.get(1).getElement().getText());
-        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
-        assertEquals(" ", args.get(1).getElement().getTrailing().getWhitespace());
+        assertRightPaddedLiteral(args.get(0), Quoting.DOUBLE_QUOTED, " ", "echo", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.DOUBLE_QUOTED, " ", "Hello World", " ", "");
+
         assertEquals("   ", entrypoint.getExecFormSuffix().getWhitespace());
     }
 
@@ -185,32 +184,34 @@ class DockerfileParserTest {
     void testEntrypointShellForm() {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream("ENTRYPOINT echo Hello World   ".getBytes(StandardCharsets.UTF_8)));
+
         Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
+
         Docker.Entrypoint entrypoint = (Docker.Entrypoint) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, entrypoint.getPrefix());
+
         List<DockerRightPadded<Docker.Literal>> args = entrypoint.getCommands();
         assertEquals(3, args.size());
-        assertEquals("echo", args.get(0).getElement().getText());
-        assertEquals("Hello", args.get(1).getElement().getText());
-        assertEquals("World", args.get(2).getElement().getText());
-        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
-        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
-        assertEquals(" ", args.get(2).getElement().getPrefix().getWhitespace());
-        assertEquals("   ", args.get(2).getAfter().getWhitespace());
+
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "echo", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "Hello", "", "");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, " ", "World", "", "   ");
     }
 
     @Test
     void testEntrypointShellFormWithQuotes() {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream("ENTRYPOINT \"echo Hello World\"   ".getBytes(StandardCharsets.UTF_8)));
+
         Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
+
         Docker.Entrypoint entrypoint = (Docker.Entrypoint) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, entrypoint.getPrefix());
+
         List<DockerRightPadded<Docker.Literal>> args = entrypoint.getCommands();
         assertEquals(1, args.size());
-        assertEquals("echo Hello World", args.get(0).getElement().getText());
-        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
-        assertEquals("   ", args.get(0).getAfter().getWhitespace());
+
+        assertRightPaddedLiteral(args.get(0), Quoting.DOUBLE_QUOTED, " ", "echo Hello World", "", "   ");
     }
 
     @Test
@@ -226,9 +227,9 @@ class DockerfileParserTest {
         List<DockerRightPadded<Docker.KeyArgs>> args = env.getArgs();
         assertEquals(3, args.size());
 
-        assertArg(args.get(0), "MY_NAME", true, "John Doe", " ", "", Quoting.DOUBLE_QUOTED);
-        assertArg(args.get(2), "MY_CAT", true, "fluffy", " ", "", Quoting.UNQUOTED);
-        assertArg(args.get(1), "MY_DOG", true, "Rex The Dog", " ", "", Quoting.UNQUOTED);
+        assertRightPaddedArg(args.get(0), Quoting.DOUBLE_QUOTED, " ", "MY_NAME", true, "John Doe", "");
+        assertRightPaddedArg(args.get(2), Quoting.UNQUOTED, " ", "MY_CAT", true, "fluffy", "");
+        assertRightPaddedArg(args.get(1), Quoting.UNQUOTED, " ", "MY_DOG", true, "Rex The Dog", "");
     }
 
     @Test
@@ -244,9 +245,9 @@ class DockerfileParserTest {
         List<DockerRightPadded<Docker.KeyArgs>> args = env.getArgs();
         assertEquals(3, args.size());
 
-        assertArg(args.get(0), "MY_NAME", true, "John Doe", " ", "", Quoting.DOUBLE_QUOTED);
-        assertArg(args.get(1), "MY_DOG", true, "Rex The Dog", " ", " \\\n", Quoting.UNQUOTED);
-        assertArg(args.get(2), "MY_CAT", true, "fluffy", "", " ", Quoting.UNQUOTED);
+        assertRightPaddedArg(args.get(0), Quoting.DOUBLE_QUOTED, " ", "MY_NAME", true, "John Doe", "");
+        assertRightPaddedArg(args.get(1), Quoting.UNQUOTED, " ", "MY_DOG", true, "Rex The Dog", " \\\n");
+        assertRightPaddedArg(args.get(2), Quoting.UNQUOTED, "", "MY_CAT", true, "fluffy", " ");
     }
 
     @Test
@@ -332,7 +333,8 @@ class DockerfileParserTest {
 
         Docker.From from = (Docker.From) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, from.getPrefix());
-        assertEquals("alpine", from.getImage().getElement().getText());
+
+        assertRightPaddedLiteral(from.getImage(), Quoting.UNQUOTED, " ", "alpine", "", "");
         assertEquals("latest", from.getTag());
         assertEquals("", from.getImage().getAfter().getWhitespace());
     }
@@ -346,17 +348,13 @@ class DockerfileParserTest {
 
         Docker.From from = (Docker.From) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, from.getPrefix());
-        assertEquals("--platform=linux/arm64", from.getPlatform().getElement().getText());
-        assertEquals("alpine", from.getImage().getElement().getText());
+
+        assertRightPaddedLiteral(from.getPlatform(), Quoting.UNQUOTED, " ", "--platform=linux/arm64", "", "");
+        assertRightPaddedLiteral(from.getImage(), Quoting.UNQUOTED, " ", "alpine", "", "");
         assertEquals("latest", from.getTag());
-        assertEquals("", from.getImage().getAfter().getWhitespace());
-
-        assertEquals("as", from.getAs().getText());
-        assertEquals(" ", from.getAs().getPrefix().getWhitespace());
-
-        assertEquals(" ", from.getAlias().getElement().getPrefix().getWhitespace());
-        assertEquals("build", from.getAlias().getElement().getText());
-        assertEquals("\t", from.getAlias().getAfter().getWhitespace());
+        assertRightPaddedLiteral(from.getVersion(), Quoting.UNQUOTED, "", ":latest", "", "");
+        assertLiteral(from.getAs(), Quoting.UNQUOTED, " ", "as", "");
+        assertRightPaddedLiteral(from.getAlias(), Quoting.UNQUOTED, " ", "build", "", "\t");
     }
 
     @Test
@@ -368,9 +366,10 @@ class DockerfileParserTest {
 
         Docker.From from = (Docker.From) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, from.getPrefix());
-        assertEquals("alpine", from.getImage().getElement().getText());
+
+        assertRightPaddedLiteral(from.getImage(), Quoting.UNQUOTED, " ", "alpine", "", "");
+        assertRightPaddedLiteral(from.getVersion(), Quoting.UNQUOTED, "", "@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef", "", "\t");
         assertEquals("sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef", from.getDigest());
-        assertEquals("", from.getImage().getAfter().getWhitespace());
     }
 
     @Test
@@ -382,17 +381,19 @@ class DockerfileParserTest {
 
         Docker.Shell shell = (Docker.Shell) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, shell.getPrefix());
-        assertEquals("powershell", shell.getCommands().get(0).getElement().getText());
-        assertEquals("  ", shell.getCommands().get(0).getElement().getPrefix().getWhitespace());
-        assertEquals("-Command", shell.getCommands().get(1).getElement().getText());
-        assertEquals(" ", shell.getCommands().get(1).getElement().getPrefix().getWhitespace());
+
+        List<DockerRightPadded<Docker.Literal>> commands = shell.getCommands();
+        assertEquals(2, commands.size());
+
+        assertRightPaddedLiteral(commands.get(0), Quoting.DOUBLE_QUOTED, "  ", "powershell", "", "");
+        assertRightPaddedLiteral(commands.get(1), Quoting.DOUBLE_QUOTED, " ", "-Command", "   ", "");
+
         assertEquals(" ", shell.getExecFormPrefix().getWhitespace());
-        assertEquals("   ", shell.getCommands().get(1).getElement().getTrailing().getWhitespace());
         assertEquals("\t", shell.getExecFormSuffix().getWhitespace());
     }
 
     @Test
-    void testShellMultiline(){
+    void testShellMultiline() {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream("SHELL [  \"powershell\", \"-Command\" , \t\\\n\t\t  \"bash\", \"-c\"   ]".getBytes(StandardCharsets.UTF_8)));
 
@@ -401,31 +402,16 @@ class DockerfileParserTest {
         Docker.Shell shell = (Docker.Shell) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, shell.getPrefix());
 
-        assertEquals("  ", shell.getCommands().get(0).getElement().getPrefix().getWhitespace());
-        assertEquals("powershell", shell.getCommands().get(0).getElement().getText());
-        assertEquals(Quoting.DOUBLE_QUOTED, shell.getCommands().get(0).getElement().getQuoting());
-        assertEquals("", shell.getCommands().get(0).getElement().getTrailing().getWhitespace());
-        assertEquals("", shell.getCommands().get(0).getAfter().getWhitespace());
+        List<DockerRightPadded<Docker.Literal>> commands = shell.getCommands();
+        assertEquals(4, commands.size());
 
-        assertEquals(" ", shell.getCommands().get(1).getElement().getPrefix().getWhitespace());
-        assertEquals("-Command", shell.getCommands().get(1).getElement().getText());
-        assertEquals(Quoting.DOUBLE_QUOTED, shell.getCommands().get(1).getElement().getQuoting());
-        assertEquals(" ", shell.getCommands().get(1).getElement().getTrailing().getWhitespace());
-        assertEquals(" \t\\\n\t\t  ", shell.getCommands().get(1).getAfter().getWhitespace());
+        assertRightPaddedLiteral(commands.get(0), Quoting.DOUBLE_QUOTED, "  ", "powershell", "", "");
+        assertRightPaddedLiteral(commands.get(1), Quoting.DOUBLE_QUOTED, " ", "-Command", " ", " \t\\\n\t\t  ");
+        assertRightPaddedLiteral(commands.get(2), Quoting.DOUBLE_QUOTED, "", "bash", "", "");
+        assertRightPaddedLiteral(commands.get(3), Quoting.DOUBLE_QUOTED, " ", "-c", "   ", "");
 
-
-        assertEquals("", shell.getCommands().get(2).getElement().getPrefix().getWhitespace());
-        assertEquals("bash", shell.getCommands().get(2).getElement().getText());
-        assertEquals(Quoting.DOUBLE_QUOTED, shell.getCommands().get(2).getElement().getQuoting());
-        assertEquals("", shell.getCommands().get(2).getElement().getTrailing().getWhitespace());
-        assertEquals("", shell.getCommands().get(2).getAfter().getWhitespace());
-
-        assertEquals(" ", shell.getCommands().get(3).getElement().getPrefix().getWhitespace());
-        assertEquals("-c", shell.getCommands().get(3).getElement().getText());
-        assertEquals(Quoting.DOUBLE_QUOTED, shell.getCommands().get(3).getElement().getQuoting());
-        assertEquals("   ", shell.getCommands().get(3).getElement().getTrailing().getWhitespace());
-        assertEquals("", shell.getCommands().get(3).getAfter().getWhitespace());
         assertEquals(" ", shell.getExecFormPrefix().getWhitespace());
+        assertEquals("", shell.getExecFormSuffix().getWhitespace());
     }
 
     @Test
@@ -437,7 +423,7 @@ class DockerfileParserTest {
 
         Docker.User user = (Docker.User) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, user.getPrefix());
-        assertEquals("root", user.getUsername().getText());
+        assertLiteral(user.getUsername(), Quoting.UNQUOTED, " ", "root", "");
         assertNull(user.getGroup());
     }
 
@@ -450,10 +436,8 @@ class DockerfileParserTest {
 
         Docker.User user = (Docker.User) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, user.getPrefix());
-        assertEquals("root", user.getUsername().getText());
-        assertEquals(" ", user.getUsername().getPrefix().getWhitespace());
-        assertEquals("admin", user.getGroup().getText());
-        assertEquals("", user.getGroup().getTrailing().getWhitespace());
+        assertLiteral(user.getUsername(), Quoting.UNQUOTED, " ", "root", "");
+        assertLiteral(user.getGroup(), Quoting.UNQUOTED, "", "admin", "");
     }
 
     @Test
@@ -465,14 +449,12 @@ class DockerfileParserTest {
 
         Docker.User user = (Docker.User) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, user.getPrefix());
-        assertEquals("root", user.getUsername().getText());
-        assertEquals("    ", user.getUsername().getPrefix().getWhitespace());
-        assertEquals("admin", user.getGroup().getText());
-        assertEquals("   \t", user.getGroup().getTrailing().getWhitespace());
+        assertLiteral(user.getUsername(), Quoting.UNQUOTED, "    ", "root", "");
+        assertLiteral(user.getGroup(), Quoting.UNQUOTED, "", "admin", "   \t");
     }
 
     @Test
-    void testVolumeShellFormat(){
+    void testVolumeShellFormat() {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream("VOLUME [ \"/var/log\", \"/var/log2\" ]\t".getBytes(StandardCharsets.UTF_8)));
 
@@ -485,18 +467,14 @@ class DockerfileParserTest {
 
         List<DockerRightPadded<Docker.Literal>> args = volume.getPaths();
         assertEquals(2, args.size());
-        assertEquals("/var/log", args.get(0).getElement().getText());
-        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
-        assertEquals("", args.get(0).getAfter().getWhitespace());
 
-        assertEquals("/var/log2", args.get(1).getElement().getText());
-        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
-        assertEquals("", args.get(1).getAfter().getWhitespace());
+        assertRightPaddedLiteral(args.get(0), Quoting.DOUBLE_QUOTED, " ", "/var/log", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.DOUBLE_QUOTED, " ", "/var/log2", " ", "");
     }
 
     @Test
     void testVolumeExecFormat() {
-            DockerfileParser parser = new DockerfileParser();
+        DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream("VOLUME /var/log /var/log2\t".getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
@@ -508,13 +486,9 @@ class DockerfileParserTest {
 
         List<DockerRightPadded<Docker.Literal>> args = volume.getPaths();
         assertEquals(2, args.size());
-        assertEquals("/var/log", args.get(0).getElement().getText());
-        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
-        assertEquals("", args.get(0).getAfter().getWhitespace());
 
-        assertEquals("/var/log2", args.get(1).getElement().getText());
-        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
-        assertEquals("\t", args.get(1).getAfter().getWhitespace());
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "/var/log", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "/var/log2", "", "\t");
     }
 
     @Test
@@ -526,9 +500,7 @@ class DockerfileParserTest {
 
         Docker.Workdir workdir = (Docker.Workdir) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, workdir.getPrefix());
-        assertEquals("/var/log", workdir.getPath().getText());
-        assertEquals(" ", workdir.getPath().getPrefix().getWhitespace());
-        assertEquals("", workdir.getPath().getTrailing().getWhitespace()); // TODO: FIX missing traililng here.
+        assertLiteral(workdir.getPath(), Quoting.UNQUOTED, " ", "/var/log", ""); // TODO: FIX missing traililng here.
     }
 
     @Test
@@ -540,11 +512,11 @@ class DockerfileParserTest {
 
         Docker.Label label = (Docker.Label) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, label.getPrefix());
-        assertEquals("foo", label.getArgs().get(0).getElement().getKey());
-        assertEquals(" ", label.getArgs().get(0).getElement().getPrefix().getWhitespace());
-        assertTrue(label.getArgs().get(0).getElement().isHasEquals());
-        assertEquals("bar", label.getArgs().get(0).getElement().getValue());
-        assertEquals(Quoting.UNQUOTED, label.getArgs().get(0).getElement().getQuoting());
+
+        List<DockerRightPadded<Docker.KeyArgs>> args = label.getArgs();
+        assertEquals(1, args.size());
+
+        assertRightPaddedArg(args.get(0), Quoting.UNQUOTED, " ", "foo", true, "bar", "");
     }
 
     @Test
@@ -556,17 +528,12 @@ class DockerfileParserTest {
 
         Docker.Label label = (Docker.Label) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, label.getPrefix());
-        assertEquals("foo", label.getArgs().get(0).getElement().getKey());
-        assertEquals(" ", label.getArgs().get(0).getElement().getPrefix().getWhitespace());
-        assertTrue(label.getArgs().get(0).getElement().isHasEquals());
-        assertEquals("bar", label.getArgs().get(0).getElement().getValue());
-        assertEquals(Quoting.UNQUOTED, label.getArgs().get(0).getElement().getQuoting());
 
-        assertEquals("baz", label.getArgs().get(1).getElement().getKey());
-        assertEquals(" ", label.getArgs().get(1).getElement().getPrefix().getWhitespace());
-        assertTrue(label.getArgs().get(1).getElement().isHasEquals());
-        assertEquals("qux", label.getArgs().get(1).getElement().getValue());
-        assertEquals(Quoting.UNQUOTED, label.getArgs().get(1).getElement().getQuoting());
+        List<DockerRightPadded<Docker.KeyArgs>> args = label.getArgs();
+        assertEquals(2, args.size());
+
+        assertRightPaddedArg(args.get(0), Quoting.UNQUOTED, " ", "foo", true, "bar", "");
+        assertRightPaddedArg(args.get(1), Quoting.UNQUOTED, " ", "baz", true, "qux", "");
     }
 
     @Test
@@ -578,25 +545,13 @@ class DockerfileParserTest {
 
         Docker.Label label = (Docker.Label) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, label.getPrefix());
-        assertEquals("foo", label.getArgs().get(0).getElement().getKey());
-        assertEquals(" ", label.getArgs().get(0).getElement().getPrefix().getWhitespace());
-        assertTrue(label.getArgs().get(0).getElement().isHasEquals());
-        assertEquals("bar", label.getArgs().get(0).getElement().getValue());
-        assertEquals(Quoting.UNQUOTED, label.getArgs().get(0).getElement().getQuoting());
-        assertEquals(" \\\n", label.getArgs().get(0).getAfter().getWhitespace());
 
-        assertEquals("baz", label.getArgs().get(1).getElement().getKey());
-        assertEquals("\t\t", label.getArgs().get(1).getElement().getPrefix().getWhitespace());
-        assertTrue(label.getArgs().get(1).getElement().isHasEquals());
-        assertEquals("qux", label.getArgs().get(1).getElement().getValue());
-        assertEquals(Quoting.UNQUOTED, label.getArgs().get(1).getElement().getQuoting());
-        assertEquals(" \\\n", label.getArgs().get(1).getAfter().getWhitespace());
+        List<DockerRightPadded<Docker.KeyArgs>> args = label.getArgs();
+        assertEquals(3, args.size());
 
-        assertEquals("quux", label.getArgs().get(2).getElement().getKey());
-        assertEquals("\t\t", label.getArgs().get(2).getElement().getPrefix().getWhitespace());
-        assertTrue(label.getArgs().get(2).getElement().isHasEquals());
-        assertEquals("Hello World", label.getArgs().get(2).getElement().getValue());
-        assertEquals(Quoting.DOUBLE_QUOTED, label.getArgs().get(2).getElement().getQuoting());
+        assertRightPaddedArg(args.get(0), Quoting.UNQUOTED, " ", "foo", true, "bar", " \\\n");
+        assertRightPaddedArg(args.get(1), Quoting.UNQUOTED, "\t\t", "baz", true, "qux", " \\\n");
+        assertRightPaddedArg(args.get(2), Quoting.DOUBLE_QUOTED, "\t\t", "quux", true, "Hello World", "");
     }
 
     @Test
@@ -818,10 +773,10 @@ class DockerfileParserTest {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream(
                 """
-                RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \\
-                  --mount=type=cache,target=/var/lib/apt,sharing=locked \\
-                  apt update && apt-get --no-install-recommends install -y gcc
-                """.getBytes(StandardCharsets.UTF_8)));
+                        RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \\
+                          --mount=type=cache,target=/var/lib/apt,sharing=locked \\
+                          apt update && apt-get --no-install-recommends install -y gcc
+                        """.getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
 
@@ -892,11 +847,11 @@ class DockerfileParserTest {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream(
                 """
-                RUN <<EOF
-                apt-get update
-                apt-get install -y curl
-                EOF
-                """.getBytes(StandardCharsets.UTF_8)));
+                        RUN <<EOF
+                        apt-get update
+                        apt-get install -y curl
+                        EOF
+                        """.getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
 
@@ -905,6 +860,7 @@ class DockerfileParserTest {
 
         List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
         assertEquals(14, args.size());
+
 
         assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
         assertEquals("<<EOF", args.get(0).getElement().getText());
@@ -934,11 +890,11 @@ class DockerfileParserTest {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream(
                 """
-                RUN echo Hello World <<EOF
-                apt-get update
-                apt-get install -y curl
-                EOF
-                """.getBytes(StandardCharsets.UTF_8)));
+                        RUN echo Hello World <<EOF
+                        apt-get update
+                        apt-get install -y curl
+                        EOF
+                        """.getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
 
@@ -980,5 +936,117 @@ class DockerfileParserTest {
         assertEquals("install", args.get(7).getElement().getText());
         assertEquals("-y", args.get(8).getElement().getText());
         assertEquals(" ", args.get(8).getElement().getPrefix().getWhitespace());
+    }
+
+    @Test
+    void testFullDockerfile() {
+        DockerfileParser parser = new DockerfileParser();
+        Docker.Document doc = parser.parse(new ByteArrayInputStream(
+                """
+                        FROM alpine:latest
+                        RUN echo Hello World
+                        CMD echo Goodbye World
+                        ENTRYPOINT [ "echo", "Hello" ]
+                        EXPOSE 8080 8081 \\\n\t\t9999/udp
+                        SHELL [ "powershell", "-Command" ]
+                        USER root:admin
+                        VOLUME [ "/var/log", "/var/log2" ]
+                        WORKDIR /var/log
+                        LABEL foo=bar baz=qux
+                        STOPSIGNAL SIGKILL
+                        HEALTHCHECK NONE
+                        """.getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount(doc, 12);
+
+        Docker.From from = (Docker.From) stage.getChildren().get(0);
+
+        assertRightPaddedLiteral(from.getImage(), Quoting.UNQUOTED, " ", "alpine", "", "");
+        assertRightPaddedLiteral(from.getVersion(), Quoting.UNQUOTED, "", ":latest", "", "");
+        assertEquals("latest", from.getTag());
+        assertRightPaddedLiteral(from.getPlatform(), Quoting.UNQUOTED, "", null, "", "");
+        assertRightPaddedLiteral(from.getAlias(), Quoting.UNQUOTED, "", null, "", "");
+        assertLiteral(from.getAs(), Quoting.UNQUOTED, "", null, "");
+
+        Docker.Run run = (Docker.Run) stage.getChildren().get(1);
+        assertEquals(Space.EMPTY, run.getPrefix());
+        assertRightPaddedLiteral(run.getCommands().get(0), Quoting.UNQUOTED, " ", "echo", "", "");
+        assertRightPaddedLiteral(run.getCommands().get(1), Quoting.UNQUOTED, " ", "Hello", "", "");
+        assertRightPaddedLiteral(run.getCommands().get(2), Quoting.UNQUOTED, " ", "World", "", "");
+
+
+        Docker.Cmd cmd = (Docker.Cmd) stage.getChildren().get(2);
+        assertEquals(Space.EMPTY, cmd.getPrefix());
+        assertRightPaddedLiteral(cmd.getCommands().get(0), Quoting.UNQUOTED, " ", "echo", "", "");
+        assertRightPaddedLiteral(cmd.getCommands().get(1), Quoting.UNQUOTED, " ", "Goodbye", "", "");
+        assertRightPaddedLiteral(cmd.getCommands().get(2), Quoting.UNQUOTED, " ", "World", "", "");
+
+        Docker.Entrypoint entryPoint = (Docker.Entrypoint) stage.getChildren().get(3);
+        assertEquals(Space.EMPTY, entryPoint.getPrefix());
+        assertEquals(2, entryPoint.getCommands().size());
+        assertEquals(Form.EXEC, entryPoint.getForm());
+        assertRightPaddedLiteral(entryPoint.getCommands().get(0), Quoting.DOUBLE_QUOTED, " ", "echo", "", "");
+        assertRightPaddedLiteral(entryPoint.getCommands().get(1), Quoting.DOUBLE_QUOTED, " ", "Hello", " ", "");
+        assertEquals(" ", entryPoint.getExecFormPrefix().getWhitespace());
+        assertEquals("", entryPoint.getExecFormSuffix().getWhitespace());
+
+        Docker.Expose expose = (Docker.Expose) stage.getChildren().get(4);
+        assertEquals(Space.EMPTY, expose.getPrefix());
+        assertEquals(" ", expose.getPorts().get(0).getElement().getPrefix().getWhitespace());
+        assertEquals("8080", expose.getPorts().get(0).getElement().getPort());
+        assertEquals("tcp", expose.getPorts().get(0).getElement().getProtocol());
+        assertFalse(expose.getPorts().get(0).getElement().isProtocolProvided());
+
+        assertEquals(" ", expose.getPorts().get(1).getElement().getPrefix().getWhitespace());
+        assertEquals("8081", expose.getPorts().get(1).getElement().getPort());
+        assertEquals("tcp", expose.getPorts().get(1).getElement().getProtocol());
+        assertFalse(expose.getPorts().get(1).getElement().isProtocolProvided());
+        assertEquals(" \\\n", expose.getPorts().get(1).getAfter().getWhitespace());
+
+        assertEquals("", expose.getPorts().get(2).getAfter().getWhitespace());
+        assertEquals("\t\t", expose.getPorts().get(2).getElement().getPrefix().getWhitespace());
+        assertEquals("9999", expose.getPorts().get(2).getElement().getPort());
+        assertEquals("udp", expose.getPorts().get(2).getElement().getProtocol());
+        assertTrue(expose.getPorts().get(2).getElement().isProtocolProvided());
+
+        Docker.Shell shell = (Docker.Shell) stage.getChildren().get(5);
+        assertEquals(Space.EMPTY, shell.getPrefix());
+        assertEquals(2, shell.getCommands().size());
+        assertRightPaddedLiteral(shell.getCommands().get(0), Quoting.DOUBLE_QUOTED, " ", "powershell", "", "");
+        assertRightPaddedLiteral(shell.getCommands().get(1), Quoting.DOUBLE_QUOTED, " ", "-Command", " ", "");
+        assertEquals(" ", shell.getExecFormPrefix().getWhitespace());
+        assertEquals("", shell.getExecFormSuffix().getWhitespace());
+
+        Docker.User user = (Docker.User) stage.getChildren().get(6);
+        assertEquals(Space.EMPTY, user.getPrefix());
+        assertLiteral(user.getUsername(), Quoting.UNQUOTED, " ", "root", "");
+        assertLiteral(user.getGroup(), Quoting.UNQUOTED, "", "admin", "");
+
+        Docker.Volume volume = (Docker.Volume) stage.getChildren().get(7);
+        assertEquals(Space.EMPTY, volume.getPrefix());
+        assertEquals(" ", volume.getExecFormPrefix().getWhitespace());
+        assertEquals("", volume.getExecFormSuffix().getWhitespace());
+        assertEquals(2, volume.getPaths().size());
+        assertRightPaddedLiteral(volume.getPaths().get(0), Quoting.DOUBLE_QUOTED, " ", "/var/log", "", "");
+        assertRightPaddedLiteral(volume.getPaths().get(1), Quoting.DOUBLE_QUOTED, " ", "/var/log2", " ", "");
+
+        Docker.Workdir workdir = (Docker.Workdir) stage.getChildren().get(8);
+        assertEquals(Space.EMPTY, workdir.getPrefix());
+        assertLiteral(workdir.getPath(), Quoting.UNQUOTED, " ", "/var/log", "");
+
+        Docker.Label label = (Docker.Label) stage.getChildren().get(9);
+        assertEquals(Space.EMPTY, label.getPrefix());
+        assertEquals(2, label.getArgs().size());
+        assertRightPaddedArg(label.getArgs().get(0), Quoting.UNQUOTED, " ", "foo", true, "bar", "");
+        assertRightPaddedArg(label.getArgs().get(1), Quoting.UNQUOTED, " ", "baz", true, "qux", "");
+
+        Docker.StopSignal stopSignal = (Docker.StopSignal) stage.getChildren().get(10);
+        assertEquals(Space.EMPTY, stopSignal.getPrefix());
+        assertLiteral(stopSignal.getSignal(), Quoting.UNQUOTED, " ", "SIGKILL", "");
+
+        Docker.Healthcheck healthCheck = (Docker.Healthcheck) stage.getChildren().get(11);
+        assertEquals(Space.EMPTY, healthCheck.getPrefix());
+        assertEquals(1, healthCheck.getCommands().size());
+        assertRightPaddedLiteral(healthCheck.getCommands().get(0), Quoting.UNQUOTED, " ", "NONE", "", "");
     }
 }
