@@ -24,7 +24,8 @@ public class DockerParser implements Parser {
                 DockerfileParser parser = new DockerfileParser();
 
                 Docker.Document document = parser.parse(is)
-                        .withFileAttributes(input.getFileAttributes());
+                        .withFileAttributes(input.getFileAttributes())
+                                .withSourcePath(input.getPath());
 
                 parsingListener.parsed(input, document);
 
@@ -48,7 +49,7 @@ public class DockerParser implements Parser {
 
     @Override
     public Path sourcePathFromSourceText(Path prefix, String sourceCode) {
-        return null;
+        return prefix.resolve("Dockerfile");
     }
 
     public static Builder builder() { return new Builder(); }

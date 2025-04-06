@@ -4,7 +4,6 @@ import com.github.jimschubert.rewrite.docker.tree.Docker;
 import com.github.jimschubert.rewrite.docker.tree.Space;
 import org.openrewrite.TreeVisitor;
 
-import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -15,7 +14,6 @@ import java.util.stream.Collectors;
  * @param <P>
  */
 public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
-
     public Docker visitDocument(Docker.Document dockerfile, P ctx) {
         Docker d = dockerfile.withStages(dockerfile.getStages().stream()
                 .map(s -> visitAndCast(s, ctx))
