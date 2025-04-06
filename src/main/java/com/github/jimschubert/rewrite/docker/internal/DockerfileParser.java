@@ -317,10 +317,10 @@ public class DockerfileParser {
                 content = content.substring(1, content.length() - 1);
             }
             return Docker.Literal.build(
-                    stringWithPadding.prefix(),
+                    q, stringWithPadding.prefix(),
                     content,
-                    stringWithPadding.suffix(),
-                    q);
+                    stringWithPadding.suffix()
+            );
         }
 
         Docker.Instruction parse() {
@@ -363,9 +363,9 @@ public class DockerfileParser {
                 List<DockerRightPadded<Docker.KeyArgs>> args = parseArgs(instruction.toString());
 
                 if (name.equals(Docker.Label.class.getSimpleName())) {
-                    return new Docker.Label(Tree.randomId(), prefix, Markers.EMPTY, args);
+                    return new Docker.Label(Tree.randomId(), prefix, args, Markers.EMPTY);
                 }
-                return new Docker.Arg(Tree.randomId(), prefix, Markers.EMPTY, args);
+                return new Docker.Arg(Tree.randomId(), prefix, args, Markers.EMPTY);
             } else if (
                     name.equals(Docker.Cmd.class.getSimpleName()) ||
                     name.equals(Docker.Entrypoint.class.getSimpleName()) ||
@@ -401,8 +401,8 @@ public class DockerfileParser {
             } else if (name.equals(Docker.Comment.class.getSimpleName())) {
                 StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
 
-                return new Docker.Comment(Tree.randomId(), prefix, Markers.EMPTY,
-                        DockerRightPadded.build(createLiteral(stringWithPadding.content()).withPrefix(stringWithPadding.prefix())).withAfter(rightPadding));
+                return new Docker.Comment(Tree.randomId(), prefix, DockerRightPadded.build(createLiteral(stringWithPadding.content()).withPrefix(stringWithPadding.prefix())).withAfter(rightPadding), Markers.EMPTY
+                );
             } else if (name.equals(Docker.Directive.class.getSimpleName())) {
                 StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
 
@@ -414,35 +414,38 @@ public class DockerfileParser {
                     escapeChar = value.charAt(0);
                 }
 
-                return new Docker.Directive(Tree.randomId(), prefix, Markers.EMPTY, new DockerRightPadded<>(
-                        new Docker.KeyArgs(stringWithPadding.prefix(), key, value, true, quoting),
-                        rightPadding,
-                        Markers.EMPTY
-                ));
+                return new Docker.Directive(Tree.randomId(), prefix,
+                        new DockerRightPadded<>(
+                                new Docker.KeyArgs(stringWithPadding.prefix(), key, value, true, quoting),
+                                rightPadding,
+                                Markers.EMPTY
+                        ),
+                        Markers.EMPTY);
+
             } else if (name.equals(Docker.Env.class.getSimpleName()) || name.equals(Docker.StopSignal.class.getSimpleName())) {
                 List<DockerRightPadded<Docker.KeyArgs>> args = parseArgs(instruction.toString());
                 if (name.equals(Docker.Env.class.getSimpleName())) {
-                    return new Docker.Env(Tree.randomId(), prefix, Markers.EMPTY, args);
+                    return new Docker.Env(Tree.randomId(), prefix, args, Markers.EMPTY);
                 }
 
                 Docker.Literal signal = null;
                 if (!args.isEmpty()) {
                     DockerRightPadded<Docker.KeyArgs> arg = args.get(0);
-                    signal = Docker.Literal.build(arg.getElement().getPrefix(), arg.getElement().getKey(), arg.getAfter(), Quoting.UNQUOTED);
+                    signal = Docker.Literal.build(Quoting.UNQUOTED, arg.getElement().getPrefix(), arg.getElement().getKey(), arg.getAfter());
                 }
 
-                return new Docker.StopSignal(Tree.randomId(), prefix, Markers.EMPTY, signal);
+                return new Docker.StopSignal(Tree.randomId(), prefix, signal, Markers.EMPTY);
             }  else if (name.equals(Docker.Expose.class.getSimpleName())) {
                 List<DockerRightPadded<Docker.Port>> ports = parsePorts(instruction.toString());
 
-                return new Docker.Expose(Tree.randomId(), prefix, Markers.EMPTY, ports);
+                return new Docker.Expose(Tree.randomId(), prefix, ports, Markers.EMPTY);
             } else if (name.equals(Docker.From.class.getSimpleName())) {
                 String content = instruction.toString();
-                DockerRightPadded<Docker.Literal> platform = DockerRightPadded.build(Docker.Literal.build(Space.EMPTY, null, Space.EMPTY, Quoting.UNQUOTED));
-                DockerRightPadded<Docker.Literal> image = DockerRightPadded.build(Docker.Literal.build(Space.EMPTY, null, Space.EMPTY, Quoting.UNQUOTED));
-                DockerRightPadded<Docker.Literal> version = DockerRightPadded.build(Docker.Literal.build(Space.EMPTY, null, Space.EMPTY, Quoting.UNQUOTED));
-                DockerRightPadded<Docker.Literal> as = DockerRightPadded.build(Docker.Literal.build(Space.EMPTY, null, Space.EMPTY, Quoting.UNQUOTED));
-                DockerRightPadded<Docker.Literal> alias = DockerRightPadded.build(Docker.Literal.build(Space.EMPTY, null, Space.EMPTY, Quoting.UNQUOTED));
+                DockerRightPadded<Docker.Literal> platform = DockerRightPadded.build(Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY));
+                DockerRightPadded<Docker.Literal> image = DockerRightPadded.build(Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY));
+                DockerRightPadded<Docker.Literal> version = DockerRightPadded.build(Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY));
+                DockerRightPadded<Docker.Literal> as = DockerRightPadded.build(Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY));
+                DockerRightPadded<Docker.Literal> alias = DockerRightPadded.build(Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY));
 
                 List<DockerRightPadded<Docker.Literal>> literals = parseLiterals(content);
                 if (!literals.isEmpty()) {
@@ -476,14 +479,14 @@ public class DockerfileParser {
                     }
                 }
 
-                return new Docker.From(Tree.randomId(), prefix, Markers.EMPTY, platform, image, version, as.getElement(), alias, rightPadding);
+                return new Docker.From(Tree.randomId(), prefix, platform, image, version, as.getElement(), alias, rightPadding, Markers.EMPTY);
             } else if (name.equals(Docker.Healthcheck.class.getSimpleName())) {
                 StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
                 String content = stringWithPadding.content();
                 List<DockerRightPadded<Docker.Literal>> commands;
                 if (content.equalsIgnoreCase("NONE")) {
                     commands = new ArrayList<>();
-                    Docker.Literal none = Docker.Literal.build(stringWithPadding.prefix(), content, stringWithPadding.suffix(), Quoting.UNQUOTED);
+                    Docker.Literal none = Docker.Literal.build(Quoting.UNQUOTED, stringWithPadding.prefix(), content, stringWithPadding.suffix());
                     commands.add(DockerRightPadded.build(none).withAfter(rightPadding));
                     return new Docker.Healthcheck(Tree.randomId(), prefix, Docker.Healthcheck.Type.NONE, null, commands, Markers.EMPTY);
                 }
@@ -503,7 +506,7 @@ public class DockerfileParser {
 
                 return new Docker.Healthcheck(Tree.randomId(), stringWithPadding.prefix(), Docker.Healthcheck.Type.CMD, args, commands, Markers.EMPTY);
             } else if (name.equals(Docker.Maintainer.class.getSimpleName())) {
-                return new Docker.Maintainer (Tree.randomId(), prefix, Markers.EMPTY, instruction.toString(), quoting);
+                return new Docker.Maintainer (Tree.randomId(), quoting, prefix, instruction.toString(), Markers.EMPTY);
             } else if (name.equals(Docker.OnBuild.class.getSimpleName())) {
                 StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
                 prefix = Space.append(prefix, stringWithPadding.prefix());
@@ -547,13 +550,13 @@ public class DockerfileParser {
                 Docker.Literal user;
                 Docker.Literal group = null;
                 if (parts.length > 1) {
-                    user = Docker.Literal.build(stringWithPadding.prefix(), parts[0], Space.EMPTY, Quoting.UNQUOTED);
-                    group = Docker.Literal.build(Space.EMPTY, parts[1], Space.append(stringWithPadding.suffix(), rightPadding), Quoting.UNQUOTED);
+                    user = Docker.Literal.build(Quoting.UNQUOTED, stringWithPadding.prefix(), parts[0], Space.EMPTY);
+                    group = Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, parts[1], Space.append(stringWithPadding.suffix(), rightPadding));
                 } else {
-                    user = Docker.Literal.build(stringWithPadding.prefix(), parts[0], Space.append(stringWithPadding.suffix(), rightPadding), Quoting.UNQUOTED);
+                    user = Docker.Literal.build(Quoting.UNQUOTED, stringWithPadding.prefix(), parts[0], Space.append(stringWithPadding.suffix(), rightPadding));
                 }
 
-                return new Docker.User(Tree.randomId(), prefix, Markers.EMPTY, user, group);
+                return new Docker.User(Tree.randomId(), prefix, user, group, Markers.EMPTY);
             }
 
             return null;
@@ -610,7 +613,7 @@ public class DockerfileParser {
                 Docker.Instruction instr = parser.parse();
                 currentInstructions.add(instr);
                 if (instr instanceof Docker.From) {
-                    stages.add(new Docker.Stage(Tree.randomId(), Markers.EMPTY, new ArrayList<>(currentInstructions)));
+                    stages.add(new Docker.Stage(Tree.randomId(), new ArrayList<>(currentInstructions), Markers.EMPTY));
                     currentInstructions.clear();
                 } else if (!stages.isEmpty()) {
                     // if we have a stage, add the instruction to it
@@ -623,10 +626,10 @@ public class DockerfileParser {
         }
 
         if (stages.isEmpty()) {
-            stages.add(new Docker.Stage(Tree.randomId(), Markers.EMPTY, new ArrayList<>(currentInstructions)));
+            stages.add(new Docker.Stage(Tree.randomId(), new ArrayList<>(currentInstructions),Markers.EMPTY));
         }
 
-        return new Docker.Document(Tree.randomId(), Markers.EMPTY, Paths.get("Dockerfile"), null, null, false, null, stages, eof);
+        return new Docker.Document(Tree.randomId(), Paths.get("Dockerfile"), null, null, false, null, stages, eof, Markers.EMPTY);
     }
 
     private String handleHeredoc(String line, InstructionParser parser, Scanner scanner) {

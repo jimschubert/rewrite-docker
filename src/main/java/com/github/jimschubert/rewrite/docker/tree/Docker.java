@@ -58,6 +58,8 @@ public interface Docker extends Tree {
         @EqualsAndHashCode.Include
         UUID id;
 
+        Quoting quoting;
+
         Space prefix;
 
         String text;
@@ -65,8 +67,6 @@ public interface Docker extends Tree {
         Space trailing;
 
         Markers markers;
-
-        Quoting quoting;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -80,17 +80,16 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Literal(Tree.randomId(), prefix, text, trailing,
-                    markers == null ? Markers.EMPTY : Markers.build(markers.getMarkers()),
-                    quoting);
+            return new Literal(Tree.randomId(), quoting, prefix, text, trailing,
+                    markers == null ? Markers.EMPTY : Markers.build(markers.getMarkers()));
         }
 
         public static Literal build(String text) {
-            return new Literal(Tree.randomId(), Space.EMPTY, text, Space.EMPTY, Markers.EMPTY, Quoting.UNQUOTED);
+            return new Literal(Tree.randomId(), Quoting.UNQUOTED, Space.EMPTY, text, Space.EMPTY, Markers.EMPTY);
         }
 
-        public static Literal build(Space prefix, String text, Space trailing, Quoting quoting) {
-            return new Literal(Tree.randomId(), prefix, text, trailing, Markers.EMPTY, quoting);
+        public static Literal build(Quoting quoting, Space prefix, String text, Space trailing) {
+            return new Literal(Tree.randomId(), quoting, prefix, text, trailing, Markers.EMPTY);
         }
     }
 
@@ -135,7 +134,6 @@ public interface Docker extends Tree {
         @EqualsAndHashCode.Include
         UUID id;
 
-        Markers markers;
         Path sourcePath;
 
         @Nullable
@@ -153,6 +151,8 @@ public interface Docker extends Tree {
         List<Stage> stages;
 
         Space eof;
+
+        Markers markers;
 
         @Override
         public Charset getCharset() {
@@ -177,8 +177,8 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Document(Tree.randomId(), markers, sourcePath, fileAttributes, charsetName, charsetBomMarked, checksum,
-                    stages.stream().map(Stage::copyPaste).collect(Collectors.toList()), eof);
+            return new Document(Tree.randomId(), sourcePath, fileAttributes, charsetName, charsetBomMarked, checksum,
+                    stages.stream().map(Stage::copyPaste).collect(Collectors.toList()), eof, markers);
         }
     }
 
@@ -222,9 +222,10 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
 
         List<DockerRightPadded<KeyArgs>> args;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -238,7 +239,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Arg(Tree.randomId(), prefix, markers, args);
+            return new Arg(Tree.randomId(), prefix, args, markers);
         }
     }
 
@@ -279,9 +280,10 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
 
         DockerRightPadded<Literal> text;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -295,11 +297,11 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Comment(Tree.randomId(), prefix, markers, text);
+            return new Comment(Tree.randomId(), prefix, text, markers);
         }
 
         public static Comment build(String text) {
-            return new Comment(Tree.randomId(), Space.EMPTY, Markers.EMPTY, DockerRightPadded.build(Literal.build(text).withPrefix(Space.build(" "))));
+            return new Comment(Tree.randomId(), Space.EMPTY, DockerRightPadded.build(Literal.build(text).withPrefix(Space.build(" "))), Markers.EMPTY);
         }
     }
 
@@ -343,10 +345,11 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
 
         @NonFinal
         DockerRightPadded<KeyArgs> directive;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -360,7 +363,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Directive(Tree.randomId(), prefix, markers, directive);
+            return new Directive(Tree.randomId(), prefix, directive, markers);
         }
 
         public String getKey() {
@@ -392,7 +395,7 @@ public interface Docker extends Tree {
         }
 
         public static Directive build(String key, String value) {
-            return new Directive(Tree.randomId(), Space.EMPTY, Markers.EMPTY, DockerRightPadded.build(new KeyArgs(Space.build(" "), key, value, true, Quoting.UNQUOTED)));
+            return new Directive(Tree.randomId(), Space.EMPTY, DockerRightPadded.build(new KeyArgs(Space.build(" "), key, value, true, Quoting.UNQUOTED)), Markers.EMPTY);
         }
     }
 
@@ -433,9 +436,10 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
 
         List<DockerRightPadded<KeyArgs>> args;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -449,7 +453,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Env(Tree.randomId(), prefix, markers, args);
+            return new Env(Tree.randomId(), prefix, args, markers);
         }
     }
 
@@ -462,9 +466,10 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
 
         List<DockerRightPadded<Port>> ports;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -478,7 +483,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Expose(Tree.randomId(), prefix, markers, ports);
+            return new Expose(Tree.randomId(), prefix, ports, markers);
         }
     }
 
@@ -491,9 +496,6 @@ public interface Docker extends Tree {
 
         @With
         Space prefix;
-
-        @With
-        Markers markers;
 
         @NonFinal
         DockerRightPadded<Literal> platform;
@@ -513,6 +515,9 @@ public interface Docker extends Tree {
         @With
         Space trailing;
 
+        @With
+        Markers markers;
+
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitFrom(this, p);
@@ -525,7 +530,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new From(Tree.randomId(), prefix, markers, platform, image, version, as, alias, trailing);
+            return new From(Tree.randomId(), prefix, platform, image, version, as, alias, trailing, markers);
         }
 
         public String getImageSpec() {
@@ -649,9 +654,10 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
 
         List<DockerRightPadded<KeyArgs>> args;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -665,7 +671,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Label(Tree.randomId(), prefix, markers, args);
+            return new Label(Tree.randomId(), prefix, args, markers);
         }
     }
 
@@ -675,12 +681,10 @@ public interface Docker extends Tree {
     class Maintainer implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
-
-        Space prefix;
-        Markers markers;
-
-        String name;
         Quoting quoting;
+        Space prefix;
+        String name;
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -694,7 +698,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Maintainer(Tree.randomId(), prefix, markers, name, quoting);
+            return new Maintainer(Tree.randomId(), quoting, prefix, name, markers);
         }
     }
 
@@ -797,9 +801,10 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
 
         Literal signal;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -813,7 +818,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new StopSignal(Tree.randomId(), prefix, markers, signal);
+            return new StopSignal(Tree.randomId(), prefix, signal, markers);
         }
     }
 
@@ -826,10 +831,10 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        Markers markers;
-
         Literal username;
         Literal group;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -843,7 +848,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new User(Tree.randomId(), prefix, markers, username, group);
+            return new User(Tree.randomId(), prefix, username, group, markers);
         }
     }
 
@@ -887,9 +892,10 @@ public interface Docker extends Tree {
     class Stage implements Docker {
         @EqualsAndHashCode.Include
         UUID id;
-        Markers markers;
 
         List<Instruction> children;
+
+        Markers markers;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -903,7 +909,7 @@ public interface Docker extends Tree {
 
         @Override
         public Stage copyPaste() {
-            return new Stage(Tree.randomId(), markers, children);
+            return new Stage(Tree.randomId(), children, markers);
         }
     }
 
@@ -948,13 +954,13 @@ public interface Docker extends Tree {
         Quoting quoting;
     }
 
-    @Value
-    @With
-    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    class SecurityOption {
-        Space prefix;
-        String name;
-    }
+//    @Value
+//    @With
+//    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+//    class SecurityOption {
+//        Space prefix;
+//        String name;
+//    }
 
     @Value
     @With
@@ -966,22 +972,22 @@ public interface Docker extends Tree {
         boolean protocolProvided;
     }
 
-    @Value
-    @With
-    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    class NetworkOption {
-        Space prefix;
-        String name;
-    }
+//    @Value
+//    @With
+//    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+//    class NetworkOption {
+//        Space prefix;
+//        String name;
+//    }
 
-    // TODO: Extends Dockerfile, add visitor
-    @Value
-    @With
-    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    class Mount{
-        Space prefix;
-        String type;
-        List<KeyArgs> options;
-        String id;
-    }
+//    // TODO: Extends Dockerfile, add visitor
+//    @Value
+//    @With
+//    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+//    class Mount{
+//        Space prefix;
+//        String type;
+//        List<KeyArgs> options;
+//        String id;
+//    }
 }
