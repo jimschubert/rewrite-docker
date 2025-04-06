@@ -554,6 +554,7 @@ class DockerfileParserTest {
         assertRightPaddedArg(args.get(2), Quoting.DOUBLE_QUOTED, "\t\t", "quux", true, "Hello World", "");
     }
 
+
     @Test
     void testStopSignal() {
         DockerfileParser parser = new DockerfileParser();
@@ -563,8 +564,7 @@ class DockerfileParserTest {
 
         Docker.StopSignal stopSignal = (Docker.StopSignal) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, stopSignal.getPrefix());
-        assertEquals("SIGKILL", stopSignal.getSignal().getText());
-        assertEquals(" ", stopSignal.getSignal().getPrefix().getWhitespace());
+        assertLiteral(stopSignal.getSignal(), Quoting.UNQUOTED, " ", "SIGKILL", "");
     }
 
     @Test
@@ -576,48 +576,39 @@ class DockerfileParserTest {
 
         Docker.Healthcheck healthCheck = (Docker.Healthcheck) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, healthCheck.getPrefix());
-        assertEquals(1, healthCheck.getCommands().size());
-        assertEquals("NONE", healthCheck.getCommands().get(0).getElement().getText());
-        assertEquals(" ", healthCheck.getCommands().get(0).getElement().getPrefix().getWhitespace());
+
+        List<DockerRightPadded<Docker.Literal>> commands = healthCheck.getCommands();
+        assertEquals(1, commands.size());
+
+        assertRightPaddedLiteral(commands.get(0), Quoting.UNQUOTED, " ", "NONE", "", "");
     }
 
     @Test
     void testHealthCheckWithCmd() {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream("HEALTHCHECK --interval=5m --timeout=3s \\\n  CMD curl -f http://localhost/ || exit 1".getBytes(StandardCharsets.UTF_8)));
+
         Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
+
         Docker.Healthcheck healthCheck = (Docker.Healthcheck) stage.getChildren().get(0);
         assertEquals(" ", healthCheck.getPrefix().getWhitespace());
-        assertEquals(7, healthCheck.getCommands().size());
 
-        assertEquals(" ", healthCheck.getOptions().get(0).getElement().getPrefix().getWhitespace());
-        assertEquals("--interval", healthCheck.getOptions().get(0).getElement().getKey());
-        assertEquals("5m", healthCheck.getOptions().get(0).getElement().getValue());
-        assertTrue(healthCheck.getOptions().get(0).getElement().isHasEquals());
-        assertEquals("", healthCheck.getOptions().get(0).getAfter().getWhitespace());
+        List<DockerRightPadded<Docker.KeyArgs>> options = healthCheck.getOptions();
+        assertEquals(2, options.size());
 
-        assertEquals(" ", healthCheck.getOptions().get(1).getElement().getPrefix().getWhitespace());
-        assertEquals("--timeout", healthCheck.getOptions().get(1).getElement().getKey());
-        assertEquals("3s", healthCheck.getOptions().get(1).getElement().getValue());
-        assertTrue(healthCheck.getOptions().get(1).getElement().isHasEquals());
-        assertEquals(" \\\n", healthCheck.getOptions().get(1).getAfter().getWhitespace());
+        assertRightPaddedArg(options.get(0), Quoting.UNQUOTED, " ", "--interval", true, "5m", "");
+        assertRightPaddedArg(options.get(1), Quoting.UNQUOTED, " ", "--timeout", true, "3s", " \\\n");
 
-        assertEquals("", healthCheck.getCommands().get(0).getAfter().getWhitespace());
-        assertEquals("CMD", healthCheck.getCommands().get(0).getElement().getText());
-        assertEquals("  ", healthCheck.getCommands().get(0).getElement().getPrefix().getWhitespace());
-        assertEquals("", healthCheck.getCommands().get(0).getAfter().getWhitespace());
+        List<DockerRightPadded<Docker.Literal>> commands = healthCheck.getCommands();
+        assertEquals(7, commands.size());
 
-        assertEquals("curl", healthCheck.getCommands().get(1).getElement().getText());
-        assertEquals(" ", healthCheck.getCommands().get(1).getElement().getPrefix().getWhitespace());
-        assertEquals("-f", healthCheck.getCommands().get(2).getElement().getText());
-        assertEquals(" ", healthCheck.getCommands().get(2).getElement().getPrefix().getWhitespace());
-        assertEquals("http://localhost/", healthCheck.getCommands().get(3).getElement().getText());
-        assertEquals(" ", healthCheck.getCommands().get(3).getElement().getPrefix().getWhitespace());
-        assertEquals("||", healthCheck.getCommands().get(4).getElement().getText());
-        assertEquals(" ", healthCheck.getCommands().get(4).getElement().getPrefix().getWhitespace());
-        assertEquals("exit", healthCheck.getCommands().get(5).getElement().getText());
-        assertEquals(" ", healthCheck.getCommands().get(5).getElement().getPrefix().getWhitespace());
-        assertEquals("1", healthCheck.getCommands().get(6).getElement().getText());
+        assertRightPaddedLiteral(commands.get(0), Quoting.UNQUOTED, "  ", "CMD", "", "");
+        assertRightPaddedLiteral(commands.get(1), Quoting.UNQUOTED, " ", "curl", "", "");
+        assertRightPaddedLiteral(commands.get(2), Quoting.UNQUOTED, " ", "-f", "", "");
+        assertRightPaddedLiteral(commands.get(3), Quoting.UNQUOTED, " ", "http://localhost/", "", "");
+        assertRightPaddedLiteral(commands.get(4), Quoting.UNQUOTED, " ", "||", "", "");
+        assertRightPaddedLiteral(commands.get(5), Quoting.UNQUOTED, " ", "exit", "", "");
+        assertRightPaddedLiteral(commands.get(6), Quoting.UNQUOTED, " ", "1", "", "");
     }
 
     @Test
@@ -632,26 +623,14 @@ class DockerfileParserTest {
 
         List<DockerRightPadded<Docker.Literal>> args = add.getSources();
         assertEquals(4, args.size());
-        assertEquals("foo.txt", args.get(0).getElement().getText());
-        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
-        assertEquals(" \\\n\t\t", args.get(0).getAfter().getWhitespace());
 
-        assertEquals("bar.txt", args.get(1).getElement().getText());
-        assertEquals("", args.get(1).getElement().getPrefix().getWhitespace());
-        assertEquals(" \\\n\t\t", args.get(1).getAfter().getWhitespace());
-
-        assertEquals("baz.txt", args.get(2).getElement().getText());
-        assertEquals("", args.get(2).getElement().getPrefix().getWhitespace());
-        assertEquals(" \\\n\t\t", args.get(2).getAfter().getWhitespace());
-
-        assertEquals("qux.txt", args.get(3).getElement().getText());
-        assertEquals("", args.get(3).getElement().getPrefix().getWhitespace());
-        assertEquals("", args.get(3).getAfter().getWhitespace());
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "foo.txt", "", " \\\n\t\t");
+        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, "", "bar.txt", "", " \\\n\t\t");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, "", "baz.txt", "", " \\\n\t\t");
+        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, "", "qux.txt", "", "");
 
         DockerRightPadded<Docker.Literal> dest = add.getDestination();
-        assertEquals("/tmp/", dest.getElement().getText());
-        assertEquals(" ", dest.getElement().getPrefix().getWhitespace());
-        assertEquals("\t", dest.getAfter().getWhitespace());
+        assertRightPaddedLiteral(dest, Quoting.UNQUOTED, " ", "/tmp/", "", "\t");
     }
 
     @Test
@@ -666,51 +645,26 @@ class DockerfileParserTest {
 
         List<DockerRightPadded<Docker.Literal>> args = add.getSources();
         assertEquals(4, args.size());
-        assertEquals("foo.txt", args.get(0).getElement().getText());
-        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
-        assertEquals(" \\\n\t\t", args.get(0).getAfter().getWhitespace());
 
-        assertEquals("bar.txt", args.get(1).getElement().getText());
-        assertEquals("", args.get(1).getElement().getPrefix().getWhitespace());
-        assertEquals(" \\\n\t\t", args.get(1).getAfter().getWhitespace());
-
-        assertEquals("baz.txt", args.get(2).getElement().getText());
-        assertEquals("", args.get(2).getElement().getPrefix().getWhitespace());
-        assertEquals(" \\\n\t\t", args.get(2).getAfter().getWhitespace());
-
-        assertEquals("qux.txt", args.get(3).getElement().getText());
-        assertEquals("", args.get(3).getElement().getPrefix().getWhitespace());
-        assertEquals("", args.get(3).getAfter().getWhitespace());
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "foo.txt", "", " \\\n\t\t");
+        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, "", "bar.txt", "", " \\\n\t\t");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, "", "baz.txt", "", " \\\n\t\t");
+        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, "", "qux.txt", "", "");
 
         DockerRightPadded<Docker.Literal> dest = add.getDestination();
-        assertEquals("/tmp/", dest.getElement().getText());
-        assertEquals(" ", dest.getElement().getPrefix().getWhitespace());
-        assertEquals("\t", dest.getAfter().getWhitespace());
+        assertRightPaddedLiteral(dest, Quoting.UNQUOTED, " ", "/tmp/", "", "\t");
 
         List<DockerRightPadded<Docker.Option>> options = add.getOptions();
         assertEquals(3, options.size());
 
-        DockerRightPadded<Docker.Option> option = options.get(0);
+        assertOption(options.get(0).getElement(), Quoting.UNQUOTED, " ", "--chown", true, "foo:bar");
+        assertEquals("", options.get(0).getAfter().getWhitespace());
 
-        assertEquals(" ", option.getElement().getPrefix().getWhitespace());
-        assertEquals("--chown", option.getElement().getKeyArgs().getKey());
-        assertEquals("foo:bar", option.getElement().getKeyArgs().getValue());
-        assertTrue(option.getElement().getKeyArgs().isHasEquals());
-        assertEquals("", option.getAfter().getWhitespace());
+        assertOption(options.get(1).getElement(), Quoting.UNQUOTED, " ", "--keep-git-dir", false, null);
+        assertEquals("", options.get(1).getAfter().getWhitespace());
 
-        option = options.get(1);
-        assertEquals(" ", option.getElement().getPrefix().getWhitespace());
-        assertEquals("--keep-git-dir", option.getElement().getKeyArgs().getKey());
-        assertNull(option.getElement().getKeyArgs().getValue());
-        assertFalse(option.getElement().getKeyArgs().isHasEquals());
-        assertEquals("", option.getAfter().getWhitespace());
-
-        option = options.get(2);
-        assertEquals(" ", option.getElement().getPrefix().getWhitespace());
-        assertEquals("--checksum", option.getElement().getKeyArgs().getKey());
-        assertEquals("sha256:24454f830c", option.getElement().getKeyArgs().getValue());
-        assertTrue(option.getElement().getKeyArgs().isHasEquals());
-        assertEquals("", option.getAfter().getWhitespace());
+        assertOption(options.get(2).getElement(), Quoting.UNQUOTED, " ", "--checksum", true, "sha256:24454f830c");
+        assertEquals("", options.get(2).getAfter().getWhitespace());
     }
 
     @Test
@@ -725,26 +679,14 @@ class DockerfileParserTest {
 
         List<DockerRightPadded<Docker.Literal>> args = copy.getSources();
         assertEquals(4, args.size());
-        assertEquals("foo.txt", args.get(0).getElement().getText());
-        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
-        assertEquals(" \\\n\t\t", args.get(0).getAfter().getWhitespace());
 
-        assertEquals("bar.txt", args.get(1).getElement().getText());
-        assertEquals("", args.get(1).getElement().getPrefix().getWhitespace());
-        assertEquals(" \\\n\t\t", args.get(1).getAfter().getWhitespace());
-
-        assertEquals("baz.txt", args.get(2).getElement().getText());
-        assertEquals("", args.get(2).getElement().getPrefix().getWhitespace());
-        assertEquals(" \\\n\t\t", args.get(2).getAfter().getWhitespace());
-
-        assertEquals("qux.txt", args.get(3).getElement().getText());
-        assertEquals("", args.get(3).getElement().getPrefix().getWhitespace());
-        assertEquals("", args.get(3).getAfter().getWhitespace());
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "foo.txt", "", " \\\n\t\t");
+        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, "", "bar.txt", "", " \\\n\t\t");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, "", "baz.txt", "", " \\\n\t\t");
+        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, "", "qux.txt", "", "");
 
         DockerRightPadded<Docker.Literal> dest = copy.getDestination();
-        assertEquals("/tmp/", dest.getElement().getText());
-        assertEquals(" ", dest.getElement().getPrefix().getWhitespace());
-        assertEquals("\t", dest.getAfter().getWhitespace());
+        assertRightPaddedLiteral(dest, Quoting.UNQUOTED, " ", "/tmp/", "", "\t");
     }
 
     @Test
@@ -759,13 +701,10 @@ class DockerfileParserTest {
 
         List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
         assertEquals(3, args.size());
-        assertEquals("echo", args.get(0).getElement().getText());
-        assertEquals("Hello", args.get(1).getElement().getText());
-        assertEquals("World", args.get(2).getElement().getText());
-        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
-        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
-        assertEquals(" ", args.get(2).getElement().getPrefix().getWhitespace());
-        assertEquals("\t", args.get(2).getAfter().getWhitespace());
+
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "echo", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "Hello", "", "");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, " ", "World", "", "\t");
     }
 
     @Test
@@ -773,10 +712,10 @@ class DockerfileParserTest {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream(
                 """
-                        RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \\
-                          --mount=type=cache,target=/var/lib/apt,sharing=locked \\
-                          apt update && apt-get --no-install-recommends install -y gcc
-                        """.getBytes(StandardCharsets.UTF_8)));
+                RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \\
+                  --mount=type=cache,target=/var/lib/apt,sharing=locked \\
+                  apt update && apt-get --no-install-recommends install -y gcc
+                """.getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
 
@@ -785,54 +724,24 @@ class DockerfileParserTest {
 
         List<DockerRightPadded<Docker.Option>> opts = cmd.getOptions();
         assertEquals(2, opts.size());
-        assertEquals(" ", opts.get(0).getElement().getPrefix().getWhitespace());
-        assertEquals("--mount", opts.get(0).getElement().getKeyArgs().getKey());
-        assertEquals("type=cache,target=/var/cache/apt,sharing=locked", opts.get(0).getElement().getKeyArgs().getValue());
-        assertTrue(opts.get(0).getElement().getKeyArgs().isHasEquals());
+
+        assertOption(opts.get(0).getElement(), Quoting.UNQUOTED, " ", "--mount", true, "type=cache,target=/var/cache/apt,sharing=locked");
         assertEquals(" \\\n", opts.get(0).getAfter().getWhitespace());
-        assertEquals("  ", opts.get(1).getElement().getPrefix().getWhitespace());
-        assertEquals("--mount", opts.get(1).getElement().getKeyArgs().getKey());
-        assertEquals("type=cache,target=/var/lib/apt,sharing=locked", opts.get(1).getElement().getKeyArgs().getValue());
-        assertTrue(opts.get(1).getElement().getKeyArgs().isHasEquals());
+
+        assertOption(opts.get(1).getElement(), Quoting.UNQUOTED, "  ", "--mount", true, "type=cache,target=/var/lib/apt,sharing=locked");
         assertEquals(" \\\n", opts.get(1).getAfter().getWhitespace());
 
         List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
         assertEquals(8, args.size());
 
-        assertEquals("  ", args.get(0).getElement().getPrefix().getWhitespace());
-        assertEquals("apt", args.get(0).getElement().getText());
-        assertEquals("", args.get(0).getAfter().getWhitespace());
-
-        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
-        assertEquals("update", args.get(1).getElement().getText());
-        assertEquals("", args.get(1).getAfter().getWhitespace());
-
-        assertEquals(" ", args.get(2).getElement().getPrefix().getWhitespace());
-        assertEquals("&&", args.get(2).getElement().getText());
-        assertEquals("", args.get(2).getAfter().getWhitespace());
-
-        assertEquals(" ", args.get(3).getElement().getPrefix().getWhitespace());
-        assertEquals("apt-get", args.get(3).getElement().getText());
-        assertEquals("", args.get(3).getAfter().getWhitespace());
-
-        assertEquals(" ", args.get(4).getElement().getPrefix().getWhitespace());
-        assertEquals("--no-install-recommends", args.get(4).getElement().getText());
-        assertEquals("", args.get(4).getElement().getTrailing().getWhitespace());
-        assertEquals("", args.get(4).getAfter().getWhitespace());
-
-        assertEquals(" ", args.get(5).getElement().getPrefix().getWhitespace());
-        assertEquals("install", args.get(5).getElement().getText());
-        assertEquals("", args.get(5).getElement().getTrailing().getWhitespace());
-        assertEquals("", args.get(5).getAfter().getWhitespace());
-
-        assertEquals(" ", args.get(6).getElement().getPrefix().getWhitespace());
-        assertEquals("-y", args.get(6).getElement().getText());
-        assertEquals("", args.get(6).getElement().getTrailing().getWhitespace());
-        assertEquals("", args.get(6).getAfter().getWhitespace());
-
-        assertEquals(" ", args.get(7).getElement().getPrefix().getWhitespace());
-        assertEquals("gcc", args.get(7).getElement().getText());
-        assertEquals("", args.get(7).getAfter().getWhitespace());
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, "  ", "apt", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "update", "", "");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, " ", "&&", "", "");
+        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, " ", "apt-get", "", "");
+        assertRightPaddedLiteral(args.get(4), Quoting.UNQUOTED, " ", "--no-install-recommends", "", "");
+        assertRightPaddedLiteral(args.get(5), Quoting.UNQUOTED, " ", "install", "", "");
+        assertRightPaddedLiteral(args.get(6), Quoting.UNQUOTED, " ", "-y", "", "");
+        assertRightPaddedLiteral(args.get(7), Quoting.UNQUOTED, " ", "gcc", "", "");
     }
 
     /**
@@ -847,11 +756,11 @@ class DockerfileParserTest {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream(
                 """
-                        RUN <<EOF
-                        apt-get update
-                        apt-get install -y curl
-                        EOF
-                        """.getBytes(StandardCharsets.UTF_8)));
+                RUN <<EOF
+                apt-get update
+                apt-get install -y curl
+                EOF
+                """.getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
 
@@ -859,42 +768,28 @@ class DockerfileParserTest {
         assertEquals(Space.EMPTY, cmd.getPrefix());
 
         List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
-        assertEquals(14, args.size());
+        assertEquals(8, args.size());
 
-
-        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
-        assertEquals("<<EOF", args.get(0).getElement().getText());
-        assertEquals("", args.get(0).getElement().getTrailing().getWhitespace());
-
-        assertEquals("\n", args.get(0).getAfter().getWhitespace());
-
-        assertEquals("", args.get(1).getElement().getPrefix().getWhitespace());
-        assertEquals("apt-get", args.get(1).getElement().getText());
-
-        assertEquals(" ", args.get(2).getElement().getPrefix().getWhitespace());
-        assertEquals("update", args.get(2).getElement().getText());
-        assertEquals("\n", args.get(2).getAfter().getWhitespace());
-
-        assertEquals("", args.get(3).getElement().getPrefix().getWhitespace());
-        assertEquals("apt-get", args.get(3).getElement().getText());
-        assertEquals(" ", args.get(4).getElement().getPrefix().getWhitespace());
-        assertEquals("install", args.get(4).getElement().getText());
-
-        assertEquals(" ", args.get(5).getElement().getPrefix().getWhitespace());
-        assertEquals("-y", args.get(5).getElement().getText());
-        assertEquals("curl", args.get(6).getElement().getText());
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "<<EOF", "", "\n");
+        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, "", "apt-get", "", "");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, " ", "update", "", "\n");
+        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, "", "apt-get", "", "");
+        assertRightPaddedLiteral(args.get(4), Quoting.UNQUOTED, " ", "install", "", "");
+        assertRightPaddedLiteral(args.get(5), Quoting.UNQUOTED, " ", "-y", "", "");
+        assertRightPaddedLiteral(args.get(6), Quoting.UNQUOTED, " ", "curl", "", "\n");
+        assertRightPaddedLiteral(args.get(7), Quoting.UNQUOTED, "", "EOF", "", "");
     }
 
     @Test
-    public void testRunWithHeredocAfterOtherCommands() {
+    void testRunWithHeredocAfterOtherCommands() {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream(
                 """
-                        RUN echo Hello World <<EOF
-                        apt-get update
-                        apt-get install -y curl
-                        EOF
-                        """.getBytes(StandardCharsets.UTF_8)));
+                RUN echo Hello World <<EOF
+                apt-get update
+                apt-get install -y curl
+                EOF
+                """.getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
 
@@ -902,40 +797,19 @@ class DockerfileParserTest {
         assertEquals(Space.EMPTY, cmd.getPrefix());
 
         List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
-        assertEquals(20, args.size());
+        assertEquals(11, args.size());
 
-        assertEquals(" ", args.get(0).getElement().getPrefix().getWhitespace());
-        assertEquals("echo", args.get(0).getElement().getText());
-
-        assertEquals(" ", args.get(1).getElement().getPrefix().getWhitespace());
-        assertEquals("Hello", args.get(1).getElement().getText());
-
-        assertEquals(" ", args.get(2).getElement().getPrefix().getWhitespace());
-        assertEquals("World", args.get(2).getElement().getText());
-        assertEquals("", args.get(2).getAfter().getWhitespace());
-
-        assertEquals(" ", args.get(3).getElement().getPrefix().getWhitespace());
-        assertEquals("<<EOF", args.get(3).getElement().getText());
-        assertEquals("\n", args.get(3).getAfter().getWhitespace());
-
-        assertEquals("", args.get(4).getElement().getPrefix().getWhitespace());
-        assertEquals("apt-get", args.get(4).getElement().getText());
-        assertEquals("", args.get(4).getElement().getTrailing().getWhitespace());
-
-        assertEquals(" ", args.get(5).getElement().getPrefix().getWhitespace());
-        assertEquals("update", args.get(5).getElement().getText());
-        assertEquals("", args.get(5).getElement().getTrailing().getWhitespace());
-
-        assertEquals("\n", args.get(5).getAfter().getWhitespace());
-
-        assertEquals("", args.get(6).getElement().getPrefix().getWhitespace());
-        assertEquals("apt-get", args.get(6).getElement().getText());
-        assertEquals(" ", args.get(7).getElement().getPrefix().getWhitespace());
-
-        assertEquals(" ", args.get(7).getElement().getPrefix().getWhitespace());
-        assertEquals("install", args.get(7).getElement().getText());
-        assertEquals("-y", args.get(8).getElement().getText());
-        assertEquals(" ", args.get(8).getElement().getPrefix().getWhitespace());
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "echo", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "Hello", "", "");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, " ", "World", "", "");
+        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, " ", "<<EOF", "", "\n");
+        assertRightPaddedLiteral(args.get(4), Quoting.UNQUOTED, "", "apt-get", "", "");
+        assertRightPaddedLiteral(args.get(5), Quoting.UNQUOTED, " ", "update", "", "\n");
+        assertRightPaddedLiteral(args.get(6), Quoting.UNQUOTED, "", "apt-get", "", "");
+        assertRightPaddedLiteral(args.get(7), Quoting.UNQUOTED, " ", "install", "", "");
+        assertRightPaddedLiteral(args.get(8), Quoting.UNQUOTED, " ", "-y", "", "");
+        assertRightPaddedLiteral(args.get(9), Quoting.UNQUOTED, " ", "curl", "", "\n");
+        assertRightPaddedLiteral(args.get(10), Quoting.UNQUOTED, "", "EOF", "", "");
     }
 
     @Test
@@ -943,19 +817,19 @@ class DockerfileParserTest {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream(
                 """
-                        FROM alpine:latest
-                        RUN echo Hello World
-                        CMD echo Goodbye World
-                        ENTRYPOINT [ "echo", "Hello" ]
-                        EXPOSE 8080 8081 \\\n\t\t9999/udp
-                        SHELL [ "powershell", "-Command" ]
-                        USER root:admin
-                        VOLUME [ "/var/log", "/var/log2" ]
-                        WORKDIR /var/log
-                        LABEL foo=bar baz=qux
-                        STOPSIGNAL SIGKILL
-                        HEALTHCHECK NONE
-                        """.getBytes(StandardCharsets.UTF_8)));
+                FROM alpine:latest
+                RUN echo Hello World
+                CMD echo Goodbye World
+                ENTRYPOINT [ "echo", "Hello" ]
+                EXPOSE 8080 8081 \\\n\t\t9999/udp
+                SHELL [ "powershell", "-Command" ]
+                USER root:admin
+                VOLUME [ "/var/log", "/var/log2" ]
+                WORKDIR /var/log
+                LABEL foo=bar baz=qux
+                STOPSIGNAL SIGKILL
+                HEALTHCHECK NONE
+                """.getBytes(StandardCharsets.UTF_8)));
 
         Docker.Stage stage = assertSingleStageWithChildCount(doc, 12);
 

@@ -127,6 +127,8 @@ public class DockerParserHelpers {
             String expectedKey,
             boolean expectedEqualsSign,
             String expectedValue) {
-        assertKeyArgs(value.getKeyArgs(), expectedQuoting, expectedPrefix, expectedKey, expectedEqualsSign, expectedValue);
+        assertEquals(expectedPrefix, value.getPrefix().getWhitespace(),
+                "Expected Option prefix whitespace to be '" + expectedPrefix + "' but was '" + value.getPrefix().getWhitespace() + "'");
+        assertKeyArgs(value.getKeyArgs(), expectedQuoting, "", expectedKey, expectedEqualsSign, expectedValue);
     }
 }

@@ -168,7 +168,7 @@ public class DockerfileParser {
                     }
                     currentElement.append(c);
                 } else {
-                    if (delimSet.contains(c) && lastChar != escape) {
+                    if (delimSet.contains(c) && (lastChar != escape || (inHeredoc && c == '\n'))) {
                         if (!StringUtils.isBlank(currentElement.toString())) {
                             elements.add(DockerRightPadded.build(elementCreator.apply(currentElement.toString()))
                                     .withAfter(Space.EMPTY));
@@ -184,6 +184,14 @@ public class DockerfileParser {
                             quote = c;
                         }
 
+                        if (inHeredoc && !elements.isEmpty() && elements.get(elements.size() - 1).getElement() instanceof Docker.Literal) {
+                            // allows commands to come after a heredoc. Does not support heredoc within a heredoc or multiple heredocs
+                            Docker.Literal literal = (Docker.Literal) elements.get(elements.size() - 1).getElement();
+                            if (literal.getText() != null && literal.getText().equals(heredoc.indicator)) {
+                                inHeredoc = false;
+                            }
+                        }
+
                         // Check if within a heredoc and set escape character to '\n'
                         if (heredoc != null && c == '\n' && !inHeredoc) {
                             inHeredoc = true;
@@ -194,6 +202,8 @@ public class DockerfileParser {
                                 currentElement.setLength(0);
                                 afterBuilder.setLength(0);
                             }
+
+                            lastChar = c;
                             continue;
                         } else //noinspection ConstantValue
                             if (heredoc != null && c == '\n' && inHeredoc) {
@@ -207,6 +217,8 @@ public class DockerfileParser {
                                         currentElement.setLength(0);
                                         afterBuilder.setLength(0);
                                     }
+
+                                    lastChar = c;
                                     continue;
                                 }
 
@@ -658,7 +670,6 @@ public class DockerfileParser {
             }
             heredocContent.append(line).append(NEWLINE);
         }
-        parser.append(heredocContent.toString());
 
         return heredocContent.toString();
     }
