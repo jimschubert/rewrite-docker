@@ -44,7 +44,8 @@ public class DockerParser implements Parser {
     @Override
     public boolean accept(Path path) {
         String fileName = path.toString();
-        return fileName.endsWith(".dockerfile") || fileName.equalsIgnoreCase("dockerfile");
+        return fileName.endsWith(".dockerfile") || fileName.equalsIgnoreCase("dockerfile") ||
+                fileName.endsWith(".containerfile") || fileName.equalsIgnoreCase("cockerfile");
     }
 
     @Override
