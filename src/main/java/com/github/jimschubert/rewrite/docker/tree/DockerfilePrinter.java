@@ -1,7 +1,8 @@
 package com.github.jimschubert.rewrite.docker.tree;
 
 import com.github.jimschubert.rewrite.docker.DockerVisitor;
-import org.jetbrains.annotations.NotNull;
+import com.github.jimschubert.rewrite.docker.internal.StringUtil;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.PrintOutputCapture;
@@ -10,8 +11,11 @@ import org.openrewrite.internal.StringUtils;
 import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.Markers;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
+
+import static com.github.jimschubert.rewrite.docker.internal.StringUtil.trimDoubleQuotes;
 
 public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     private static final UnaryOperator<String> MARKER_WRAPPER =
@@ -22,7 +26,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public Markers visitMarkers(@Nullable Markers markers, PrintOutputCapture<P> p) {
+    public @NonNull Markers visitMarkers(@Nullable Markers markers, PrintOutputCapture<P> p) {
         if (markers == null) {
             return Markers.EMPTY;
         }
@@ -30,9 +34,12 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     protected void beforeSyntax(Space prefix, Markers markers, PrintOutputCapture<P> p) {
+        visitSpace(prefix, p);
+
         if (markers == null || markers.getMarkers().isEmpty()) {
             return;
         }
+
         for (Marker marker : markers.getMarkers()) {
             p.append(p.getMarkerPrinter().beforePrefix(marker, new Cursor(getCursor(), marker), MARKER_WRAPPER));
         }
@@ -78,6 +85,9 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
                 p.append("\n");
             }
         }
+
+        visitSpace(target.getEof(), p);
+
         return super.visit(tree, p, parent);
     }
 
@@ -234,10 +244,12 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
 
     @Override
     public Docker visitLiteral(Docker.Literal literal, PrintOutputCapture<P> p) {
-        beforeSyntax(literal, p);
+        visitSpace(literal.getPrefix(), p);
+        visitQuoting(literal.getQuoting(), p);
         if (literal.getText() != null) {
             p.append(literal.getText());
         }
+        visitQuoting(literal.getQuoting(), p);
         visitSpace(literal.getTrailing(), p);
         afterSyntax(literal, p);
         return literal;
@@ -249,7 +261,6 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
             return null;
         }
 
-        beforeSyntax(option, p);
         visitKeyArgs(option.getKeyArgs(), p);
         afterSyntax(option, p);
         return option;
@@ -288,13 +299,6 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         return keyArgs;
     }
 
-    private static @NotNull String trimDoubleQuotes(String text) {
-        if (text.startsWith("\"") && text.endsWith("\"")) {
-            text = text.substring(1, text.length() - 1);
-        }
-        return text;
-    }
-
     @Override
     public Docker visitLabel(Docker.Label label, PrintOutputCapture<P> p) {
         beforeSyntax(label, p);
@@ -310,8 +314,8 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     @Override
     public Docker visitMaintainer(Docker.Maintainer maintainer, PrintOutputCapture<P> p) {
         beforeSyntax(maintainer, p);
-        p.append("MAINTAINER ");
-        p.append(maintainer.getName());
+        p.append("MAINTAINER");
+        visitLiteral(maintainer.getName(), p);
         afterSyntax(maintainer, p);
         return maintainer;
     }
@@ -335,6 +339,14 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         return expose;
     }
 
+    private void visitQuoting(Quoting quoting, PrintOutputCapture<P> p) {
+        if (quoting == Quoting.SINGLE_QUOTED) {
+            p.append("'");
+        } else if (quoting == Quoting.DOUBLE_QUOTED) {
+            p.append("\"");
+        }
+    }
+
     @Override
     public Docker visitEnv(Docker.Env env, PrintOutputCapture<P> p) {
         beforeSyntax(env, p);
@@ -351,13 +363,9 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
                     p.append(" ");
                 }
 
-                if (kvp.getQuoting() == Quoting.SINGLE_QUOTED) {
-                    p.append("'").append(kvp.getValue()).append("'");
-                } else if (kvp.getQuoting() == Quoting.DOUBLE_QUOTED) {
-                    p.append("\"").append(kvp.getValue()).append("\"");
-                } else {
-                    p.append(kvp.getValue());
-                }
+                visitQuoting(kvp.getQuoting(), p);
+                p.append(kvp.getValue());
+                visitQuoting(kvp.getQuoting(), p);
             }
 
             visitSpace(padded.getAfter(),p);
@@ -417,12 +425,40 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     @Override
     public Docker visitEntrypoint(Docker.Entrypoint entrypoint, PrintOutputCapture<P> p) {
         beforeSyntax(entrypoint, p);
-        p.append("ENTRYPOINT [");
-        entrypoint.getCommands().forEach(padded -> {
+        p.append("ENTRYPOINT");
+
+        if (entrypoint.getForm() == Form.EXEC) {
+            Space before = entrypoint.getExecFormPrefix();
+            if (before == null || before.isEmpty()) {
+                before = Space.build(" ");
+            }
+            visitSpace(before, p);
+
+            p.append("[");
+        }
+
+        List<DockerRightPadded<Docker.Literal>> commands = entrypoint.getCommands();
+        for (int i = 0; i < commands.size(); i++) {
+            DockerRightPadded<Docker.Literal> padded = commands.get(i);
+
+            if (entrypoint.getForm() == Form.SHELL
+                    && i > 0
+                    && i < commands.size() - 1
+            && "".equals(padded.getElement().getPrefix().getWhitespace())) {
+                p.append(" ");
+            }
+
             visitDockerRightPaddedLiteral(padded, p);
-        });
-        p.append("]");
-        visitSpace(entrypoint.getExecFormSuffix(), p);
+
+            if (i < commands.size() - 1 && entrypoint.getForm() == Form.EXEC) {
+                p.append(",");
+            }
+            visitSpace(padded.getAfter(), p);
+        }
+        if (entrypoint.getForm() == Form.EXEC) {
+            p.append("]");
+            visitSpace(entrypoint.getExecFormSuffix(), p);
+        }
         afterSyntax(entrypoint, p);
         return entrypoint;
     }
@@ -443,25 +479,20 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
 
         for (int i = 0; i < volume.getPaths().size(); i++) {
             DockerRightPadded<Docker.Literal> padded = volume.getPaths().get(i);
-            Docker.Literal literal = padded.getElement();
-            visitSpace(literal.getPrefix(), p);
+            if (volume.getForm() == Form.SHELL
+                    && i > 0
+                    && i < volume.getPaths().size() - 1
+                    && "".equals(padded.getElement().getPrefix().getWhitespace())) {
+                p.append(" ");
+            }
 
-            if (volume.getForm() == Form.EXEC) {
-                String text = literal.getText();
-                text = trimDoubleQuotes(text);
-                p.append("\"").append(text).append("\"");
-            } else {
-                p.append(literal.getText());
+            visitDockerRightPaddedLiteral(padded, p);
+
+            if (volume.getForm() == Form.EXEC && i < volume.getPaths().size() - 1) {
+                p.append(",");
             }
 
             visitSpace(padded.getAfter(), p);
-            if (i < volume.getPaths().size() - 1) {
-                if (volume.getForm() == Form.EXEC) {
-                    p.append(",");
-                } else {
-                    p.append(" ");
-                }
-            }
         }
 
         if (volume.getForm() == Form.EXEC) {
@@ -535,6 +566,12 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         beforeSyntax(healthcheck, p);
         p.append("HEALTHCHECK");
 
+        if (healthcheck.getType() == Docker.Healthcheck.Type.NONE) {
+            p.append(" NONE");
+            afterSyntax(healthcheck, p);
+            return healthcheck;
+        }
+
         if (healthcheck.getOptions() != null) {
             healthcheck.getOptions().forEach(o -> {
                 Docker.KeyArgs arg = o.getElement();
@@ -546,18 +583,16 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
             });
         }
 
+        p.append(" CMD");
+
         if (healthcheck.getCommands() != null) {
             for (int i = 0; i < healthcheck.getCommands().size(); i++) {
                 DockerRightPadded<Docker.Literal> padded = healthcheck.getCommands().get(i);
-                Docker.Literal literal = padded.getElement();
-                String text = literal.getText();
-                text = trimDoubleQuotes(text);
-                visitSpace(literal.getPrefix(), p);
-                p.append("\"").append(text).append("\"");
-                visitSpace(literal.getTrailing(), p);
-                if (i < healthcheck.getCommands().size() - 1) {
-                    p.append(",");
+                if (i > 0 && "".equals(padded.getElement().getPrefix().getWhitespace())) {
+                    p.append(" ");
                 }
+
+                visitLiteral(padded.getElement(), p);
                 visitSpace(padded.getAfter(), p);
             }
         }
@@ -569,18 +604,28 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     @Override
     public Docker visitShell(Docker.Shell shell, PrintOutputCapture<P> p) {
         beforeSyntax(shell, p);
-        p.append("SHELL ");
+        p.append("SHELL");
+        if ("".equals(shell.getExecFormPrefix().getWhitespace())) {
+            p.append(" ");
+        } else {
+            p.append(shell.getExecFormPrefix().getWhitespace());
+        }
         p.append("[");
-        visitSpace(shell.getExecFormPrefix(), p);
 
         for (int i = 0; i < shell.getCommands().size(); i++) {
             DockerRightPadded<Docker.Literal> padded = shell.getCommands().get(i);
             Docker.Literal literal = padded.getElement();
-            String text = literal.getText();
-            text = trimDoubleQuotes(text);
-            visitSpace(literal.getPrefix(), p);
-            p.append("\"").append(text).append("\"");
-            visitSpace(literal.getTrailing(), p);
+            if (literal.getQuoting() != Quoting.DOUBLE_QUOTED) {
+                literal = ((Docker.Literal)literal.copyPaste())
+                        .withQuoting(Quoting.DOUBLE_QUOTED)
+                        .withText(trimDoubleQuotes(literal.getText()));
+                padded = DockerRightPadded.build(literal)
+                        .withMarkers(padded.getMarkers())
+                        .withAfter(padded.getAfter());
+            }
+
+            visitDockerRightPaddedLiteral(padded, p);
+
             if (i < shell.getCommands().size() - 1) {
                 p.append(",");
             }

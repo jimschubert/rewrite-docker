@@ -39,7 +39,6 @@ public class ListImages extends ScanningRecipe<List<ImageUseReport.Row>> {
         return new DockerIsoVisitor<>() {
             @Override
             public Docker.Document visitDocument(Docker.Document dockerfile, ExecutionContext ctx) {
-                dockerfile = super.visitDocument(dockerfile, ctx);
                 Path file = dockerfile.getSourcePath();
 
                 if (dockerfile.getStages() != null) {
@@ -67,7 +66,10 @@ public class ListImages extends ScanningRecipe<List<ImageUseReport.Row>> {
                     }
                 }
 
-                return SearchResult.found(dockerfile);
+                if (!acc.isEmpty()) {
+                    return SearchResult.found(dockerfile);
+                }
+                return dockerfile;
             }
         };
     }
@@ -77,6 +79,8 @@ public class ListImages extends ScanningRecipe<List<ImageUseReport.Row>> {
         for (ImageUseReport.Row row : acc) {
             report.insertRow(ctx, row);
         }
-        return Collections.emptyList();
+        acc.clear();
+
+        return super.generate(Collections.emptyList(), generatedInThisCycle, ctx);
     }
 }

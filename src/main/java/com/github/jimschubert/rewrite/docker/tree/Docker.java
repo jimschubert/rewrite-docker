@@ -1,6 +1,7 @@
 package com.github.jimschubert.rewrite.docker.tree;
 
 import com.github.jimschubert.rewrite.docker.DockerVisitor;
+import com.github.jimschubert.rewrite.docker.internal.StringUtil;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
@@ -15,6 +16,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.github.jimschubert.rewrite.docker.internal.StringUtil.trimDoubleQuotes;
+import static com.github.jimschubert.rewrite.docker.internal.StringUtil.trimSingleQuotes;
 
 // TODO: maybe revisit some of the types here to determine if any can be simplified (e.g. DockerRightPadded<Literal>)
 // TODO: maybe add helper methods to simplify setting of (most) fields?
@@ -85,7 +89,17 @@ public interface Docker extends Tree {
         }
 
         public static Literal build(String text) {
-            return new Literal(Tree.randomId(), Quoting.UNQUOTED, Space.EMPTY, text, Space.EMPTY, Markers.EMPTY);
+            Quoting quoting = Quoting.UNQUOTED;
+            if (text != null) {
+                if (text.startsWith("'") && text.endsWith("'")) {
+                    text = trimSingleQuotes(text);
+                    quoting = Quoting.SINGLE_QUOTED;
+                } else if (text.startsWith("\"") && text.endsWith("\"")) {
+                    text = trimDoubleQuotes(text);
+                    quoting = Quoting.DOUBLE_QUOTED;
+                }
+            }
+            return new Literal(Tree.randomId(), quoting, Space.EMPTY, text, Space.EMPTY, Markers.EMPTY);
         }
 
         public static Literal build(Quoting quoting, Space prefix, String text, Space trailing) {
@@ -123,6 +137,10 @@ public interface Docker extends Tree {
         @Override
         public Docker copyPaste() {
             return new Option(Tree.randomId(), prefix, keyArgs, markers == null ? Markers.EMPTY : Markers.build(markers.getMarkers()));
+        }
+
+        public static Option build(String key, String value) {
+            return new Option(Tree.randomId(), Space.EMPTY, KeyArgs.build(key, value).withHasEquals(true), Markers.EMPTY);
         }
     }
 
@@ -178,7 +196,18 @@ public interface Docker extends Tree {
         @Override
         public Docker copyPaste() {
             return new Document(Tree.randomId(), sourcePath, fileAttributes, charsetName, charsetBomMarked, checksum,
-                    stages.stream().map(Stage::copyPaste).collect(Collectors.toList()), eof, markers);
+                    stages.stream().map(Stage::copyPaste).collect(Collectors.toCollection(ArrayList::new)), eof, markers);
+        }
+
+        public static Document build(Instruction ...instructions) {
+            Stage stage = new Stage(Tree.randomId(), Arrays.stream(instructions).collect(Collectors.toCollection(ArrayList::new)), Markers.EMPTY);
+            return new Document(Tree.randomId(), Path.of("Dockerfile"), null, StandardCharsets.UTF_8.name(), false, null,
+                    List.of(stage), Space.EMPTY, Markers.EMPTY);
+        }
+
+        public static Document build(List<Stage> stages) {
+            return new Document(Tree.randomId(), Path.of("Dockerfile"), null, StandardCharsets.UTF_8.name(), false, null,
+                    stages, Space.EMPTY, Markers.EMPTY);
         }
     }
 
@@ -212,6 +241,8 @@ public interface Docker extends Tree {
         public Docker copyPaste() {
             return new Add(Tree.randomId(), prefix, options, sources, destination, markers);
         }
+
+        // todo: builder function?
     }
 
     @lombok.Value
@@ -426,6 +457,27 @@ public interface Docker extends Tree {
         public Docker copyPaste() {
             return new Entrypoint(Tree.randomId(), form, prefix,execFormPrefix, commands, execFormSuffix, markers);
         }
+
+        public static Entrypoint build(String ...commands) {
+            return build(Form.EXEC, commands);
+        }
+
+        public static Entrypoint build(Form form, String ...commands) {
+            return new Entrypoint(Tree.randomId(),
+                    form,
+                    Space.EMPTY,
+                    form == Form.EXEC ? Space.build(" ") : Space.EMPTY,
+                    Arrays.stream(commands)
+                            .map(s -> Literal.build(s)
+                                    .withQuoting(form == Form.EXEC ? Quoting.DOUBLE_QUOTED : Quoting.UNQUOTED)
+                                    .withPrefix(form == Form.EXEC ? Space.EMPTY: Space.build(" "))
+                                    .withTrailing(Space.EMPTY)
+                            )
+                            .map(DockerRightPadded::build)
+                            .collect(Collectors.toCollection(ArrayList::new)),
+                    Space.EMPTY,
+                    Markers.EMPTY);
+        }
     }
 
     @lombok.Value
@@ -454,6 +506,24 @@ public interface Docker extends Tree {
         @Override
         public Docker copyPaste() {
             return new Env(Tree.randomId(), prefix, args, markers);
+        }
+
+        public static Env build(String key, String value) {
+            return new Env(Tree.randomId(), Space.EMPTY, List.of(
+                    DockerRightPadded.build(new KeyArgs(Space.build(" "), key, value, true, Quoting.UNQUOTED))
+            ), Markers.EMPTY);
+        }
+
+        public static Env build(KeyArgs ...args) {
+            return new Env(Tree.randomId(), Space.EMPTY, Arrays.stream(args)
+                    .map(arg -> {
+                        if ("".equals(arg.getPrefix().getWhitespace())) {
+                            return arg.withPrefix(Space.build(" "));
+                        }
+                        return arg;
+                    })
+                    .map(DockerRightPadded::build)
+                    .collect(Collectors.toCollection(ArrayList::new)), Markers.EMPTY);
         }
     }
 
@@ -485,6 +555,32 @@ public interface Docker extends Tree {
         public Docker copyPaste() {
             return new Expose(Tree.randomId(), prefix, ports, markers);
         }
+
+        public static Expose build(String ...ports) {
+            List<DockerRightPadded<Port>> portsList = new ArrayList<>();
+
+            for (String port : ports) {
+                String normalizedPort = null;
+                String protocol = null;
+                if (port != null && port.contains("/")) {
+                    String[] parts = port.split("/");
+                    protocol = parts[1];
+                    normalizedPort = parts[0];
+                } else {
+                    normalizedPort = port;
+                }
+
+                portsList.add(DockerRightPadded.build(
+                        new Port(Space.build(" "),
+                                normalizedPort,
+                                protocol == null ? "tcp" : protocol,
+                                protocol != null)));
+            }
+
+            return new Expose(Tree.randomId(), Space.EMPTY,
+                    portsList,
+                    Markers.EMPTY);
+        }
     }
 
     @Value
@@ -507,6 +603,7 @@ public interface Docker extends Tree {
         DockerRightPadded<Literal> version;
 
         @With
+        @NonFinal
         Literal as;
 
         @NonFinal
@@ -554,7 +651,7 @@ public interface Docker extends Tree {
 
         public From withPlatform(String platform) {
             if (this.platform == null) {
-                this.platform = DockerRightPadded.build(Literal.build(null));
+                this.platform = DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" ")));
             }
             this.platform = this.platform.withElement(this.platform.getElement().withText(platform));
             return this;
@@ -562,7 +659,7 @@ public interface Docker extends Tree {
 
         public From withImage(String image) {
             if (this.image == null) {
-                this.image = DockerRightPadded.build(Literal.build(null));
+                this.image = DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" ")));
             }
             this.image = this.image.withElement(this.image.getElement().withText(image));
             return this;
@@ -570,7 +667,7 @@ public interface Docker extends Tree {
 
         public From withVersion(String version) {
             if (this.version == null) {
-                this.version = DockerRightPadded.build(Literal.build(null));
+                this.version = DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" ")));
             }
 
             this.version = this.version.withElement(this.version.getElement().withText(version));
@@ -600,6 +697,42 @@ public interface Docker extends Tree {
             }
 
             return v.startsWith(":") ? v.substring(1) : null;
+        }
+
+        public From withAlias(String alias) {
+            if (alias == null) {
+                return withAs(null);
+            }
+            if (this.as == null) {
+                this.as = Literal.build("AS").withPrefix(Space.build(" "));
+            }
+            this.as = this.as.withText("AS");
+            this.alias = DockerRightPadded.build(Literal.build(alias).withPrefix(Space.build(" ")));
+            return this;
+        }
+
+        public static From build(String image) {
+            return new From(Tree.randomId(), Space.EMPTY,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    Space.EMPTY,
+                    Markers.EMPTY).withImage(image);
+        }
+
+        public static From build(String prefix, String platform, String image, String version, String alias) {
+            return new From(Tree.randomId(), Space.build(prefix),
+                    null,
+                    null,
+                    null,
+                    alias != null && !alias.isBlank() ? Literal.build("AS").withPrefix(Space.build(" ")) : null,
+                    DockerRightPadded.build(Literal.build(alias).withPrefix(Space.build(" "))), Space.EMPTY, Markers.EMPTY
+            )
+            .withImage(image)
+            .withVersion(version)
+            .withPlatform(platform);
         }
     }
 
@@ -673,6 +806,18 @@ public interface Docker extends Tree {
         public Docker copyPaste() {
             return new Label(Tree.randomId(), prefix, args, markers);
         }
+
+        public static Label build(String key, String value) {
+            return new Label(Tree.randomId(), Space.EMPTY, List.of(
+                    DockerRightPadded.build(new KeyArgs(Space.build(" "), key, value, true, Quoting.UNQUOTED))
+            ), Markers.EMPTY);
+        }
+
+        public static Label build(KeyArgs ...args) {
+            return new Label(Tree.randomId(), Space.EMPTY, Arrays.stream(args)
+                    .map(DockerRightPadded::build)
+                    .collect(Collectors.toCollection(ArrayList::new)), Markers.EMPTY);
+        }
     }
 
     @lombok.Value
@@ -683,7 +828,7 @@ public interface Docker extends Tree {
         UUID id;
         Quoting quoting;
         Space prefix;
-        String name;
+        Literal name;
         Markers markers;
 
         @Override
@@ -699,6 +844,25 @@ public interface Docker extends Tree {
         @Override
         public Docker copyPaste() {
             return new Maintainer(Tree.randomId(), quoting, prefix, name, markers);
+        }
+
+        public static Maintainer build(String name) {
+            if (name == null) {
+                return null;
+            }
+
+            Quoting quoting = Quoting.UNQUOTED;
+           if (name.startsWith("'") && name.endsWith("'")) {
+                name = trimSingleQuotes(name);
+               quoting = Quoting.SINGLE_QUOTED;
+            } else if (name.startsWith("\"") && name.endsWith("\"")) {
+                name = trimDoubleQuotes(name);
+                quoting = Quoting.DOUBLE_QUOTED;
+            }
+
+            return new Maintainer(Tree.randomId(), quoting, Space.EMPTY,
+                    Literal.build(name).withPrefix(Space.build(" ")),
+                    Markers.EMPTY);
         }
     }
 
@@ -730,6 +894,10 @@ public interface Docker extends Tree {
         public Docker copyPaste() {
             return new OnBuild(Tree.randomId(), prefix, instruction.copyPaste(), trailing, markers);
         }
+
+        public static OnBuild build(Docker instruction) {
+            return new OnBuild(Tree.randomId(), Space.EMPTY, instruction, Space.EMPTY, Markers.EMPTY);
+        }
     }
 
     @Value
@@ -759,6 +927,17 @@ public interface Docker extends Tree {
         @Override
         public Docker copyPaste() {
             return new Run(Tree.randomId(), prefix, options, commands, markers);
+        }
+
+        public static Run build(String ...commands) {
+            return new Run(Tree.randomId(),
+                    Space.EMPTY,
+                    null,
+                    Arrays.stream(commands)
+                            .map(s -> Literal.build(s).withPrefix(Space.build(" ")))
+                            .map(DockerRightPadded::build)
+                            .collect(Collectors.toList()),
+                    Markers.EMPTY);
         }
     }
 
@@ -791,6 +970,18 @@ public interface Docker extends Tree {
         public Docker copyPaste() {
             return new Shell(Tree.randomId(), prefix, execFormPrefix, commands, execFormSuffix, markers);
         }
+
+        public static Shell build(String ...commands) {
+            return new Shell(Tree.randomId(),
+                    Space.EMPTY,
+                    Space.build(" "),
+                    Arrays.stream(commands)
+                            .map(Literal::build)
+                            .map(DockerRightPadded::build)
+                            .collect(Collectors.toList()),
+                    Space.EMPTY,
+                    Markers.EMPTY);
+        }
     }
 
     @lombok.Value
@@ -819,6 +1010,12 @@ public interface Docker extends Tree {
         @Override
         public Docker copyPaste() {
             return new StopSignal(Tree.randomId(), prefix, signal, markers);
+        }
+
+        public static StopSignal build(String signal) {
+            return new StopSignal(Tree.randomId(), Space.EMPTY,
+                    Literal.build(signal).withPrefix(Space.build(" ")),
+                    Markers.EMPTY);
         }
     }
 
@@ -849,6 +1046,17 @@ public interface Docker extends Tree {
         @Override
         public Docker copyPaste() {
             return new User(Tree.randomId(), prefix, username, group, markers);
+        }
+
+        public static User build(String username) {
+            return build(username, null);
+        }
+
+        public static User build(String username, String group) {
+            return new User(Tree.randomId(), Space.EMPTY,
+                    username == null ? null : Literal.build(username).withPrefix(Space.build(" ")),
+                    group == null ? null : Literal.build(group).withPrefix(Space.build(" ")),
+                    Markers.EMPTY);
         }
     }
 
@@ -884,6 +1092,28 @@ public interface Docker extends Tree {
         public Docker copyPaste() {
             return new Volume(Tree.randomId(), form, prefix, execFormPrefix, paths, execFormSuffix, markers);
         }
+
+
+        public static Volume build(String ...commands) {
+            return build(Form.EXEC, commands);
+        }
+
+        public static Volume build(Form form, String ...commands) {
+            return new Volume(Tree.randomId(),
+                    form,
+                    Space.EMPTY,
+                    form == Form.EXEC ? Space.build(" ") : Space.EMPTY,
+                    Arrays.stream(commands)
+                            .map(s -> Literal.build(s)
+                                    .withQuoting(form == Form.EXEC ? Quoting.DOUBLE_QUOTED : Quoting.UNQUOTED)
+                                    .withPrefix(form == Form.EXEC ? Space.EMPTY: Space.build(" "))
+                                    .withTrailing(Space.EMPTY)
+                            )
+                            .map(DockerRightPadded::build)
+                            .collect(Collectors.toCollection(ArrayList::new)),
+                    Space.EMPTY,
+                    Markers.EMPTY);
+        }
     }
 
     @Value
@@ -910,6 +1140,10 @@ public interface Docker extends Tree {
         @Override
         public Stage copyPaste() {
             return new Stage(Tree.randomId(), children, markers);
+        }
+
+        public static Stage build(Instruction ...instructions) {
+            return new Stage(Tree.randomId(), Arrays.stream(instructions).collect(Collectors.toCollection(ArrayList::new)), Markers.EMPTY);
         }
     }
 
@@ -940,10 +1174,17 @@ public interface Docker extends Tree {
         public Docker copyPaste() {
             return new Workdir(Tree.randomId(), prefix, path, markers);
         }
+
+        public static Workdir build(String path) {
+            return new Workdir(Tree.randomId(), Space.EMPTY,
+                    Literal.build(path).withPrefix(Space.build(" ")),
+                    Markers.EMPTY);
+        }
     }
 
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
     class KeyArgs {
         Space prefix;
         @EqualsAndHashCode.Include(rank = 0)
@@ -952,6 +1193,20 @@ public interface Docker extends Tree {
         String value;
         boolean hasEquals;
         Quoting quoting;
+
+        public static KeyArgs build(String key, String value) {
+            return build(key, value, true);
+        }
+
+        public static KeyArgs build(String key, String value, boolean hasEquals) {
+            if (value != null && value.startsWith("\"") && value.endsWith("\"")) {
+                return new KeyArgs(Space.build(" "), key, trimDoubleQuotes(value), hasEquals, Quoting.DOUBLE_QUOTED);
+            } else if (value != null && value.startsWith("'")) {
+                return new KeyArgs(Space.build(" "), key, trimSingleQuotes(value), hasEquals, Quoting.SINGLE_QUOTED);
+            }
+
+            return new KeyArgs(Space.build(" "), key, value, hasEquals, Quoting.UNQUOTED);
+        }
     }
 
 //    @Value

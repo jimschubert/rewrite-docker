@@ -506,7 +506,12 @@ public class DockerfileParser {
 
                 return new Docker.Healthcheck(Tree.randomId(), stringWithPadding.prefix(), Docker.Healthcheck.Type.CMD, args, commands, Markers.EMPTY);
             } else if (name.equals(Docker.Maintainer.class.getSimpleName())) {
-                return new Docker.Maintainer (Tree.randomId(), quoting, prefix, instruction.toString(), Markers.EMPTY);
+                StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
+                return new Docker.Maintainer (Tree.randomId(), quoting, prefix,
+                        Docker.Literal.build(stringWithPadding.content())
+                                .withPrefix(stringWithPadding.prefix())
+                                .withTrailing(Space.append(stringWithPadding.suffix(), rightPadding)),
+                        Markers.EMPTY);
             } else if (name.equals(Docker.OnBuild.class.getSimpleName())) {
                 StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
                 prefix = Space.append(prefix, stringWithPadding.prefix());
