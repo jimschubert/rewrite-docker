@@ -1,5 +1,6 @@
-package com.github.jimschubert.rewrite.docker;
+package com.github.jimschubert.rewrite.docker.analysis;
 
+import com.github.jimschubert.rewrite.docker.DockerIsoVisitor;
 import com.github.jimschubert.rewrite.docker.table.ImageUseReport;
 import com.github.jimschubert.rewrite.docker.tree.Docker;
 import lombok.EqualsAndHashCode;
