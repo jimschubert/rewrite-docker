@@ -3,10 +3,7 @@ package com.github.jimschubert.rewrite.docker;
 import com.github.jimschubert.rewrite.docker.tree.Docker;
 import lombok.*;
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Option;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.marker.Marker;
 
 import java.util.UUID;
@@ -63,18 +60,19 @@ public class ChangeImage extends Recipe {
         return new DockerIsoVisitor<>() {
             @Override
             public Docker.From visitFrom(Docker.From from, ExecutionContext executionContext) {
-                Docker.From newFrom = super.visitFrom(from, executionContext);
-                if (matchImage == null || newImage == null) {
-                    return newFrom;
-                }
-
-                if (newFrom.getMarkers().findFirst(Modified.class).filter(m -> m.matchImage.equals(matchImage)
-                        && m.newImage.equals(newImage)
-                        && m.newPlatform.equals(newPlatform)
-                        && m.newVersion.equals(newVersion)
+                if (from.getMarkers().findFirst(Modified.class).filter(m -> m.equals(new Modified(
+                        UUID.randomUUID(), // excluded from equals
+                        matchImage,
+                        newImage,
+                        newPlatform,
+                        newVersion))
                 ).isPresent()) {
                     // already changed
-                    return newFrom;
+                    return from;
+                }
+
+                if (matchImage == null || newImage == null) {
+                    return from;
                 }
 
                 Matcher matcher = Pattern.compile(matchImage).matcher(from.getImageSpecWithVersion());
@@ -83,12 +81,12 @@ public class ChangeImage extends Recipe {
                             UUID.randomUUID(),
                             matchImage,
                             newImage,
-                            newPlatform == null ? "" : newPlatform,
-                            newVersion == null ? "" : newVersion);
+                            newPlatform,
+                            newVersion);
 
-                    String image = from.getImage().getElement().getText();
-                    String version = from.getVersion().getElement().getText();
-                    String platform = from.getPlatform().getElement().getText();
+                    String version = newVersion;
+                    String image = null;
+                    String platform = null;
 
                     // if newImage contains tag, we need to replace it via withTag, else with '@' digest we replace via withDigest
                     if (newImage.contains("@")) {
@@ -107,23 +105,34 @@ public class ChangeImage extends Recipe {
                         image = newImage;
                     }
 
-                    if (newVersion != null) {
-                        version = newVersion;
-                    }
-
                     if (newPlatform != null) {
                         platform = newPlatform;
                     } else {
                         platform = from.getPlatform().getElement().getText();
                     }
 
-                    return newFrom.withImage(image)
-                            .withVersion(version)
-                            .withPlatform(platform)
-                            .withMarkers(newFrom.getMarkers().add(modifiedMarker));
+                    boolean modified = false;
+                    if (image != null && !image.equals(from.getImage().getElement().getText())) {
+                        modified = true;
+                        from = from.withImage(image);
+                    }
+
+                    if (version != null && !version.equals(from.getVersion().getElement().getText())) {
+                        modified = true;
+                        from = from.withVersion(version);
+                    }
+
+                    if (platform != null && !platform.equals(from.getPlatform().getElement().getText())) {
+                        modified = true;
+                        from = from.withPlatform(platform);
+                    }
+
+                    if (modified) {
+                        from = from.withMarkers(from.getMarkers().add(modifiedMarker));
+                    }
                 }
 
-                return newFrom;
+                return super.visitFrom(from, executionContext);
             }
         };
     }

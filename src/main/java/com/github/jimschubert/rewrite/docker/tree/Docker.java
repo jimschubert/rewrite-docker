@@ -66,6 +66,7 @@ public interface Docker extends Tree {
 
         Space prefix;
 
+
         String text;
 
         Space trailing;
@@ -657,26 +658,59 @@ public interface Docker extends Tree {
             return this;
         }
 
+        public From withPlatform(DockerRightPadded<Literal> platform) {
+            if (this.platform == null) {
+                this.platform = DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" ")));
+            }
+            this.platform = this.platform.withElement(platform.getElement());
+            return this;
+        }
+
         public From withImage(String image) {
             if (this.image == null) {
-                this.image = DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" ")));
+                this.image = DockerRightPadded.build(Literal.build(image).withPrefix(Space.build(" ")));
+                return this;
             }
             this.image = this.image.withElement(this.image.getElement().withText(image));
             return this;
         }
 
+        public From withImage(DockerRightPadded<Literal> image) {
+            if (this.image == null) {
+                this.image = image;
+                if ("".equals(this.image.getElement().getPrefix().getWhitespace())) {
+                    this.image = this.image.withElement(this.image.getElement().withPrefix(Space.build(" ")));
+                }
+                return this;
+            }
+            this.image = this.image.withElement(image.getElement());
+            return this;
+        }
+
         public From withVersion(String version) {
             if (this.version == null) {
-                this.version = DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" ")));
+                this.version = DockerRightPadded.build(Literal.build(version).withPrefix(Space.build(" ")));
+                return this;
             }
 
             this.version = this.version.withElement(this.version.getElement().withText(version));
             return this;
         }
 
+        public From withVersion(DockerRightPadded<Literal> version) {
+            if (this.version == null) {
+                this.version = version;
+                if ("".equals(this.version.getElement().getPrefix().getWhitespace())) {
+                    this.version = this.version.withElement(this.version.getElement().withPrefix(Space.build(" ")));
+                }
+            }
+            this.version = this.version.withElement(version.getElement());
+            return this;
+        }
+
         public From withDigest(String digest) {
             if (digest == null) {
-                return withVersion(null);
+                return withVersion((String)null);
             }
             digest = digest.indexOf('@') == 0 ? digest : "@" + digest;
             return withVersion(digest);
@@ -684,7 +718,7 @@ public interface Docker extends Tree {
 
         public From withTag(String tag) {
             if (tag == null) {
-                return withVersion(null);
+                return withVersion((String)null);
             }
             tag = tag.indexOf(':') == 0 ? tag : ":" + tag;
             return withVersion(tag);
@@ -700,14 +734,18 @@ public interface Docker extends Tree {
         }
 
         public From withAlias(String alias) {
-            if (alias == null) {
-                return withAs(null);
-            }
-            if (this.as == null) {
+            if (this.as == null && alias != null && !alias.isBlank()) {
                 this.as = Literal.build("AS").withPrefix(Space.build(" "));
             }
-            this.as = this.as.withText("AS");
             this.alias = DockerRightPadded.build(Literal.build(alias).withPrefix(Space.build(" ")));
+            return this;
+        }
+
+        public From withAlias(DockerRightPadded<Literal> alias) {
+            if (this.as == null && alias != null && !alias.getElement().getText().isBlank()) {
+                this.as = Literal.build("AS").withPrefix(Space.build(" "));
+            }
+            this.alias = alias;
             return this;
         }
 
@@ -1123,7 +1161,7 @@ public interface Docker extends Tree {
         @EqualsAndHashCode.Include
         UUID id;
 
-        List<Instruction> children;
+        List<Docker> children;
 
         Markers markers;
 

@@ -94,9 +94,9 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     @Override
     public Docker visitStage(Docker.Stage stage, PrintOutputCapture<P> p) {
         beforeSyntax(stage, p);
-        List<Docker.Instruction> children = stage.getChildren();
+        List<Docker> children = stage.getChildren();
         for (int i = 0; i < children.size(); i++) {
-            Docker.Instruction instruction = children.get(i);
+            Docker instruction = children.get(i);
             visit(instruction, p);
             if (i < children.size() - 1) {
                 p.append("\n");

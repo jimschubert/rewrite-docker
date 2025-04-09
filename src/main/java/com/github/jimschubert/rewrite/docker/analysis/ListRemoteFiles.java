@@ -40,7 +40,7 @@ public class ListRemoteFiles extends ScanningRecipe<List<RemoteFileReport.Row>> 
                 if (dockerfile.getStages() != null) {
                     for (Docker.Stage stage : dockerfile.getStages()) {
                         if (stage != null) {
-                            for (Docker.Instruction child : stage.getChildren()) {
+                            for (Docker child : stage.getChildren()) {
                                 if (child instanceof Docker.Add) {
                                     Docker.Add instruction = (Docker.Add) child;
                                     List<DockerRightPadded<Docker.Literal>> urls = instruction.getSources().stream()

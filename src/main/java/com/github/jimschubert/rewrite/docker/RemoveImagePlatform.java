@@ -41,12 +41,12 @@ public class RemoveImagePlatform extends Recipe {
             public Docker.From visitFrom(Docker.From from, ExecutionContext executionContext) {
                 from = super.visitFrom(from, executionContext);
                 if (matchImage == null || ".*".equals(matchImage) || ".+".equals(matchImage)) {
-                    return from.withPlatform(null);
+                    return from.withPlatform((String)null);
                 }
 
                 Matcher matcher = Pattern.compile(matchImage).matcher(from.getImageSpecWithVersion());
                 if (matcher.matches()) {
-                    return from.withPlatform(null);
+                    return from.withPlatform((String)null);
                 }
 
                 return from;

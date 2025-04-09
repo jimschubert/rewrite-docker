@@ -45,7 +45,7 @@ public class ListImages extends ScanningRecipe<List<ImageUseReport.Row>> {
                 if (dockerfile.getStages() != null) {
                     for (Docker.Stage stage : dockerfile.getStages()) {
                         if (stage != null) {
-                            for (Docker.Instruction child : stage.getChildren()) {
+                            for (Docker child : stage.getChildren()) {
                                 if (child instanceof Docker.From) {
                                     Docker.From from = (Docker.From) child;
                                     String platformSwitch = null;
