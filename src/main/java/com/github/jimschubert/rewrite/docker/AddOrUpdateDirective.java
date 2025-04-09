@@ -95,15 +95,6 @@ public class AddOrUpdateDirective extends ScanningRecipe<AddOrUpdateDirective.Sc
         return Preconditions.check(acc.requiresUpdate, new DockerIsoVisitor<>() {
             @Override
             public Docker.Document visitDocument(Docker.Document dockerfile, ExecutionContext ctx) {
-                if (dockerfile.getMarkers().findFirst(Modified.class).filter(m -> m.equals(new Modified(
-                        null,
-                        acc.targetKey,
-                        acc.targetValue))
-                ).isPresent()) {
-                    // already changed
-                    return dockerfile;
-                }
-
                 dockerfile = super.visitDocument(dockerfile, ctx); // visit to hit the directive case
 
                 if (!acc.hasDirective) {
@@ -112,33 +103,16 @@ public class AddOrUpdateDirective extends ScanningRecipe<AddOrUpdateDirective.Sc
                     stage = stage.withChildren(ListUtils.insert(stage.getChildren(), Docker.Directive.build(acc.targetKey, acc.targetValue), 0));
                     stages.set(0, stage);
 
-                    dockerfile = dockerfile.withStages(stages)
-                            .withMarkers(dockerfile.getMarkers().add(new Modified(
-                                    Tree.randomId(),
-                                    acc.targetKey,
-                                    acc.targetValue)));
+                    dockerfile = dockerfile.withStages(stages).withMarkers(dockerfile.getMarkers());
                 }
                 return dockerfile;
             }
 
             @Override
             public Docker.Directive visitDirective(Docker.Directive directive, ExecutionContext ctx) {
-                if (directive.getMarkers().findFirst(Modified.class).filter(m -> m.equals(new Modified(
-                        null,
-                        acc.targetKey,
-                        acc.targetValue))
-                ).isPresent()) {
-                    // already changed
-                    return directive;
-                }
-
                 if (acc.requiresUpdate && directive.getKey().equalsIgnoreCase(acc.targetKey)) {
                     acc.requiresUpdate = false;
-                    return directive.withKey(acc.targetKey).withValue(acc.targetValue)
-                            .withMarkers(directive.getMarkers().add(new Modified(
-                                    Tree.randomId(),
-                                    acc.targetKey,
-                                    acc.targetValue)));
+                    return directive.withKey(acc.targetKey).withValue(acc.targetValue).withMarkers(directive.getMarkers());
                 }
                 return directive;
             }
@@ -150,16 +124,5 @@ public class AddOrUpdateDirective extends ScanningRecipe<AddOrUpdateDirective.Sc
         boolean hasDirective;
         String targetKey;
         String targetValue;
-    }
-
-    // need a maker due to "helper" with* functions on non-final fields in the Directive class
-    @Value
-    private static class Modified implements Marker {
-        @EqualsAndHashCode.Exclude
-        @With
-        UUID id;
-
-        String key;
-        String value;
     }
 }

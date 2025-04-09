@@ -60,30 +60,12 @@ public class ChangeImage extends Recipe {
         return new DockerIsoVisitor<>() {
             @Override
             public Docker.From visitFrom(Docker.From from, ExecutionContext executionContext) {
-                if (from.getMarkers().findFirst(Modified.class).filter(m -> m.equals(new Modified(
-                        UUID.randomUUID(), // excluded from equals
-                        matchImage,
-                        newImage,
-                        newPlatform,
-                        newVersion))
-                ).isPresent()) {
-                    // already changed
-                    return from;
-                }
-
                 if (matchImage == null || newImage == null) {
                     return from;
                 }
 
                 Matcher matcher = Pattern.compile(matchImage).matcher(from.getImageSpecWithVersion());
                 if (matcher.matches()) {
-                    Marker modifiedMarker = new Modified(
-                            UUID.randomUUID(),
-                            matchImage,
-                            newImage,
-                            newPlatform,
-                            newVersion);
-
                     String version = newVersion;
                     String image = null;
                     String platform = null;
@@ -111,24 +93,16 @@ public class ChangeImage extends Recipe {
                         platform = from.getPlatform().getElement().getText();
                     }
 
-                    boolean modified = false;
                     if (image != null && !image.equals(from.getImage().getElement().getText())) {
-                        modified = true;
-                        from = from.withImage(image);
+                        from = from.image(image);
                     }
 
                     if (version != null && !version.equals(from.getVersion().getElement().getText())) {
-                        modified = true;
-                        from = from.withVersion(version);
+                        from = from.version(version);
                     }
 
                     if (platform != null && !platform.equals(from.getPlatform().getElement().getText())) {
-                        modified = true;
-                        from = from.withPlatform(platform);
-                    }
-
-                    if (modified) {
-                        from = from.withMarkers(from.getMarkers().add(modifiedMarker));
+                        from = from.platform(platform);
                     }
 
                     return super.visitFrom(from, executionContext);
@@ -137,18 +111,5 @@ public class ChangeImage extends Recipe {
                 return from;
             }
         };
-    }
-
-    // need a maker due to "helper" with* functions on non-final fields in the From class
-    @Value
-    private static class Modified implements Marker {
-        @EqualsAndHashCode.Exclude
-        @With
-        UUID id;
-
-        String matchImage;
-        String newImage;
-        String newPlatform;
-        String newVersion;
     }
 }

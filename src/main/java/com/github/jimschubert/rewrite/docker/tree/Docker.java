@@ -384,12 +384,8 @@ public interface Docker extends Tree {
     class Directive implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
-
         Space prefix;
-
-        @NonFinal
         DockerRightPadded<KeyArgs> directive;
-
         Markers markers;
 
         @Override
@@ -416,9 +412,7 @@ public interface Docker extends Tree {
                 return this;
             }
 
-            Space prefix = directive.getElement().getKey() == null ? Space.EMPTY : directive.getElement().getPrefix();
-            directive = directive.withElement(new KeyArgs(prefix, key, directive.getElement().getValue(), directive.getElement().isHasEquals(), directive.getElement().getQuoting()));
-            return this;
+            return this.withDirective(directive.map(d -> d.withKey(key)));
         }
 
         public Directive withValue(String value) {
@@ -426,9 +420,7 @@ public interface Docker extends Tree {
                 return this;
             }
 
-            Space prefix = directive.getElement().getValue() == null ? Space.EMPTY : directive.getElement().getPrefix();
-            directive = directive.withElement(new KeyArgs(prefix, directive.getElement().getKey(), value, directive.getElement().isHasEquals(), directive.getElement().getQuoting()));
-            return this;
+            return this.withDirective(directive.map(d -> d.withValue(value)));
         }
 
         public String getValue() {
@@ -611,24 +603,19 @@ public interface Docker extends Tree {
         @With
         Space prefix;
 
-        @EqualsAndHashCode.Include
-        @NonFinal
+        @With
         DockerRightPadded<Literal> platform;
 
-        @EqualsAndHashCode.Include
-        @NonFinal
+        @With
         DockerRightPadded<Literal> image;
 
-        @EqualsAndHashCode.Include
-        @NonFinal
+        @With
         DockerRightPadded<Literal> version;
 
         @With
-        @NonFinal
         Literal as;
 
-        @EqualsAndHashCode.Include
-        @NonFinal
+        @With
         DockerRightPadded<Literal> alias;
 
         @With
@@ -671,84 +658,32 @@ public interface Docker extends Tree {
             return v.startsWith("@") ? v.substring(1) : null;
         }
 
-        public From withPlatform(String platform) {
-            if (this.platform == null) {
-                this.platform = DockerRightPadded.build(Literal.build(platform).withPrefix(Space.build(" ")));
-                return this;
-            }
-
-            if (same(this.platform.getElement().getText(), platform)) {
-                return this;
-            }
-
-            this.platform = this.platform.withElement(this.platform.getElement().withText(platform));
-            return this;
+        public From platform(String platform) {
+            return this.withPlatform(this.platform.map(p -> p.withText(platform)));
         }
 
-        public From withPlatform(DockerRightPadded<Literal> platform) {
-            this.platform = platform;
-            return this;
+        public From image(String image) {
+            return this.withImage(this.image.map(i -> i.withText(image)));
         }
 
-        public From withImage(String image) {
-            if (this.image == null) {
-                this.image = DockerRightPadded.build(Literal.build(image).withPrefix(Space.build(" ")));
-                return this;
-            }
-            if (same(this.image.getElement().getText(), image)) {
-                return this;
-            }
-            this.image = this.image.withElement(this.image.getElement().withText(image));
-            return this;
-        }
-
-        public From withImage(DockerRightPadded<Literal> image) {
-            if (this.image == null) {
-                this.image = image;
-                if ("".equals(this.image.getElement().getPrefix().getWhitespace())) {
-                    this.image = this.image.withElement(this.image.getElement().withPrefix(Space.build(" ")));
-                }
-                return this;
-            }
-            this.image = this.image.withElement(image.getElement());
-            return this;
-        }
-
-        public From withVersion(String version) {
-            if (this.version == null) {
-                this.version = DockerRightPadded.build(Literal.build(version).withPrefix(Space.build(" ")));
-                return this;
-            }
-
-            this.version = this.version.withElement(this.version.getElement().withText(version));
-            return this;
-        }
-
-        public From withVersion(DockerRightPadded<Literal> version) {
-            if (this.version == null) {
-                this.version = version;
-                if ("".equals(this.version.getElement().getPrefix().getWhitespace())) {
-                    this.version = this.version.withElement(this.version.getElement().withPrefix(Space.build(" ")));
-                }
-            }
-            this.version = this.version.withElement(version.getElement());
-            return this;
+        public From version(String version) {
+            return this.withVersion(this.version.map(v -> v.withText(version)));
         }
 
         public From withDigest(String digest) {
             if (digest == null) {
-                return withVersion((String)null);
+                return version(null);
             }
             digest = digest.indexOf('@') == 0 ? digest : "@" + digest;
-            return withVersion(digest);
+            return version(digest);
         }
 
         public From withTag(String tag) {
             if (tag == null) {
-                return withVersion((String)null);
+                return version(null);
             }
             tag = tag.indexOf(':') == 0 ? tag : ":" + tag;
-            return withVersion(tag);
+            return version(tag);
         }
 
         public String getTag() {
@@ -760,31 +695,23 @@ public interface Docker extends Tree {
             return v.startsWith(":") ? v.substring(1) : null;
         }
 
-        public From withAlias(String alias) {
-            if (this.as == null && alias != null && !alias.isBlank()) {
-                this.as = Literal.build("AS").withPrefix(Space.build(" "));
+        public From alias(String alias) {
+            From result = this;
+            if (this.as.getText() == null || this.as.getText().isBlank()) {
+                result = result.withAs(Literal.build("AS").withPrefix(this.as.getPrefix().map(p -> p == null || p.isEmpty() ? " " : p)));
             }
-            this.alias = DockerRightPadded.build(Literal.build(alias).withPrefix(Space.build(" ")));
-            return this;
-        }
-
-        public From withAlias(DockerRightPadded<Literal> alias) {
-            if (this.as == null && alias != null && !alias.getElement().getText().isBlank()) {
-                this.as = Literal.build("AS").withPrefix(Space.build(" "));
-            }
-            this.alias = alias;
-            return this;
+            return result.withAlias(this.alias.map(a -> a.withText(alias)));
         }
 
         public static From build(String image) {
             return new From(Tree.randomId(), Space.EMPTY,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
+                    DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" "))),
+                    DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" "))),
+                    DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" "))),
+                    Literal.build(null).withPrefix(Space.build(" ")),
+                    DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" "))),
                     Space.EMPTY,
-                    Markers.EMPTY).withImage(image);
+                    Markers.EMPTY).image(image);
         }
 
         public static From build(String prefix, String platform, String image, String version, String alias) {
@@ -795,9 +722,9 @@ public interface Docker extends Tree {
                     alias != null && !alias.isBlank() ? Literal.build("AS").withPrefix(Space.build(" ")) : null,
                     DockerRightPadded.build(Literal.build(alias).withPrefix(Space.build(" "))), Space.EMPTY, Markers.EMPTY
             )
-            .withImage(image)
-            .withVersion(version)
-            .withPlatform(platform);
+            .image(image)
+            .version(version)
+            .platform(platform);
         }
     }
 
@@ -814,10 +741,7 @@ public interface Docker extends Tree {
         Space prefix;
         Type type;
 
-        @NonFinal
         List<DockerRightPadded<KeyArgs>> options;
-
-        @NonFinal
         List<DockerRightPadded<Literal>> commands;
 
         Markers markers;

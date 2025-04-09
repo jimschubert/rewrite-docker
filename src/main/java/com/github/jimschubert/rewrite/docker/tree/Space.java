@@ -9,6 +9,7 @@ import org.jspecify.annotations.Nullable;
 import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.function.UnaryOperator;
 
 /**
  * Dockerfile white space.
@@ -30,6 +31,17 @@ public class Space {
 
     private Space(@Nullable String whitespace) {
         this.whitespace = whitespace == null || whitespace.isEmpty() ? null : whitespace;
+    }
+
+    public Space map(UnaryOperator<String> mapper) {
+        String mapped = mapper.apply(whitespace);
+        if (mapped == null || mapped.isEmpty()) {
+            return EMPTY;
+        }
+        if (mapped.equals(whitespace)) {
+            return this;
+        }
+        return build(mapped);
     }
 
     @JsonCreator

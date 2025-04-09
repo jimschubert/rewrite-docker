@@ -5,7 +5,6 @@ import org.openrewrite.Cursor;
 import org.openrewrite.Tree;
 import org.openrewrite.marker.Markers;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -26,8 +25,8 @@ class DockerfilePrinterTest {
     void visitFromFull() {
         Docker.Document doc = Docker.Document.build(
                 Docker.From.build("alpine:latest")
-                        .withAlias("build")
-                        .withPlatform("linux/amd64")
+                        .alias("build")
+                        .platform("linux/amd64")
         );
 
         String expected = "FROM --platform=linux/amd64 alpine:latest AS build";

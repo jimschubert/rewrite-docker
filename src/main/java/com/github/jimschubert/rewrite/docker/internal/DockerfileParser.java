@@ -473,7 +473,9 @@ public class DockerfileParser {
                             if (idx < imageText.length() - 1) {
                                 version = DockerRightPadded.build(createLiteral(imageText.substring(idx))).withAfter(image.getAfter());
                                 imageText = imageText.substring(0, idx);
-                                image = image.withAfter(Space.EMPTY).withElement(image.getElement().withText(imageText));
+
+                                String img = imageText;
+                                image = image.map(i -> i.withText(img)).withAfter(Space.EMPTY);
                             }
                         }
                     }
