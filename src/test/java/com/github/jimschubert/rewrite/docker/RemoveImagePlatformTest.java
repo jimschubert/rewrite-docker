@@ -9,8 +9,7 @@ class RemoveImagePlatformTest implements RewriteTest {
     @Test
     void removePlatformWithDefaultMatchSingleFrom() {
         rewriteRun(
-                spec -> spec.expectedCyclesThatMakeChanges(2)
-                        .recipe(new RemoveImagePlatform(null)),
+                spec -> spec.recipe(new RemoveImagePlatform(null)),
                 dockerfile(
                         """
                         FROM --platform=linux/amd64 myImage:latest
@@ -25,8 +24,7 @@ class RemoveImagePlatformTest implements RewriteTest {
     @Test
     void removePlatformWithDefaultMatchMultipleFrom() {
         rewriteRun(
-                spec -> spec.expectedCyclesThatMakeChanges(2)
-                        .recipe(new RemoveImagePlatform(null)),
+                spec -> spec.recipe(new RemoveImagePlatform(null)),
                 dockerfile(
                         """
                         FROM --platform=linux/arm64 firstImage AS base
@@ -43,8 +41,7 @@ class RemoveImagePlatformTest implements RewriteTest {
     @Test
     void removePlatformWithCustomMatcherMultipleFrom() {
         rewriteRun(
-                spec -> spec.expectedCyclesThatMakeChanges(2)
-                        .recipe(new RemoveImagePlatform(".+t.*?Image")),
+                spec -> spec.recipe(new RemoveImagePlatform(".+t.*?Image")),
                 dockerfile(
                         """
                         FROM --platform=linux/arm64 firstImage AS first

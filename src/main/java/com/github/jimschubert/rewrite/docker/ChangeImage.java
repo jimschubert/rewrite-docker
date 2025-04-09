@@ -130,15 +130,18 @@ public class ChangeImage extends Recipe {
                     if (modified) {
                         from = from.withMarkers(from.getMarkers().add(modifiedMarker));
                     }
+
+                    return super.visitFrom(from, executionContext);
                 }
 
-                return super.visitFrom(from, executionContext);
+                return from;
             }
         };
     }
 
+    // need a maker due to "helper" with* functions on non-final fields in the From class
     @Value
-    static class Modified implements Marker {
+    private static class Modified implements Marker {
         @EqualsAndHashCode.Exclude
         @With
         UUID id;

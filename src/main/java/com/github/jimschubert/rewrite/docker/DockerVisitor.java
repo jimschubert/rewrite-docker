@@ -29,12 +29,8 @@ public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
     }
 
     public Docker visitDocument(Docker.Document dockerfile, P ctx) {
-        Docker d = dockerfile.withStages(dockerfile.getStages().stream()
-                .map(s -> visitAndCast(s, ctx))
-                .map(s -> (Docker.Stage)s)
-                .collect(Collectors.toCollection(ArrayList::new)));
-
-        return d;
+        return dockerfile.withStages(ListUtils.map(dockerfile.getStages(), s -> visitAndCast(s, ctx)))
+                .withMarkers(visitMarkers(dockerfile.getMarkers(), ctx));
     }
 
     public Space visitSpace(Space space, P p) {

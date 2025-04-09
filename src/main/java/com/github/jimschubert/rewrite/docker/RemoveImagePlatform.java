@@ -1,15 +1,15 @@
 package com.github.jimschubert.rewrite.docker;
 
 import com.github.jimschubert.rewrite.docker.tree.Docker;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
-import lombok.Value;
+import com.github.jimschubert.rewrite.docker.tree.DockerRightPadded;
+import lombok.*;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.marker.Marker;
 
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,18 +39,36 @@ public class RemoveImagePlatform extends Recipe {
         return new DockerIsoVisitor<>() {
             @Override
             public Docker.From visitFrom(Docker.From from, ExecutionContext executionContext) {
-                from = super.visitFrom(from, executionContext);
-                if (matchImage == null || ".*".equals(matchImage) || ".+".equals(matchImage)) {
-                    return from.withPlatform((String)null);
+                String emptyPlatform = "";
+                DockerRightPadded<Docker.Literal> current = from.getPlatform();
+                if (current.getElement().getText() == null ||
+                        current.getElement().getText().isEmpty() ||
+                        current.getMarkers().findFirst(NulledPlatform.class)
+                                .filter(n -> n.equals(new NulledPlatform(null, matchImage))).isPresent()) {
+                    return from;
                 }
 
-                Matcher matcher = Pattern.compile(matchImage).matcher(from.getImageSpecWithVersion());
-                if (matcher.matches()) {
-                    return from.withPlatform((String)null);
+                NulledPlatform nulled = new NulledPlatform(UUID.randomUUID(), matchImage);
+                if (".*".equals(matchImage) || ".+".equals(matchImage) || matchImage == null) {
+                    from = from.withPlatform(emptyPlatform).withMarkers(from.getMarkers().add(nulled));
+                } else {
+                    Matcher matcher = Pattern.compile(matchImage).matcher(from.getImageSpecWithVersion());
+                    if (matcher.matches()) {
+                        from = from.withPlatform(emptyPlatform).withMarkers(from.getMarkers().add(nulled));
+                    }
                 }
 
-                return from;
+                return super.visitFrom(from, executionContext);
             }
         };
+    }
+
+    @Value
+    private static class NulledPlatform implements Marker {
+        @EqualsAndHashCode.Exclude
+        @With
+        UUID id;
+
+        String matchImage;
     }
 }

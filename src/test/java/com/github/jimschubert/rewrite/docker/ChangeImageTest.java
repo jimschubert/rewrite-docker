@@ -7,11 +7,21 @@ import static com.github.jimschubert.rewrite.docker.Assertions.dockerfile;
 
 class ChangeImageTest implements RewriteTest {
     @Test
+    void noChange() {
+        rewriteRun(
+                spec -> spec.recipe(new ChangeImage("old.*", "newImage", null, null)),
+                dockerfile(
+                    """
+                    FROM doNotTouch
+                    """
+                )
+        );
+    }
+
+    @Test
     void changeImageName() {
         rewriteRun(
-                // TODO: determine why stage iteration results in two cycles
-                spec -> spec.expectedCyclesThatMakeChanges(2)
-                        .recipe(new ChangeImage("old.*", "newImage", null, null)),
+                spec -> spec.recipe(new ChangeImage("old.*", "newImage", null, null)),
                 dockerfile(
                     """
                     FROM oldImage
@@ -26,9 +36,7 @@ class ChangeImageTest implements RewriteTest {
     @Test
     void changeImageNameWithOtherElements() {
         rewriteRun(
-                // TODO: determine why stage iteration results in two cycles
-                spec -> spec.expectedCyclesThatMakeChanges(2)
-                        .recipe(new ChangeImage("old.*", "newImage", null, null)),
+                spec -> spec.recipe(new ChangeImage("old.*", "newImage", null, null)),
                 dockerfile(
                     """
                     FROM --platform=linux/amd64 oldImage AS base
@@ -46,9 +54,7 @@ class ChangeImageTest implements RewriteTest {
     @Test
     void changeImageNameWithOtherElementsLowercaseAs() {
         rewriteRun(
-                // TODO: determine why stage iteration results in two cycles
-                spec -> spec.expectedCyclesThatMakeChanges(2)
-                        .recipe(new ChangeImage("old.*", "newImage", null, null)),
+                spec -> spec.recipe(new ChangeImage("old.*", "newImage", null, null)),
                 dockerfile(
                     """
                     FROM --platform=linux/amd64 oldImage as base
@@ -66,8 +72,7 @@ class ChangeImageTest implements RewriteTest {
     @Test
     void keepVersionWhenSuppliedNull() {
         rewriteRun(
-                spec -> spec.expectedCyclesThatMakeChanges(2)
-                        .recipe(new ChangeImage("oldImage:.*", "newImage", null, null)),
+                spec -> spec.recipe(new ChangeImage("oldImage:.*", "newImage", null, null)),
                 dockerfile(
                     """
                     FROM oldImage:latest
@@ -82,8 +87,7 @@ class ChangeImageTest implements RewriteTest {
     @Test
     void removeVersionWhenSuppliedEmptyString() {
         rewriteRun(
-                spec -> spec.expectedCyclesThatMakeChanges(2)
-                        .recipe(new ChangeImage("oldImage:.*", "newImage", "", null)),
+                spec -> spec.recipe(new ChangeImage("oldImage:.*", "newImage", "", null)),
                 dockerfile(
                     """
                     FROM oldImage:latest
@@ -99,8 +103,7 @@ class ChangeImageTest implements RewriteTest {
     @Test
     void removePlatformWhenSuppliedEmptyString() {
         rewriteRun(
-                spec -> spec.expectedCyclesThatMakeChanges(2)
-                        .recipe(new ChangeImage("oldImage:.*", "newImage", null, "")),
+                spec -> spec.recipe(new ChangeImage("oldImage:.*", "newImage", null, "")),
                 dockerfile(
                     """
                     FROM --platform=linux/amd64 oldImage:latest
@@ -115,8 +118,7 @@ class ChangeImageTest implements RewriteTest {
     @Test
     void testChangeImageWithNonStandardWhitespace() {
         rewriteRun(
-                spec -> spec.expectedCyclesThatMakeChanges(2)
-                        .recipe(new ChangeImage("old.*", "newImage", null, null)),
+                spec -> spec.recipe(new ChangeImage("old.*", "newImage", null, null)),
                 dockerfile(
                     """
                     FROM    --platform=linux/amd64    oldImage:latest as   base  

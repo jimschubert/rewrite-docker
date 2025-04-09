@@ -64,20 +64,8 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public @Nullable Docker visit(@Nullable Tree tree, PrintOutputCapture<P> p, Cursor parent) {
-        if (tree == null) {
-            return null;
-        }
-        Docker.Document target = null;
-        if (tree instanceof Docker.Document) {
-            target = (Docker.Document) tree;
-        } else if (tree instanceof Docker) {
-            target = (Docker.Document) tree;
-        } else {
-            return null;
-        }
-
-        List<Docker.Stage> stages = target.getStages();
+    public Docker visitDocument(Docker.Document dockerfile, PrintOutputCapture<P> p) {
+        List<Docker.Stage> stages = dockerfile.getStages();
         for (int i = 0; i < stages.size(); i++) {
             Docker.Stage stage = stages.get(i);
             visit(stage, p);
@@ -86,9 +74,9 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
             }
         }
 
-        visitSpace(target.getEof(), p);
+        visitSpace(dockerfile.getEof(), p);
 
-        return super.visit(tree, p, parent);
+        return dockerfile;
     }
 
     @Override

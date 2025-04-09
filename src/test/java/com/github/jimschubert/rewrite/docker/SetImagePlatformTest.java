@@ -9,8 +9,7 @@ class SetImagePlatformTest implements RewriteTest {
     @Test
     void setPlatformWithDefaultMatchSingleFrom() {
         rewriteRun(
-            spec -> spec.expectedCyclesThatMakeChanges(2)
-                    .recipe(new SetImagePlatform("linux/amd64", null)),
+            spec -> spec.recipe(new SetImagePlatform("linux/amd64", null)),
             dockerfile(
                 """
                 FROM myImage:latest
@@ -26,8 +25,7 @@ class SetImagePlatformTest implements RewriteTest {
     @Test
     void setPlatformWithDefaultMatchMultipleFrom() {
         rewriteRun(
-            spec -> spec.expectedCyclesThatMakeChanges(2)
-                    .recipe(new SetImagePlatform("linux/amd64", null)),
+            spec -> spec.recipe(new SetImagePlatform("linux/amd64", null)),
             dockerfile(
                 """
                 FROM --platform=linux/arm64 firstImage AS base
@@ -44,8 +42,7 @@ class SetImagePlatformTest implements RewriteTest {
     @Test
     void setPlatformWithCustomMultipleFrom() {
         rewriteRun(
-                spec -> spec.expectedCyclesThatMakeChanges(2)
-                        .recipe(new SetImagePlatform("linux/amd64", ".+dImage")),
+                spec -> spec.recipe(new SetImagePlatform("linux/amd64", ".+dImage")),
                 dockerfile(
                         """
                         FROM --platform=linux/arm64 firstImage AS first

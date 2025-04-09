@@ -20,19 +20,6 @@ public class DockerIsoVisitor<T> extends DockerVisitor<T> {
     }
 
     @Override
-    public @Nullable Docker visit(@Nullable Tree tree, T t, Cursor parent) {
-        tree = super.visit(tree, t, parent);
-        if (tree == null) {
-            return null;
-        }
-        if (tree instanceof Docker.Document) {
-            return visitDocument((Docker.Document) tree, t);
-        }
-
-        return (Docker)tree;
-    }
-
-    @Override
     public Space visitSpace(Space space, T t) {
         return super.visitSpace(space, t);
     }

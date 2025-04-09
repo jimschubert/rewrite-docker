@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
 @Data
 public class DockerRightPadded<T> {
+    @EqualsAndHashCode.Include(rank=1000)
     @With
     T element;
 

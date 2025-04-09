@@ -1,7 +1,6 @@
 package com.github.jimschubert.rewrite.docker.tree;
 
 import com.github.jimschubert.rewrite.docker.DockerVisitor;
-import com.github.jimschubert.rewrite.docker.internal.StringUtil;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
@@ -29,6 +28,16 @@ public interface Docker extends Tree {
 
     interface Instruction extends Docker {}
 
+
+    static boolean same(String first, String second) {
+        if (first == null && second == null) {
+            return true;
+        }
+        if (first == null || second == null) {
+            return false;
+        }
+        return first.equals(second);
+    }
 
     @SuppressWarnings("unchecked")
     @Override
@@ -59,14 +68,14 @@ public interface Docker extends Tree {
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
     class Literal implements Docker {
-        @EqualsAndHashCode.Include
+        @EqualsAndHashCode.Include(rank = 0)
         UUID id;
 
         Quoting quoting;
 
         Space prefix;
 
-
+        @EqualsAndHashCode.Include(rank = 1000)
         String text;
 
         Space trailing;
@@ -186,7 +195,7 @@ public interface Docker extends Tree {
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
-            return v.defaultValue(this, p);
+            return v.visitDocument(this, p);
         }
 
         @Override
@@ -403,12 +412,20 @@ public interface Docker extends Tree {
         }
 
         public Directive withKey(String key) {
+            if (same(directive.getElement().getKey(), key)) {
+                return this;
+            }
+
             Space prefix = directive.getElement().getKey() == null ? Space.EMPTY : directive.getElement().getPrefix();
             directive = directive.withElement(new KeyArgs(prefix, key, directive.getElement().getValue(), directive.getElement().isHasEquals(), directive.getElement().getQuoting()));
             return this;
         }
 
         public Directive withValue(String value) {
+            if (same(directive.getElement().getValue(), value)) {
+                return this;
+            }
+
             Space prefix = directive.getElement().getValue() == null ? Space.EMPTY : directive.getElement().getPrefix();
             directive = directive.withElement(new KeyArgs(prefix, directive.getElement().getKey(), value, directive.getElement().isHasEquals(), directive.getElement().getQuoting()));
             return this;
@@ -594,12 +611,15 @@ public interface Docker extends Tree {
         @With
         Space prefix;
 
+        @EqualsAndHashCode.Include
         @NonFinal
         DockerRightPadded<Literal> platform;
 
+        @EqualsAndHashCode.Include
         @NonFinal
         DockerRightPadded<Literal> image;
 
+        @EqualsAndHashCode.Include
         @NonFinal
         DockerRightPadded<Literal> version;
 
@@ -607,6 +627,7 @@ public interface Docker extends Tree {
         @NonFinal
         Literal as;
 
+        @EqualsAndHashCode.Include
         @NonFinal
         DockerRightPadded<Literal> alias;
 
@@ -652,23 +673,29 @@ public interface Docker extends Tree {
 
         public From withPlatform(String platform) {
             if (this.platform == null) {
-                this.platform = DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" ")));
+                this.platform = DockerRightPadded.build(Literal.build(platform).withPrefix(Space.build(" ")));
+                return this;
             }
+
+            if (same(this.platform.getElement().getText(), platform)) {
+                return this;
+            }
+
             this.platform = this.platform.withElement(this.platform.getElement().withText(platform));
             return this;
         }
 
         public From withPlatform(DockerRightPadded<Literal> platform) {
-            if (this.platform == null) {
-                this.platform = DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" ")));
-            }
-            this.platform = this.platform.withElement(platform.getElement());
+            this.platform = platform;
             return this;
         }
 
         public From withImage(String image) {
             if (this.image == null) {
                 this.image = DockerRightPadded.build(Literal.build(image).withPrefix(Space.build(" ")));
+                return this;
+            }
+            if (same(this.image.getElement().getText(), image)) {
                 return this;
             }
             this.image = this.image.withElement(this.image.getElement().withText(image));
@@ -1221,13 +1248,13 @@ public interface Docker extends Tree {
     }
 
     @Value
-    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @EqualsAndHashCode(callSuper = false)
     @With
     class KeyArgs {
         Space prefix;
-        @EqualsAndHashCode.Include(rank = 0)
+        @EqualsAndHashCode.Include(rank = 1000)
         String key;
-        @EqualsAndHashCode.Include(rank = 1)
+        @EqualsAndHashCode.Include(rank = 1000)
         String value;
         boolean hasEquals;
         Quoting quoting;
