@@ -4,13 +4,7 @@ import com.github.jimschubert.rewrite.docker.tree.Docker;
 import lombok.*;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.SearchResult;
-
-import java.sql.Array;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -98,12 +92,15 @@ public class AddOrUpdateDirective extends ScanningRecipe<AddOrUpdateDirective.Sc
                 dockerfile = super.visitDocument(dockerfile, ctx); // visit to hit the directive case
 
                 if (!acc.hasDirective) {
-                    List<Docker.Stage> stages = new ArrayList<>(dockerfile.getStages());
-                    Docker.Stage stage = stages.get(0);
-                    stage = stage.withChildren(ListUtils.insert(stage.getChildren(), Docker.Directive.build(acc.targetKey, acc.targetValue), 0));
-                    stages.set(0, stage);
+                    dockerfile = dockerfile.withStages(
+                            ListUtils.mapFirst(dockerfile.getStages(), stage ->
+                            {
+                                if (stage == null) {
+                                    return null;
+                                }
 
-                    dockerfile = dockerfile.withStages(stages).withMarkers(dockerfile.getMarkers());
+                                return stage.withChildren(ListUtils.insert(stage.getChildren(), Docker.Directive.build(acc.targetKey, acc.targetValue), 0));
+                            }));
                 }
                 return dockerfile;
             }
