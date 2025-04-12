@@ -780,6 +780,84 @@ class DockerfileParserTest {
         assertRightPaddedLiteral(args.get(7), Quoting.UNQUOTED, "", "EOF", "", "");
     }
 
+    /**
+     * Tests this example from docker blog @ <a href="https://www.docker.com/blog/introduction-to-heredocs-in-dockerfiles/">...</a>
+     * RUN python3 <<EOF
+     * with open("/hello", "w") as f:
+     *     print("Hello", file=f)
+     *     print("World", file=f)
+     * EOF
+     */
+    @Test
+    void testRunWithHereDocPythonExample() {
+        DockerfileParser parser = new DockerfileParser();
+        Docker.Document doc = parser.parse(new ByteArrayInputStream(
+                """
+                RUN python3 <<EOF
+                with open("/hello", "w") as f:
+                    print("Hello", file=f)
+                    print("World", file=f)
+                EOF
+                """.getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
+
+        Docker.Run cmd = (Docker.Run) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, cmd.getPrefix());
+
+        List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
+        assertEquals(12, args.size());
+
+        // TODO: within heredocs, collect literals wrapped via () and [] along with single and double quoted strings
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "python3", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "<<EOF", "", "\n");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, "", "with", "", "");
+        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, " ", "open(\"/hello\",", "", "");
+        assertRightPaddedLiteral(args.get(4), Quoting.UNQUOTED, " ", "\"w\")", "", "");
+        assertRightPaddedLiteral(args.get(5), Quoting.UNQUOTED, " ", "as", "", "");
+        assertRightPaddedLiteral(args.get(6), Quoting.UNQUOTED, " ", "f:", "", "\n");
+        assertRightPaddedLiteral(args.get(7), Quoting.UNQUOTED, "    ", "print(\"Hello\",", "", "");
+        assertRightPaddedLiteral(args.get(8), Quoting.UNQUOTED, " ", "file=f)", "", "\n");
+        assertRightPaddedLiteral(args.get(9), Quoting.UNQUOTED, "    ", "print(\"World\",", "", "");
+        assertRightPaddedLiteral(args.get(10), Quoting.UNQUOTED, " ", "file=f)", "", "\n");
+        assertRightPaddedLiteral(args.get(11), Quoting.UNQUOTED, "", "EOF", "", "");
+    }
+
+    /**
+     * Tests this example heredoc from docker blog @ <a href="https://www.docker.com/blog/introduction-to-heredocs-in-dockerfiles/">...</a>
+     * RUN python3 <<EOF > /hello
+     * print("Hello")
+     * print("World")
+     * EOF
+     */
+    @Test
+    void testRunWithHeredocRedirection() {
+        DockerfileParser parser = new DockerfileParser();
+        Docker.Document doc = parser.parse(new ByteArrayInputStream(
+                """
+                RUN python3 <<EOF > /hello
+                print("Hello")
+                print("World")
+                EOF
+                """.getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
+
+        Docker.Run cmd = (Docker.Run) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, cmd.getPrefix());
+
+        List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
+        assertEquals(7, args.size());
+
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "python3", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "<<EOF", "", "");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, " ", ">", "", "");
+        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, " ", "/hello", "", "\n");
+        assertRightPaddedLiteral(args.get(4), Quoting.UNQUOTED, "", "print(\"Hello\")", "", "\n");
+        assertRightPaddedLiteral(args.get(5), Quoting.UNQUOTED, "", "print(\"World\")", "", "\n");
+        assertRightPaddedLiteral(args.get(6), Quoting.UNQUOTED, "", "EOF", "", "");
+    }
+
     @Test
     void testRunWithHeredocAfterOtherCommands() {
         DockerfileParser parser = new DockerfileParser();
