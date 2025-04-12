@@ -711,16 +711,12 @@ class DockerfileParserTest {
         assertEquals(Space.EMPTY, cmd.getPrefix());
 
         List<DockerRightPadded<Docker.Literal>> args = cmd.getSources();
-        assertEquals(8, args.size());
+        assertEquals(4, args.size());
 
         assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "<<EOF", "", "");
         assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "/usr/share/nginx/html/index.html", "", "\n");
-        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, "", "(your", "", "");
-        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, " ", "index", "", "");
-        assertRightPaddedLiteral(args.get(4), Quoting.UNQUOTED, " ", "page", "", "");
-        assertRightPaddedLiteral(args.get(5), Quoting.UNQUOTED, " ", "goes", "", "");
-        assertRightPaddedLiteral(args.get(6), Quoting.UNQUOTED, " ", "here)", "", "\n");
-        assertRightPaddedLiteral(args.get(7), Quoting.UNQUOTED, "", "EOF", "", "");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, "", "(your index page goes here)", "", "\n");
+        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, "", "EOF", "", "");
     }
 
     @Test
@@ -840,21 +836,18 @@ class DockerfileParserTest {
         assertEquals(Space.EMPTY, cmd.getPrefix());
 
         List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
-        assertEquals(12, args.size());
+        assertEquals(9, args.size());
 
         // TODO: within heredocs, collect literals wrapped via () and [] along with single and double quoted strings
         assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "python3", "", "");
         assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "<<EOF", "", "\n");
         assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, "", "with", "", "");
-        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, " ", "open(\"/hello\",", "", "");
-        assertRightPaddedLiteral(args.get(4), Quoting.UNQUOTED, " ", "\"w\")", "", "");
-        assertRightPaddedLiteral(args.get(5), Quoting.UNQUOTED, " ", "as", "", "");
-        assertRightPaddedLiteral(args.get(6), Quoting.UNQUOTED, " ", "f:", "", "\n");
-        assertRightPaddedLiteral(args.get(7), Quoting.UNQUOTED, "    ", "print(\"Hello\",", "", "");
-        assertRightPaddedLiteral(args.get(8), Quoting.UNQUOTED, " ", "file=f)", "", "\n");
-        assertRightPaddedLiteral(args.get(9), Quoting.UNQUOTED, "    ", "print(\"World\",", "", "");
-        assertRightPaddedLiteral(args.get(10), Quoting.UNQUOTED, " ", "file=f)", "", "\n");
-        assertRightPaddedLiteral(args.get(11), Quoting.UNQUOTED, "", "EOF", "", "");
+        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, " ", "open(\"/hello\", \"w\")", "", "");
+        assertRightPaddedLiteral(args.get(4), Quoting.UNQUOTED, " ", "as", "", "");
+        assertRightPaddedLiteral(args.get(5), Quoting.UNQUOTED, " ", "f:", "", "\n");
+        assertRightPaddedLiteral(args.get(6), Quoting.UNQUOTED, "    ", "print(\"Hello\", file=f)", "", "\n");
+        assertRightPaddedLiteral(args.get(7), Quoting.UNQUOTED, "    ", "print(\"World\", file=f)", "", "\n");
+        assertRightPaddedLiteral(args.get(8), Quoting.UNQUOTED, "", "EOF", "", "");
     }
 
     /**

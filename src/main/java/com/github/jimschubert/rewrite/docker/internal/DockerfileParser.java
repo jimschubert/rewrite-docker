@@ -91,9 +91,17 @@ public class DockerfileParser {
             List<DockerRightPadded<T>> elements = new ArrayList<>();
             StringBuilder currentElement = new StringBuilder();
             StringBuilder afterBuilder = new StringBuilder(); // queue up escaped newlines and whitespace as 'after' for previous element
-            boolean inQuotes = false;
+
+            // inCollectible is used to accumulate elements within surrounding characters like single/double quotes, parentheses, etc.
+            boolean inCollectible = false;
             char doubleQuote = DOUBLE_QUOTE.charAt(0);
             char singleQuote = SINGLE_QUOTE.charAt(0);
+            char bracketOpen = '(';
+            char bracketClose = ')';
+            char braceOpen = '{';
+            char braceClose = '}';
+            char squareBracketOpen = '[';
+            char squareBracketClose = ']';
             char escape = this.escapeChar;
             char quote = 0;
             char lastChar = 0;
@@ -109,9 +117,9 @@ public class DockerfileParser {
 
             for (int i = 0; i < input.length(); i++) {
                 char c = input.charAt(i);
-                if (inQuotes) {
-                    if (c == quote && lastChar != escape) {
-                        inQuotes = false;
+                if (inCollectible) {
+                    if ((c == quote||c == bracketClose || c == braceClose || c == squareBracketClose) && lastChar != escape) {
+                        inCollectible = false;
                     }
                     currentElement.append(c);
                 } else {
@@ -126,8 +134,8 @@ public class DockerfileParser {
                             currentElement.append(c);
                         }
                     } else {
-                        if (c == doubleQuote || c == singleQuote) {
-                            inQuotes = true;
+                        if (c == doubleQuote || c == singleQuote || c == bracketOpen || c == braceOpen || c == squareBracketOpen) {
+                            inCollectible = true;
                             quote = c;
                         }
 
