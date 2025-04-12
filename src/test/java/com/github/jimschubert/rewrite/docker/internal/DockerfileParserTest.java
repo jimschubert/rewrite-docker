@@ -689,6 +689,40 @@ class DockerfileParserTest {
         assertRightPaddedLiteral(dest, Quoting.UNQUOTED, " ", "/tmp/", "", "\t");
     }
 
+    /**
+     * Tests this example heredoc from docker blog @ <a href="https://www.docker.com/blog/introduction-to-heredocs-in-dockerfiles/">...</a>
+     * COPY <<EOF /usr/share/nginx/html/index.html
+     * (your index page goes here)
+     * EOF
+     */
+    @Test
+    void testCopyWithHeredoc() {
+        DockerfileParser parser = new DockerfileParser();
+        Docker.Document doc = parser.parse(new ByteArrayInputStream(
+                """
+                COPY <<EOF /usr/share/nginx/html/index.html
+                (your index page goes here)
+                EOF
+                """.getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
+
+        Docker.Copy cmd = (Docker.Copy) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, cmd.getPrefix());
+
+        List<DockerRightPadded<Docker.Literal>> args = cmd.getSources();
+        assertEquals(8, args.size());
+
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "<<EOF", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "/usr/share/nginx/html/index.html", "", "\n");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, "", "(your", "", "");
+        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, " ", "index", "", "");
+        assertRightPaddedLiteral(args.get(4), Quoting.UNQUOTED, " ", "page", "", "");
+        assertRightPaddedLiteral(args.get(5), Quoting.UNQUOTED, " ", "goes", "", "");
+        assertRightPaddedLiteral(args.get(6), Quoting.UNQUOTED, " ", "here)", "", "\n");
+        assertRightPaddedLiteral(args.get(7), Quoting.UNQUOTED, "", "EOF", "", "");
+    }
+
     @Test
     void testRun() {
         DockerfileParser parser = new DockerfileParser();

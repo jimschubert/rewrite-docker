@@ -28,10 +28,9 @@ import static com.github.jimschubert.rewrite.docker.internal.ParserUtils.stringT
  */
 public class DockerfileParser {
     @SuppressWarnings({"RegExpSimplifiable", "RegExpRedundantEscape"})
-    static final Pattern heredocPattern = Pattern.compile("<<[-]?(?<heredoc>[A-Z0-9]{3})([ \\t]*(?<redirect>[>]{0,2})[ \\t]*(?<target>[\\/\\w]*))?");
+    static final Pattern heredocPattern = Pattern.compile("<<[-]?(?<heredoc>[A-Z0-9]{3})([ \\t]*(?<redirect>[>]{0,2})[ \\t]*(?<target>[a-zA-Z0-9_.\\-\\/]*))?");
 
-    private ParserState state = new ParserState();
-
+    private final ParserState state = new ParserState();
 
     // region InstructionParser (private)
     // InstructionParser is used to collect the parts of an instruction and parse it into the appropriate AST node.
@@ -321,7 +320,8 @@ public class DockerfileParser {
             // reverse literals iteration
             for (int i = literals.size() - 1; i >= 0; i--) {
                 DockerRightPadded<Docker.Literal> literal = literals.get(i);
-                if (i == literals.size() - 1) {
+                // hack: if we have a heredoc, it'll all become the "sources"
+                if (heredoc == null && i == literals.size() - 1) {
                     // the last literal is the destination
                     destination = literal;
                     continue;
