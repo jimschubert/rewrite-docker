@@ -1,17 +1,14 @@
 package com.github.jimschubert.rewrite.docker.tree;
 
 import com.github.jimschubert.rewrite.docker.DockerVisitor;
-import com.github.jimschubert.rewrite.docker.internal.StringUtil;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.PrintOutputCapture;
-import org.openrewrite.Tree;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.Markers;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 

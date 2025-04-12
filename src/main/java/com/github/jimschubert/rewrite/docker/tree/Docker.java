@@ -5,7 +5,6 @@ import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import lombok.With;
-import lombok.experimental.NonFinal;
 import org.openrewrite.*;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.marker.Markers;

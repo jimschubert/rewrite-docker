@@ -5,14 +5,9 @@ import com.github.jimschubert.rewrite.docker.tree.DockerRightPadded;
 import com.github.jimschubert.rewrite.docker.tree.Space;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
-import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.marker.Markers;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * A visitor for Docker LSTs.

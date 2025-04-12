@@ -2,9 +2,6 @@ package com.github.jimschubert.rewrite.docker;
 
 import com.github.jimschubert.rewrite.docker.tree.Docker;
 import com.github.jimschubert.rewrite.docker.tree.Space;
-import org.jspecify.annotations.Nullable;
-import org.openrewrite.Cursor;
-import org.openrewrite.Tree;
 
 /**
  * An isomorphic visitor for Dockerfile ASTs.

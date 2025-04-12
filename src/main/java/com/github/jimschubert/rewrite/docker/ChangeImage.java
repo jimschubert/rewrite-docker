@@ -4,9 +4,7 @@ import com.github.jimschubert.rewrite.docker.tree.Docker;
 import lombok.*;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
-import org.openrewrite.marker.Marker;
 
-import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
