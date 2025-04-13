@@ -771,9 +771,9 @@ public interface Docker extends Tree {
 
         public static From build(String prefix, String platform, String image, String version, String alias) {
             return new From(Tree.randomId(), Space.build(prefix),
-                    null,
-                    null,
-                    null,
+                    DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" "))),
+                    DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" "))),
+                    DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" "))),
                     alias != null && !alias.isBlank() ? Literal.build("AS").withPrefix(Space.build(" ")) : null,
                     DockerRightPadded.build(Literal.build(alias).withPrefix(Space.build(" "))), Space.EMPTY, Markers.EMPTY
             )

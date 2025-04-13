@@ -15,12 +15,11 @@
 package com.github.jimschubert.rewrite.docker;
 
 import com.github.jimschubert.rewrite.docker.trait.DockerLiteral;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
-import lombok.Value;
+import lombok.*;
 import org.openrewrite.*;
+import org.openrewrite.marker.Marker;
 
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -63,8 +62,20 @@ public class ModifyLiteral extends Recipe {
                         return n.withText(replacementText).getTree();
                     }
 
+                    if (n.getTree().getMarkers().findFirst(Modified.class).filter(
+                            m -> m.matchText.equals(matchText) && m.replacementText.equals(replacementText)
+                        ).isPresent()) {
+                        return n.getTree();
+                    }
+
                     String text = n.getText();
                     if (text != null) {
+                        Modified m = new Modified(
+                                UUID.randomUUID(),
+                                matchText,
+                                replacementText
+                        );
+
                         Matcher matcher = Pattern.compile(matchText).matcher(n.getText());
                         if (matcher.matches()) {
                             if (matcher.groupCount() > 0) {
@@ -75,14 +86,26 @@ public class ModifyLiteral extends Recipe {
                                         newText = newText.replace(group, replacementText);
                                     }
                                 }
-                                return n.withText(newText).getTree();
+                                return n.withText(newText).getTree()
+                                        .withMarkers(n.getTree().getMarkers().addIfAbsent(m));
                             }
 
-                            return n.withText(matcher.replaceAll(replacementText)).getTree();
+                            return n.withText(matcher.replaceAll(replacementText)).getTree()
+                                    .withMarkers(n.getTree().getMarkers().addIfAbsent(m));
                         }
                     }
 
                     return n.getTree();
                 });
+    }
+
+    @Value
+    static class Modified implements Marker {
+        @EqualsAndHashCode.Exclude
+        @With
+        UUID id;
+
+        String matchText;
+        String replacementText;
     }
 }

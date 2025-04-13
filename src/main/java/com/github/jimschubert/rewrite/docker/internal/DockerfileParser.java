@@ -518,7 +518,13 @@ public class DockerfileParser {
             if (parts.length > 1) {
                 // the first part is the options, but keyargs don't support trailing spaces
                 StringWithPadding swp = StringWithPadding.of(parts[0]);
-                args = parseArgs(swp.prefix().getWhitespace() + swp.content());
+                // HACK if swp is all whitespace, we'll ignore it for now
+                if (!swp.content().isEmpty()) {
+                    args = parseArgs(swp.prefix().getWhitespace() + swp.content());
+                } else {
+                    args = new ArrayList<>();
+                }
+
                 // the second part is the command, prefix it with any keyargs trailing whitespace
                 commands = parseLiterals(Form.SHELL, swp.suffix().getWhitespace() + "CMD" + parts[1]);
             } else {
@@ -526,7 +532,7 @@ public class DockerfileParser {
                 commands = parseLiterals(Form.SHELL, content);
             }
 
-            return new Docker.Healthcheck(Tree.randomId(), stringWithPadding.prefix(), Docker.Healthcheck.Type.CMD, args, commands, Markers.EMPTY);
+            return new Docker.Healthcheck(Tree.randomId(), state.prefix(), Docker.Healthcheck.Type.CMD, args, commands, Markers.EMPTY);
         }
 
         private Docker.@NotNull Maintainer parseMaintainer() {

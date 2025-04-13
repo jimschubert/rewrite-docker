@@ -605,7 +605,7 @@ class DockerfileParserTest {
         Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
 
         Docker.Healthcheck healthCheck = (Docker.Healthcheck) stage.getChildren().get(0);
-        assertEquals(" ", healthCheck.getPrefix().getWhitespace());
+        assertEquals("", healthCheck.getPrefix().getWhitespace());
 
         List<DockerRightPadded<Docker.KeyArgs>> options = healthCheck.getOptions();
         assertEquals(2, options.size());

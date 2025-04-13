@@ -586,11 +586,21 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
             });
         }
 
-        p.append(" CMD");
-
         if (healthcheck.getCommands() != null) {
             for (int i = 0; i < healthcheck.getCommands().size(); i++) {
                 DockerRightPadded<Docker.Literal> padded = healthcheck.getCommands().get(i);
+
+                if (i == 0 && "CMD".equals(padded.getElement().getText())) {
+                    if (padded.getElement().getPrefix().isEmpty()) {
+                        p.append(" ");
+                    }
+                    p.append("CMD");
+                    visitSpace(padded.getElement().getPrefix(), p);
+                    continue;
+                } else if (i == 0) {
+                    p.append(" CMD");
+                }
+
                 if (i > 0 && "".equals(padded.getElement().getPrefix().getWhitespace())) {
                     p.append(" ");
                 }
