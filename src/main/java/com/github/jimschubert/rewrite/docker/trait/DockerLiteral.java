@@ -25,6 +25,14 @@ public class DockerLiteral implements Trait<Docker.@NonNull Literal> {
         return this;
     }
 
+    public static Matcher matcher(Pattern pattern) {
+        return new Matcher(pattern);
+    }
+
+    public static Matcher matcher(String pattern) {
+        return new Matcher(Pattern.compile(pattern));
+    }
+
     public static class Matcher extends SimpleTraitMatcher<@NonNull DockerLiteral> {
         private final Pattern pattern;
         public Matcher(Pattern pattern) {
