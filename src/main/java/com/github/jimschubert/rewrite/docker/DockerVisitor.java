@@ -207,7 +207,7 @@ public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
 
     public Docker visitOption(Docker.Option option, P p) {
         return option.withPrefix(visitSpace(option.getPrefix(), p))
-                .withKeyArgs(option.getKeyArgs()) // Assuming the key doesn't need visiting
+                .withKeyArgs(option.getKeyArgs()) // Assuming the key doesn't need visitingx
                 .withMarkers(visitMarkers(option.getMarkers(), p));
     }
 

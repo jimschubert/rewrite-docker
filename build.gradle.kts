@@ -1,5 +1,6 @@
 plugins {
     id("java")
+    id("com.diffplug.spotless") version "7.0.3"
 }
 
 group = "com.github.jimschubert"
@@ -11,8 +12,58 @@ java {
     }
 }
 
+spotless {
+    java {
+        target("src/**/*.java")
+        removeUnusedImports()
+        endWithNewline()
+//        licenseHeader("""
+//            /*
+//             * Copyright (c) ${'$'}YEAR Jim Schubert
+//             * Licensed under the Apache License, Version 2.0 (the "License");
+//             * you may not use this file except in compliance with the License.
+//             * You may obtain a copy of the License at
+//             *
+//             *     http://www.apache.org/licenses/LICENSE-2.0
+//             *
+//             * Unless required by applicable law or agreed to in writing, software
+//             * distributed under the License is distributed on an "AS IS" BASIS,
+//             * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//             * See the License for the specific language governing permissions and
+//             * limitations under the License.
+//             */
+//        """.trimIndent())
+
+        targetExclude("**/generated/**")
+
+    }
+
+    format("misc") {
+        target(
+            "**/*.gradle",
+            "**/*.md",
+            "**/*.properties",
+            "**/*.yml",
+            "**/*.yaml"
+        )
+        trimTrailingWhitespace()
+        leadingTabsToSpaces()
+        endWithNewline()
+    }
+
+    encoding("UTF-8")
+}
+
+tasks.named<JavaCompile>("compileJava") {
+    options.release.set(11)
+}
+
+tasks.named<JavaCompile>("compileTestJava") {
+    options.release.set(17)
+}
+
 dependencies {
-    implementation(platform("org.openrewrite.recipe:rewrite-recipe-bom:latest.release"))
+    implementation(platform("org.openrewrite:rewrite-bom:latest.release"))
 
     // lombok is optional, but recommended for authoring recipes
     compileOnly("org.projectlombok:lombok:latest.release")

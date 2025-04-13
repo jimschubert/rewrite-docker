@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ListRemoteFiles extends ScanningRecipe<List<RemoteFileReport.Row>> {
     @EqualsAndHashCode.Exclude
@@ -44,7 +45,8 @@ public class ListRemoteFiles extends ScanningRecipe<List<RemoteFileReport.Row>> 
                                 if (child instanceof Docker.Add) {
                                     Docker.Add instruction = (Docker.Add) child;
                                     List<DockerRightPadded<Docker.Literal>> urls = instruction.getSources().stream()
-                                            .filter(s -> s.getElement().getText().startsWith("http")).toList();
+                                            .filter(s -> s.getElement().getText().startsWith("http"))
+                                            .collect(Collectors.toCollection(ArrayList::new));
 
                                     if (!urls.isEmpty()) {
                                         urls.forEach(url -> {

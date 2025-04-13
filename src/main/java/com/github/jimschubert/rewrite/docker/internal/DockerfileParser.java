@@ -1,6 +1,11 @@
 package com.github.jimschubert.rewrite.docker.internal;
 
 import com.github.jimschubert.rewrite.docker.tree.*;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import lombok.Value;
+import lombok.experimental.Accessors;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 import org.openrewrite.Tree;
@@ -9,10 +14,7 @@ import org.openrewrite.marker.Markers;
 
 import java.io.InputStream;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -139,7 +141,8 @@ public class DockerfileParser {
                             quote = c;
                         }
 
-                        if (inHeredoc && !elements.isEmpty() && elements.get(elements.size() - 1).getElement() instanceof Docker.Literal literal) {
+                        if (inHeredoc && !elements.isEmpty() && elements.get(elements.size() - 1).getElement() instanceof Docker.Literal) {
+                            Docker.Literal literal = (Docker.Literal) elements.get(elements.size() - 1).getElement();
                             // allows commands to come after a heredoc. Does not support heredoc within a heredoc or multiple heredocs
 
                             if (literal.getText() != null && literal.getText().equals(heredoc.name)) {
@@ -151,8 +154,8 @@ public class DockerfileParser {
                         if (heredoc != null && c == '\n' && !inHeredoc) {
                             inHeredoc = true;
                             afterBuilder.append(c);
-                            if (!currentElement.isEmpty() && (
-                                    currentElement.toString().endsWith(heredoc.indicator) || (heredoc.redirectionTo != null && currentElement.toString().endsWith(heredoc.redirectionTo)))) {
+                            if (currentElement.length() > 0 && (
+                                    currentElement.toString().endsWith(heredoc.indicator()) || (heredoc.redirectionTo != null && currentElement.toString().endsWith(heredoc.redirectionTo)))) {
                                 elements.add(DockerRightPadded.build(elementCreator.apply(currentElement.toString()))
                                         .withAfter(Space.build(afterBuilder.toString())));
                                 currentElement.setLength(0);
@@ -164,10 +167,10 @@ public class DockerfileParser {
                         } else //noinspection ConstantValue
                             if (heredoc != null && c == '\n' && inHeredoc) {
                                 // IntelliJ incorrectly flags inHeredoc as a constant 'true', but it's obviously not.
-                                if (!currentElement.toString().endsWith(heredoc.indicator)) {
+                                if (!currentElement.toString().endsWith(heredoc.indicator())) {
                                     afterBuilder.append(c);
                                     // this check allows us to accumulate "after" newlines and whitespace after for the last element
-                                    if (!currentElement.isEmpty()) {
+                                    if (currentElement.length() > 0) {
                                         elements.add(DockerRightPadded.build(elementCreator.apply(currentElement.toString()))
                                                 .withAfter(Space.build(afterBuilder.toString())));
                                         currentElement.setLength(0);
@@ -202,7 +205,7 @@ public class DockerfileParser {
                         }
 
                         // if 'after' builder is not empty and the character is whitespace, accumulate it
-                        if (!afterBuilder.isEmpty() && (c == ' ' || c == '\t' || c == '\n')) {
+                        if (afterBuilder.length() > 0 && (c == ' ' || c == '\t' || c == '\n')) {
                             afterBuilder.append(c);
                             lastChar = c;
                             continue;
@@ -215,7 +218,7 @@ public class DockerfileParser {
                         }
 
                         // no longer accumulating a prefix, add as "after" to the last element
-                        if (!elements.isEmpty() && !afterBuilder.isEmpty()) {
+                        if (!elements.isEmpty() && afterBuilder.length() > 0) {
                             int idx = elements.size() - 1;
                             DockerRightPadded<T> element = elements.get(idx);
                             elements.set(idx, element.withAfter(Space.append(element.getAfter(), Space.build(afterBuilder.toString()))));
@@ -223,7 +226,7 @@ public class DockerfileParser {
                         }
 
                         // Only collect the current element if we're not "in a prefix" situation
-                        if (afterBuilder.isEmpty()) {
+                        if (afterBuilder.length() == 0) {
                             currentElement.append(c);
                         }
                     }
@@ -231,7 +234,7 @@ public class DockerfileParser {
                 lastChar = c;
             }
 
-            if (!currentElement.isEmpty()) {
+            if (currentElement.length() > 0) {
                 // if it's whitespace only, add it as "after" to the last element
                 if (StringUtils.isBlank(currentElement.toString())) {
                     if (!elements.isEmpty()) {
@@ -247,7 +250,7 @@ public class DockerfileParser {
                 }
             }
 
-            if (!afterBuilder.isEmpty()) {
+            if (afterBuilder.length() > 0) {
                 int idx = elements.size() - 1;
                 if (idx >= 0) {
                     DockerRightPadded<T> element = elements.get(idx);
@@ -747,36 +750,58 @@ public class DockerfileParser {
     }
 
     private static Class<? extends Docker.Instruction> instructionFromText(String s) {
-        return switch (s.toUpperCase()) {
-            case ADD -> Docker.Add.class;
-            case ARG -> Docker.Arg.class;
-            case CMD -> Docker.Cmd.class;
-            case COPY -> Docker.Copy.class;
-            case ENTRYPOINT -> Docker.Entrypoint.class;
-            case ENV -> Docker.Env.class;
-            case EXPOSE -> Docker.Expose.class;
-            case FROM -> Docker.From.class;
-            case HEALTHCHECK -> Docker.Healthcheck.class;
-            case LABEL -> Docker.Label.class;
-            case MAINTAINER -> Docker.Maintainer.class;
-            case ONBUILD -> Docker.OnBuild.class;
-            case RUN -> Docker.Run.class;
-            case SHELL -> Docker.Shell.class;
-            case STOPSIGNAL -> Docker.StopSignal.class;
-            case USER -> Docker.User.class;
-            case VOLUME -> Docker.Volume.class;
-            case WORKDIR -> Docker.Workdir.class;
-            case COMMENT -> Docker.Comment.class;
-            default -> null;
-        };
+        switch (s.toUpperCase()) {
+            case ADD:
+                return Docker.Add.class;
+            case ARG:
+                return Docker.Arg.class;
+            case CMD:
+                return Docker.Cmd.class;
+            case COPY:
+                return Docker.Copy.class;
+            case ENTRYPOINT:
+                return Docker.Entrypoint.class;
+            case ENV:
+                return Docker.Env.class;
+            case EXPOSE:
+                return Docker.Expose.class;
+            case FROM:
+                return Docker.From.class;
+            case HEALTHCHECK:
+                return Docker.Healthcheck.class;
+            case LABEL:
+                return Docker.Label.class;
+            case MAINTAINER:
+                return Docker.Maintainer.class;
+            case ONBUILD:
+                return Docker.OnBuild.class;
+            case RUN:
+                return Docker.Run.class;
+            case SHELL:
+                return Docker.Shell.class;
+            case STOPSIGNAL:
+                return Docker.StopSignal.class;
+            case USER:
+                return Docker.User.class;
+            case VOLUME:
+                return Docker.Volume.class;
+            case WORKDIR:
+                return Docker.Workdir.class;
+            case COMMENT:
+                return Docker.Comment.class;
+            default:
+                return null;
+        }
     }
 
-    /**
-     * Heredoc syntax is <<[-]\s*[WORD].
-     *
-     * @param indicator The full heredoc syntax to find in a string.
-     * @param name      The name of the heredoc (name) used to determine when to stop reading as a heredoc.
-     */
-    private record Heredoc(String indicator, String name, String redirectionTo) {
+    @Value
+    @EqualsAndHashCode(callSuper = false)
+    @RequiredArgsConstructor
+    @NoArgsConstructor(force = true)
+    @Accessors(fluent = true)
+    private static class Heredoc {
+        String indicator;
+        String name;
+        String redirectionTo;
     }
 }

@@ -1,8 +1,22 @@
 package com.github.jimschubert.rewrite.docker.internal;
 
 import com.github.jimschubert.rewrite.docker.tree.Space;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import lombok.Value;
+import lombok.experimental.Accessors;
 
-public record StringWithPadding(String content, Space prefix, Space suffix) {
+@Value
+@EqualsAndHashCode(callSuper = false)
+@RequiredArgsConstructor
+@NoArgsConstructor(force = true)
+@Accessors(fluent = true)
+public class StringWithPadding {
+     String content;
+     Space prefix;
+     Space suffix;
+
     public static StringWithPadding of(String value) {
         if (value == null || value.isEmpty()) {
             return new StringWithPadding("", Space.EMPTY, Space.EMPTY);

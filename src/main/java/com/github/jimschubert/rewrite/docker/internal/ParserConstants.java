@@ -1,6 +1,9 @@
 package com.github.jimschubert.rewrite.docker.internal;
 
-public class ParserConstants {
+public abstract class ParserConstants {
+    private ParserConstants() {
+    }
+
     static final String DOUBLE_QUOTE = "\"";
     static final String SINGLE_QUOTE = "'";
     static final String TAB = "\t";
