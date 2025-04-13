@@ -484,4 +484,28 @@ class DockerfilePrinterTest {
                           """;
         assertEquals(expected, doc.print(new Cursor(null, new DockerfilePrinter<Integer>())));
     }
+
+    @Test
+    void visitCmdShellForm() {
+        Docker.Document doc = Docker.Document.build(
+                Docker.Cmd.build(Form.SHELL, "echo Hello World")
+        ).withEof(Space.build("\n"));
+
+        String expected = """
+                          CMD echo Hello World
+                          """;
+        assertEquals(expected, doc.print(new Cursor(null, new DockerfilePrinter<Integer>())));
+    }
+
+    @Test
+    void visitCmdExecForm() {
+        Docker.Document doc = Docker.Document.build(
+                Docker.Cmd.build(Form.EXEC, "echo", "Hello World")
+        ).withEof(Space.build("\n"));
+
+        String expected = """
+                          CMD ["echo","Hello World"]
+                          """;
+        assertEquals(expected, doc.print(new Cursor(null, new DockerfilePrinter<Integer>())));
+    }
 }

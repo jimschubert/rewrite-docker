@@ -1,14 +1,14 @@
 package com.github.jimschubert.rewrite.docker.tree;
 
 import com.github.jimschubert.rewrite.docker.DockerVisitor;
-import lombok.AccessLevel;
-import lombok.EqualsAndHashCode;
-import lombok.Value;
-import lombok.With;
+import lombok.*;
+import lombok.experimental.NonFinal;
+import org.jspecify.annotations.NonNull;
 import org.openrewrite.*;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.marker.Markers;
 
+import java.lang.ref.SoftReference;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -156,8 +156,10 @@ public interface Docker extends Tree {
 
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @RequiredArgsConstructor
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     @With
-    class Document implements Docker, SourceFile {
+    class Document implements Docker, SourceFileWithReferences {
         @EqualsAndHashCode.Include
         UUID id;
 
@@ -217,6 +219,16 @@ public interface Docker extends Tree {
         public static Document build(List<Stage> stages) {
             return new Document(Tree.randomId(), Path.of("Dockerfile"), null, StandardCharsets.UTF_8.name(), false, null,
                     stages, Space.EMPTY, Markers.EMPTY);
+        }
+
+        @Nullable
+        @NonFinal
+        transient SoftReference<References> references;
+
+        @Override
+        public @NonNull References getReferences() {
+            this.references = build(references);
+            return Objects.requireNonNull(this.references.get());
         }
     }
 
@@ -309,6 +321,24 @@ public interface Docker extends Tree {
         @Override
         public Docker copyPaste() {
             return new Cmd(Tree.randomId(), form, prefix, execFormPrefix, commands, execFormSuffix, markers);
+        }
+
+        public static Cmd build(String ...commands) {
+            return build(Form.EXEC, commands);
+        }
+        public static Cmd build(Form form, String ...commands) {
+            return new Cmd(Tree.randomId(), form, Space.EMPTY,
+                    Space.build(" "),
+                    Arrays.stream(commands)
+                            .map(s -> Literal.build(s)
+                                    .withQuoting(form == Form.EXEC ? Quoting.DOUBLE_QUOTED : Quoting.UNQUOTED)
+                                    .withPrefix(form == Form.EXEC ? Space.EMPTY: Space.build(" "))
+                                    .withTrailing(Space.EMPTY)
+                            )
+                            .map(DockerRightPadded::build)
+                            .collect(Collectors.toCollection(ArrayList::new)),
+                    Space.EMPTY,
+                    Markers.EMPTY);
         }
     }
 

@@ -198,10 +198,14 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
             DockerRightPadded<Docker.Literal> padded = cmd.getCommands().get(i);
             Docker.Literal literal = padded.getElement();
             String text = literal.getText();
+            visitSpace(literal.getPrefix(), p);
+
             if (form == Form.EXEC) {
                 text = trimDoubleQuotes(text);
-                visitSpace(literal.getPrefix(), p);
                 p.append("\"").append(text).append("\"");
+                if (i < cmd.getCommands().size() - 1) {
+                    p.append(",");
+                }
             } else {
                 p.append(text);
             }
