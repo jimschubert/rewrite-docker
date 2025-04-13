@@ -352,6 +352,10 @@ public class DockerfileParser {
                     continue;
                 }
 
+                if (i == 0 && literal.getElement().getPrefix().isEmpty()) {
+                    literal = literal.map(e -> e.withPrefix(state.prefix()));
+                }
+
                 String value = literal.getElement().getText();
                 if (value.startsWith("--")) {
                     options.add(0, DockerRightPadded.build(new Docker.Option(
@@ -663,6 +667,7 @@ public class DockerfileParser {
                 } else if (!stages.isEmpty()) {
                     // if we have a stage, add the instruction to it
                     stages.get(stages.size() - 1).getChildren().add(instr);
+                    currentInstructions.clear();
                 }
 
                 parser.reset();

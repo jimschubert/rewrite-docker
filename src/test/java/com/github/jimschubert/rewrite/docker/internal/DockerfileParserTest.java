@@ -1065,4 +1065,163 @@ class DockerfileParserTest {
         assertEquals("\n\n\n", doc.getEof().getWhitespace());
 
     }
+
+    @Test
+    void handleMultipleStagesWithoutAliasNames() {
+        DockerfileParser parser = new DockerfileParser();
+
+        Docker.Document doc = parser.parse(new ByteArrayInputStream(
+            """
+            FROM ubuntu:20.04
+            RUN apt-get update && apt-get install -y build-essential
+            RUN echo "Stage 1 complete" > /stage1.txt
+            
+            FROM ubuntu:20.04
+            COPY --from=0 /stage1.txt /stage2.txt
+            RUN echo "Stage 2 complete" > /stage2_complete.txt
+            
+            FROM ubuntu:20.04
+            COPY --from=1 /stage2_complete.txt /stage3.txt
+            RUN echo "Stage 3 complete" > /stage3_complete.txt
+            
+            FROM ubuntu:20.04
+            COPY --from=2 /stage3_complete.txt /final_stage.txt
+            CMD ["cat", "/final_stage.txt"]
+            """.getBytes(StandardCharsets.UTF_8)));
+
+
+        assertNotNull(doc, "Expected document to be non-null but was null");
+        assertNotNull(doc.getStages(),
+                "Expected document to have stages but was null");
+        assertEquals(4, doc.getStages().size(),
+                "Expected document to have " + 4 + " stage but was " + doc.getStages().size());
+
+        Docker.Stage stage = doc.getStages().get(0);
+        assertNotNull(stage.getChildren(),
+                "Expected stage to have children but was null");
+
+        for (Docker.Stage docStage : doc.getStages()) {
+            assertNotNull(docStage.getChildren(),
+                    "Expected stage to have children but was null");
+            assertEquals(3, docStage.getChildren().size(),
+                    "Expected every stage to have only 3 children but was " + stage.getChildren().size());
+        }
+
+        Docker.Stage stage0 = doc.getStages().get(0);
+        Docker.Stage stage1 = doc.getStages().get(1);
+        Docker.Stage stage2 = doc.getStages().get(2);
+        Docker.Stage finalStage = doc.getStages().get(3);
+
+        Docker.From from = (Docker.From) stage0.getChildren().get(0);
+        assertEquals(Space.EMPTY, from.getPrefix());
+        assertRightPaddedLiteral(from.getImage(), Quoting.UNQUOTED, " ", "ubuntu", "", "");
+        assertRightPaddedLiteral(from.getVersion(), Quoting.UNQUOTED, "", ":20.04", "", "");
+        assertEquals("20.04", from.getTag());
+        assertRightPaddedLiteral(from.getPlatform(), Quoting.UNQUOTED, "", null, "", "");
+        assertRightPaddedLiteral(from.getAlias(), Quoting.UNQUOTED, "", null, "", "");
+
+
+        Docker.Run run = (Docker.Run) stage0.getChildren().get(1);
+        assertEquals(Space.EMPTY, run.getPrefix());
+        List<DockerRightPadded<Docker.Literal>> args = run.getCommands();
+        assertEquals(7, args.size());
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "apt-get", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "update", "", "");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, " ", "&&", "", "");
+        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, " ", "apt-get", "", "");
+        assertRightPaddedLiteral(args.get(4), Quoting.UNQUOTED, " ", "install", "", "");
+        assertRightPaddedLiteral(args.get(5), Quoting.UNQUOTED, " ", "-y", "", "");
+        assertRightPaddedLiteral(args.get(6), Quoting.UNQUOTED, " ", "build-essential", "", "");
+
+
+        run = (Docker.Run) stage0.getChildren().get(2);
+        assertEquals(Space.EMPTY, run.getPrefix());
+        args = run.getCommands();
+        assertEquals(4, args.size());
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "echo", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.DOUBLE_QUOTED, " ", "Stage 1 complete", "", "");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, " ", ">", "", "");
+        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, " ", "/stage1.txt", "", "");
+
+
+        Docker.From from1 = (Docker.From) stage1.getChildren().get(0);
+        assertEquals(Space.build("\n"), from1.getPrefix());
+        assertRightPaddedLiteral(from1.getImage(), Quoting.UNQUOTED, " ", "ubuntu", "", "");
+        assertRightPaddedLiteral(from1.getVersion(), Quoting.UNQUOTED, "", ":20.04", "", "");
+        assertEquals("20.04", from1.getTag());
+        assertRightPaddedLiteral(from1.getPlatform(), Quoting.UNQUOTED, "", null, "", "");
+        assertRightPaddedLiteral(from1.getAlias(), Quoting.UNQUOTED, "", null, "", "");
+
+        Docker.Copy copy = (Docker.Copy) stage1.getChildren().get(1);
+        assertEquals(Space.EMPTY, copy.getPrefix());
+        List<DockerRightPadded<Docker.Option>> opts = copy.getOptions();
+        assertRightPaddedOption(opts.get(0), Quoting.UNQUOTED, " ", "--from", true, "0", "");
+
+        args = copy.getSources();
+        assertEquals(1, args.size());
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "/stage1.txt", "", "");
+        DockerRightPadded<Docker.Literal> dest = copy.getDestination();
+        assertRightPaddedLiteral(dest, Quoting.UNQUOTED, " ", "/stage2.txt", "", "");
+
+        run = (Docker.Run) stage1.getChildren().get(2);
+        assertEquals(Space.EMPTY, run.getPrefix());
+        args = run.getCommands();
+        assertEquals(4, args.size());
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "echo", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.DOUBLE_QUOTED, " ", "Stage 2 complete", "", "");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, " ", ">", "", "");
+        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, " ", "/stage2_complete.txt", "", "");
+
+        Docker.From from2 = (Docker.From) stage2.getChildren().get(0);
+        assertEquals(Space.build("\n"), from2.getPrefix());
+        assertRightPaddedLiteral(from2.getImage(), Quoting.UNQUOTED, " ", "ubuntu", "", "");
+        assertRightPaddedLiteral(from2.getVersion(), Quoting.UNQUOTED, "", ":20.04", "", "");
+        assertEquals("20.04", from2.getTag());
+        assertRightPaddedLiteral(from2.getPlatform(), Quoting.UNQUOTED, "", null, "", "");
+        assertRightPaddedLiteral(from2.getAlias(), Quoting.UNQUOTED, "", null, "", "");
+
+        copy = (Docker.Copy) stage2.getChildren().get(1);
+        assertEquals(Space.EMPTY, copy.getPrefix());
+        opts = copy.getOptions();
+        args = copy.getSources();
+        assertEquals(1, args.size());
+
+        assertRightPaddedOption(opts.get(0), Quoting.UNQUOTED, " ", "--from", true, "1", "");
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "/stage2_complete.txt", "", "");
+        dest = copy.getDestination();
+        assertRightPaddedLiteral(dest, Quoting.UNQUOTED, " ", "/stage3.txt", "", "");
+        run = (Docker.Run) stage2.getChildren().get(2);
+        assertEquals(Space.EMPTY, run.getPrefix());
+        args = run.getCommands();
+        assertEquals(4, args.size());
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "echo", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.DOUBLE_QUOTED, " ", "Stage 3 complete", "", "");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, " ", ">", "", "");
+        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, " ", "/stage3_complete.txt", "", "");
+
+        Docker.From from3 = (Docker.From) finalStage.getChildren().get(0);
+        assertEquals(Space.build("\n"), from3.getPrefix());
+        assertRightPaddedLiteral(from3.getImage(), Quoting.UNQUOTED, " ", "ubuntu", "", "");
+        assertRightPaddedLiteral(from3.getVersion(), Quoting.UNQUOTED, "", ":20.04", "", "");
+        assertEquals("20.04", from3.getTag());
+        assertRightPaddedLiteral(from3.getPlatform(), Quoting.UNQUOTED, "", null, "", "");
+        assertRightPaddedLiteral(from3.getAlias(), Quoting.UNQUOTED, "", null, "", "");
+
+        copy = (Docker.Copy) finalStage.getChildren().get(1);
+        assertEquals(Space.EMPTY, copy.getPrefix());
+
+        opts = copy.getOptions();
+        args = copy.getSources();
+        assertEquals(1, args.size());
+        assertRightPaddedOption(opts.get(0), Quoting.UNQUOTED, " ", "--from", true, "2", "");
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "/stage3_complete.txt", "", "");
+        dest = copy.getDestination();
+        assertRightPaddedLiteral(dest, Quoting.UNQUOTED, " ", "/final_stage.txt", "", "");
+
+        Docker.Cmd cmd = (Docker.Cmd) finalStage.getChildren().get(2);
+        assertEquals(Space.EMPTY, cmd.getPrefix());
+        assertRightPaddedLiteral(cmd.getCommands().get(0), Quoting.DOUBLE_QUOTED, "", "cat", "", "");
+        assertRightPaddedLiteral(cmd.getCommands().get(1), Quoting.DOUBLE_QUOTED, " ", "/final_stage.txt", "", "");
+        assertEquals(" ", cmd.getExecFormPrefix().getWhitespace());
+    }
 }

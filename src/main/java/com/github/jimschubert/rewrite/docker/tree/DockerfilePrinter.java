@@ -264,6 +264,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
             return null;
         }
 
+        visitSpace(option.getPrefix(), p);
         visitKeyArgs(option.getKeyArgs(), p);
         afterSyntax(option, p);
         return option;

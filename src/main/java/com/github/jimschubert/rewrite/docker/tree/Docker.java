@@ -767,7 +767,7 @@ public interface Docker extends Tree {
             if (this.as.getText() == null || this.as.getText().isBlank()) {
                 result = result.withAs(Literal.build("AS").withPrefix(this.as.getPrefix().map(p -> p == null || p.isEmpty() ? " " : p)));
             }
-            return result.withAlias(this.alias.map(a -> a.withText(alias)));
+            return result.withAlias(this.alias.map(a -> a.withText(alias).withPrefix(a.getPrefix().map(p -> p == null || p.isEmpty() ? " " : p))));
         }
 
         public static From build(String image) {

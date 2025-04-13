@@ -119,6 +119,21 @@ public class DockerParserHelpers {
                 "Expected DockerRightPadded to have trailing whitespace '" + expectedAfter + "' but was '" + value.getAfter().getWhitespace() + "'");
     }
 
+    public static void assertRightPaddedOption(
+            DockerRightPadded<Docker.Option> value,
+            Quoting expectedQuoting,
+            String expectedPrefix,
+            String expectedKey,
+            boolean expectedEqualsSign,
+            String expectedValue,
+            String expectedAfter) {
+        assertNotNull(value.getElement(),
+                "Expected DockerRightPadded to have an element but was null");
+        assertOption(value.getElement(), expectedQuoting, expectedPrefix, expectedKey, expectedEqualsSign, expectedValue);
+        assertEquals(expectedAfter, value.getAfter().getWhitespace(),
+                "Expected DockerRightPadded to have trailing whitespace '" + expectedAfter + "' but was '" + value.getAfter().getWhitespace() + "'");
+    }
+
     public static void assertLiteral(
             Docker.Literal value,
             Quoting expectedQuoting, String expectedPrefix,
