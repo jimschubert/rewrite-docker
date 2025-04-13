@@ -1028,4 +1028,27 @@ class DockerfileParserTest {
         assertEquals(1, healthCheck.getCommands().size());
         assertRightPaddedLiteral(healthCheck.getCommands().get(0), Quoting.UNQUOTED, " ", "NONE", "", "");
     }
+
+    @Test
+    void handleMultipleNewlinesEOF() {
+        DockerfileParser parser = new DockerfileParser();
+        Docker.Document doc = parser.parse(new ByteArrayInputStream(
+                """
+                RUN echo Hello World
+                
+                
+                
+                """.getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
+        Docker.Run cmd = (Docker.Run) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, cmd.getPrefix());
+        List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
+        assertEquals(3, args.size());
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "echo", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "Hello", "", "");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, " ", "World", "", "");
+        assertEquals("\n\n\n", doc.getEof().getWhitespace());
+
+    }
 }

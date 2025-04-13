@@ -601,14 +601,20 @@ public class DockerfileParser {
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 if (line.isEmpty()) {
-                    // tracks newlines for continuations and prefixes
-                    state.appendPrefix(Space.build(NEWLINE));
+                    eof = Space.append(eof, Space.build(NEWLINE));
                     continue;
                 }
 
                 line = handleLeadingWhitespace(line, parser);
                 if (line.isEmpty()) {
+                    eof = Space.append(eof, Space.build(NEWLINE));
                     continue;
+                }
+
+                if (!eof.isEmpty()) {
+                    // at this point, we have a line, so eof is the line prefix
+                    state.appendPrefix(eof);
+                    eof = Space.EMPTY;
                 }
 
                 line = handleRightPadding(line, parser);
