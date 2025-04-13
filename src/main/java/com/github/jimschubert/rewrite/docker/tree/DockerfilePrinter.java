@@ -538,7 +538,14 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         beforeSyntax(arg, p);
         p.append("ARG");
         arg.getArgs().forEach(padded -> {
-            visitKeyArgs(padded.getElement(), p);
+            Docker.KeyArgs args = padded.getElement();
+            if (args.getValue().getText() != null) {
+                visitKeyArgs(args, p);
+            } else {
+                // ARG without a value is a special case where we don't want to output KEY=
+                visitSpace(args.getPrefix(), p);
+                visitLiteral(args.getKey(), p);
+            }
             visitSpace(padded.getAfter(), p);
         });
         afterSyntax(arg, p);

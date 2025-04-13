@@ -522,4 +522,28 @@ class DockerfilePrinterTest {
                           """;
         assertEquals(expected, doc.print(new Cursor(null, new DockerfilePrinter<Integer>())));
     }
+
+    @Test
+    void visitArg() {
+        Docker.Document doc = Docker.Document.build(
+                Docker.Arg.build("MY_ARG", "default_value")
+        ).withEof(Space.build("\n"));
+
+        String expected = """
+                          ARG MY_ARG=default_value
+                          """;
+        assertEquals(expected, doc.print(new Cursor(null, new DockerfilePrinter<Integer>())));
+    }
+
+    @Test
+    void visitArgNoValue() {
+        Docker.Document doc = Docker.Document.build(
+                Docker.Arg.build("MY_ARG", null)
+        ).withEof(Space.build("\n"));
+
+        String expected = """
+                          ARG MY_ARG
+                          """;
+        assertEquals(expected, doc.print(new Cursor(null, new DockerfilePrinter<Integer>())));
+    }
 }

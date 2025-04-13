@@ -319,6 +319,18 @@ public interface Docker extends Tree {
         public Docker copyPaste() {
             return new Arg(Tree.randomId(), prefix, args, markers);
         }
+
+        public static Arg build(String key, String value) {
+            return new Arg(Tree.randomId(), Space.EMPTY, List.of(
+                    DockerRightPadded.build(new KeyArgs(Space.build(" "), Literal.build(key), Literal.build(value), true, Quoting.UNQUOTED))
+            ), Markers.EMPTY);
+        }
+
+        public static Arg build(KeyArgs ...args) {
+            return new Arg(Tree.randomId(), Space.EMPTY, Arrays.stream(args)
+                    .map(DockerRightPadded::build)
+                    .collect(Collectors.toCollection(ArrayList::new)), Markers.EMPTY);
+        }
     }
 
     @lombok.Value
