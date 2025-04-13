@@ -14,10 +14,10 @@ public class StringUtil {
     }
 
     public static @NonNull String trim(String text, String cutset) {
-        if (text.startsWith(cutset) && text.endsWith(cutset)) {
+        if (text != null && text.length() > 1 && text.startsWith(cutset) && text.endsWith(cutset)) {
             text = text.substring(1, text.length() - 1);
         }
-        return text;
+        return text == null ? "" : text;
     }
 
     public static @NonNull String trim(String text, String prefix, String suffix) {

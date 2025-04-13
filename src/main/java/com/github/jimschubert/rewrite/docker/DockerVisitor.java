@@ -223,6 +223,13 @@ public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
         if (t instanceof Docker) {
             //noinspection unchecked
             t = visitAndCast((Docker) right.getElement(), p);
+        } else if (t instanceof Docker.KeyArgs) {
+            Docker.KeyArgs args = (Docker.KeyArgs) right.getElement();
+            //noinspection unchecked
+            t = (T)args.withPrefix(visitSpace(args.getPrefix(), p))
+                    .withKey(visitAndCast(args.getKey(), p))
+                    .withValue(visitAndCast(args.getValue(), p))
+                    .withQuoting(args.getQuoting());
         }
 
         setCursor(getCursor().getParent());

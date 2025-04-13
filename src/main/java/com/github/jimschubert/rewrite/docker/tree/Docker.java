@@ -99,7 +99,7 @@ public interface Docker extends Tree {
 
         public static Literal build(String text) {
             Quoting quoting = Quoting.UNQUOTED;
-            if (text != null) {
+            if (text != null && text.length() > 1) {
                 if (text.startsWith("'") && text.endsWith("'")) {
                     text = trimSingleQuotes(text);
                     quoting = Quoting.SINGLE_QUOTED;
@@ -109,6 +109,18 @@ public interface Docker extends Tree {
                 }
             }
             return new Literal(Tree.randomId(), quoting, Space.EMPTY, text, Space.EMPTY, Markers.EMPTY);
+        }
+
+        public static Literal prepend(String text, Literal literal) {
+            if (literal == null) {
+                return build(text);
+            }
+
+            if (text == null || text.isEmpty()) {
+                return literal;
+            }
+
+            return new Literal(Tree.randomId(), literal.getQuoting(), literal.getPrefix(), text + literal.getText(), literal.getTrailing(), literal.getMarkers());
         }
 
         public static Literal build(Quoting quoting, Space prefix, String text, Space trailing) {
@@ -433,27 +445,27 @@ public interface Docker extends Tree {
         }
 
         public String getKey() {
-            return directive.getElement().getKey();
+            return directive.getElement().key();
         }
 
         public Directive withKey(String key) {
-            if (same(directive.getElement().getKey(), key)) {
+            if (same(directive.getElement().key(), key)) {
                 return this;
             }
 
-            return this.withDirective(directive.map(d -> d.withKey(key)));
+            return this.withDirective(directive.map(d -> d.key(key)));
         }
 
         public Directive withValue(String value) {
-            if (same(directive.getElement().getValue(), value)) {
+            if (same(directive.getElement().value(), value)) {
                 return this;
             }
 
-            return this.withDirective(directive.map(d -> d.withValue(value)));
+            return this.withDirective(directive.map(d -> d.value(value)));
         }
 
         public String getValue() {
-            return directive.getElement().getValue();
+            return directive.getElement().value();
         }
 
         public String getFullDirective() {
@@ -465,7 +477,7 @@ public interface Docker extends Tree {
         }
 
         public static Directive build(String key, String value) {
-            return new Directive(Tree.randomId(), Space.EMPTY, DockerRightPadded.build(new KeyArgs(Space.build(" "), key, value, true, Quoting.UNQUOTED)), Markers.EMPTY);
+            return new Directive(Tree.randomId(), Space.EMPTY, DockerRightPadded.build(new KeyArgs(Space.build(" "), Literal.build(key),Literal.build(value), true, Quoting.UNQUOTED)), Markers.EMPTY);
         }
     }
 
@@ -549,7 +561,7 @@ public interface Docker extends Tree {
 
         public static Env build(String key, String value) {
             return new Env(Tree.randomId(), Space.EMPTY, List.of(
-                    DockerRightPadded.build(new KeyArgs(Space.build(" "), key, value, true, Quoting.UNQUOTED))
+                    DockerRightPadded.build(new KeyArgs(Space.build(" "), Literal.build(key), Literal.build(value), true, Quoting.UNQUOTED))
             ), Markers.EMPTY);
         }
 
@@ -827,7 +839,7 @@ public interface Docker extends Tree {
 
         public static Label build(String key, String value) {
             return new Label(Tree.randomId(), Space.EMPTY, List.of(
-                    DockerRightPadded.build(new KeyArgs(Space.build(" "), key, value, true, Quoting.UNQUOTED))
+                    DockerRightPadded.build(new KeyArgs(Space.build(" "), Literal.build(key), Literal.build(value), true, Quoting.UNQUOTED))
             ), Markers.EMPTY);
         }
 
@@ -1206,11 +1218,27 @@ public interface Docker extends Tree {
     class KeyArgs {
         Space prefix;
         @EqualsAndHashCode.Include(rank = 1000)
-        String key;
+        Literal key;
         @EqualsAndHashCode.Include(rank = 1000)
-        String value;
+        Literal value;
         boolean hasEquals;
         Quoting quoting;
+
+        public String key() {
+            return key.getText();
+        }
+
+        public String value() {
+            return value.getText();
+        }
+
+        public KeyArgs key(String key) {
+            return this.withKey(Literal.build(key));
+        }
+
+        public KeyArgs value(String value) {
+            return this.withValue(Literal.build(value));
+        }
 
         public static KeyArgs build(String key, String value) {
             return build(key, value, true);
@@ -1218,12 +1246,12 @@ public interface Docker extends Tree {
 
         public static KeyArgs build(String key, String value, boolean hasEquals) {
             if (value != null && value.startsWith("\"") && value.endsWith("\"")) {
-                return new KeyArgs(Space.build(" "), key, trimDoubleQuotes(value), hasEquals, Quoting.DOUBLE_QUOTED);
+                return new KeyArgs(Space.build(" "), Literal.build(key), Literal.build(trimDoubleQuotes(value)), hasEquals, Quoting.DOUBLE_QUOTED);
             } else if (value != null && value.startsWith("'")) {
-                return new KeyArgs(Space.build(" "), key, trimSingleQuotes(value), hasEquals, Quoting.SINGLE_QUOTED);
+                return new KeyArgs(Space.build(" "), Literal.build(key), Literal.build(trimSingleQuotes(value)), hasEquals, Quoting.SINGLE_QUOTED);
             }
 
-            return new KeyArgs(Space.build(" "), key, value, hasEquals, Quoting.UNQUOTED);
+            return new KeyArgs(Space.build(" "), Literal.build(key), Literal.build(value), hasEquals, Quoting.UNQUOTED);
         }
     }
 

@@ -272,18 +272,18 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
             return null;
         }
         visitSpace(keyArgs.getPrefix(), p);
-        if (keyArgs.getKey() != null && !keyArgs.getKey().isEmpty()) {
-            p.append(keyArgs.getKey());
+        if (keyArgs.key() != null && !keyArgs.key().isEmpty()) {
+            visitLiteral(keyArgs.getKey(), p);
         }
         if (keyArgs.isHasEquals()) {
             p.append("=");
         }
         if (keyArgs.getQuoting() == Quoting.SINGLE_QUOTED) {
-            p.append("'").append(keyArgs.getValue()).append("'");
+            p.append("'").append(keyArgs.value()).append("'");
         } else if (keyArgs.getQuoting() == Quoting.DOUBLE_QUOTED) {
-            p.append("\"").append(keyArgs.getValue()).append("\"");
+            p.append("\"").append(keyArgs.value()).append("\"");
         } else {
-            p.append(keyArgs.getValue());
+            visitLiteral(keyArgs.getValue(), p);
         }
         return keyArgs;
     }
@@ -344,8 +344,8 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         for (DockerRightPadded<Docker.KeyArgs> padded : env.getArgs()) {
             Docker.KeyArgs kvp = padded.getElement();
             visitSpace(kvp.getPrefix(), p);
-            p.append(kvp.getKey());
-            if (kvp.getValue() != null && !kvp.getValue().isEmpty()) {
+            p.append(kvp.key());
+            if (kvp.value() != null && !kvp.value().isEmpty()) {
                 if (kvp.isHasEquals()) {
                     p.append("=");
                 } else {
@@ -353,7 +353,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
                 }
 
                 visitQuoting(kvp.getQuoting(), p);
-                p.append(kvp.getValue());
+                p.append(kvp.value());
                 visitQuoting(kvp.getQuoting(), p);
             }
 
@@ -564,8 +564,8 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         if (healthcheck.getOptions() != null) {
             healthcheck.getOptions().forEach(o -> {
                 Docker.KeyArgs arg = o.getElement();
-                if (!arg.getKey().startsWith("--")) {
-                    arg = new Docker.KeyArgs(arg.getPrefix(), "--" + arg.getKey(), arg.getValue(), arg.isHasEquals(), arg.getQuoting());
+                if (!arg.key().startsWith("--")) {
+                    arg = new Docker.KeyArgs(arg.getPrefix(), Docker.Literal.prepend("--", arg.getKey()), arg.getValue(), arg.isHasEquals(), arg.getQuoting());
                 }
                 visitKeyArgs(arg, p);
                 visitSpace(o.getAfter(), p);

@@ -46,6 +46,6 @@ public class ParserUtils {
                 value = value.substring(1, value.length() - 1);
             }
         }
-        return new Docker.KeyArgs(stringWithPadding.prefix(), key, value, EQUAL.equals(delim), q);
+        return new Docker.KeyArgs(stringWithPadding.prefix(), Docker.Literal.build(key), Docker.Literal.build(value), EQUAL.equals(delim), q);
     }
 }

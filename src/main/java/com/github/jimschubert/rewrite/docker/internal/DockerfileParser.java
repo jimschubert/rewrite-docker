@@ -412,7 +412,7 @@ public class DockerfileParser {
 
             return new Docker.Directive(Tree.randomId(), state.prefix(),
                     new DockerRightPadded<>(
-                            new Docker.KeyArgs(stringWithPadding.prefix(), key, value, true, quoting),
+                            new Docker.KeyArgs(stringWithPadding.prefix(), Docker.Literal.build(key), Docker.Literal.build(value), true, quoting),
                             state.rightPadding(),
                             Markers.EMPTY
                     ),
@@ -428,7 +428,7 @@ public class DockerfileParser {
             Docker.Literal signal = null;
             if (!args.isEmpty()) {
                 DockerRightPadded<Docker.KeyArgs> arg = args.get(0);
-                signal = Docker.Literal.build(Quoting.UNQUOTED, arg.getElement().getPrefix(), arg.getElement().getKey(), arg.getAfter());
+                signal = Docker.Literal.build(Quoting.UNQUOTED, arg.getElement().getPrefix(), arg.getElement().key(), arg.getAfter());
             }
 
             return new Docker.StopSignal(Tree.randomId(), state.prefix(), signal, Markers.EMPTY);

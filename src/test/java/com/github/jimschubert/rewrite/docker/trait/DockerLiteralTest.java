@@ -49,7 +49,7 @@ class DockerLiteralTest implements RewriteTest {
                   FROM openjdk:21-jdk-slim
                   
                   # Set environment variables for Java paths
-                  ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+                  ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
                   ENV PATH=$JAVA_HOME/bin:$PATH
                   
                   # Example RUN commands using hard-coded Java paths

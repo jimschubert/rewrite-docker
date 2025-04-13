@@ -49,12 +49,12 @@ public class DockerParserHelpers {
                 "Expected Directive to have an element but was null");
         assertEquals(expectedAfter, value.getAfter().getWhitespace(),
                 "Expected Directive to have trailing whitespace '" + expectedAfter + "' but was '" + value.getAfter().getWhitespace() + "'");
-        assertEquals(expectedKey, value.getElement().getKey(),
-                "Expected Directive key to be '" + expectedKey + "' but was '" + value.getElement().getKey() + "'");
+        assertEquals(expectedKey, value.getElement().key(),
+                "Expected Directive key to be '" + expectedKey + "' but was '" + value.getElement().key() + "'");
         assertEquals(hasEquals, value.getElement().isHasEquals(),
                 "Expected Directive hasEquals to be '" + hasEquals + "' but was '" + value.getElement().isHasEquals() + "'");
-        assertEquals(expectedValue, value.getElement().getValue(),
-                "Expected Directive value to be '" + expectedValue + "' but was '" + value.getElement().getValue() + "'");
+        assertEquals(expectedValue, value.getElement().value(),
+                "Expected Directive value to be '" + expectedValue + "' but was '" + value.getElement().value() + "'");
         assertEquals(expectedPrefix, value.getElement().getPrefix().getWhitespace(),
                 "Expected Directive prefix whitespace to be '" + expectedPrefix + "' but was '" + value.getElement().getPrefix().getWhitespace() + "'");
     }
@@ -82,12 +82,12 @@ public class DockerParserHelpers {
         assertEquals(expectedPrefix, value.getPrefix().getWhitespace(),
                 "Expected KeyArgs prefix whitespace to be '" + expectedPrefix + "' but was '" + value.getPrefix().getWhitespace() + "'");
 
-        assertEquals(expectedKey, value.getKey(),
-                "Expected KeyArgs key to be '" + expectedKey + "' but was '" + value.getKey() + "'");
+        assertEquals(expectedKey, value.key(),
+                "Expected KeyArgs key to be '" + expectedKey + "' but was '" + value.key() + "'");
         assertEquals(hasEquals, value.isHasEquals(),
                 "Expected KeyArgs hasEquals to be '" + hasEquals + "' but was '" + value.isHasEquals() + "'");
-        assertEquals(expectedValue, value.getValue(),
-                "Expected KeyArgs value to be '" + expectedValue + "' but was '" + value.getValue() + "'");
+        assertEquals(expectedValue, value.value(),
+                "Expected KeyArgs value to be '" + expectedValue + "' but was '" + value.value() + "'");
         assertEquals(expectedQuoting, value.getQuoting(),
                 "Expected KeyArgs quoting to be '" + expectedQuoting + "' but was '" + value.getQuoting() + "'");
     }
