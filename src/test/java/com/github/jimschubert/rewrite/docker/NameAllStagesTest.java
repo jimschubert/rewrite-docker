@@ -23,7 +23,7 @@ class NameAllStagesTest implements RewriteTest {
     @Test
     void nameAllStages() {
         rewriteRun(
-                spec -> spec.recipe(new NameAllStages()).expectedCyclesThatMakeChanges(2),
+                spec -> spec.recipe(new NameAllStages()),
                 dockerfile(
                         """
                         # Stage 1: Build dependencies
@@ -60,6 +60,56 @@ class NameAllStagesTest implements RewriteTest {
                         # Stage 3: Run tests
                         FROM ubuntu:20.04 AS stage2
                         COPY --from=stage1 /stage2_complete.txt /stage3.txt
+                        RUN echo "Stage 3 complete" > /stage3_complete.txt
+                        
+                        # Final Stage: Create runtime image
+                        FROM ubuntu:20.04
+                        COPY --from=stage2 /stage3_complete.txt /final_stage.txt
+                        CMD ["cat", "/final_stage.txt"]
+                        """)
+        );
+    }
+
+    @Test
+    void nameAllStagesMixed() {
+        rewriteRun(
+                spec -> spec.recipe(new NameAllStages()),
+                dockerfile(
+                        """
+                        # Stage 1: Build dependencies
+                        FROM ubuntu:20.04
+                        RUN apt-get update && apt-get install -y build-essential
+                        RUN echo "Stage 1 complete" > /stage1.txt
+                        
+                        # Stage 2: Build application
+                        FROM ubuntu:20.04 AS second
+                        COPY --from=0 /stage1.txt /stage2.txt
+                        RUN echo "Stage 2 complete" > /stage2_complete.txt
+                        
+                        # Stage 3: Run tests
+                        FROM ubuntu:20.04
+                        COPY --from=second /stage2_complete.txt /stage3.txt
+                        RUN echo "Stage 3 complete" > /stage3_complete.txt
+                        
+                        # Final Stage: Create runtime image
+                        FROM ubuntu:20.04
+                        COPY --from=2 /stage3_complete.txt /final_stage.txt
+                        CMD ["cat", "/final_stage.txt"]
+                        """,
+                        """
+                        # Stage 1: Build dependencies
+                        FROM ubuntu:20.04 AS stage0
+                        RUN apt-get update && apt-get install -y build-essential
+                        RUN echo "Stage 1 complete" > /stage1.txt
+                        
+                        # Stage 2: Build application
+                        FROM ubuntu:20.04 AS second
+                        COPY --from=stage0 /stage1.txt /stage2.txt
+                        RUN echo "Stage 2 complete" > /stage2_complete.txt
+                        
+                        # Stage 3: Run tests
+                        FROM ubuntu:20.04 AS stage2
+                        COPY --from=second /stage2_complete.txt /stage3.txt
                         RUN echo "Stage 3 complete" > /stage3_complete.txt
                         
                         # Final Stage: Create runtime image

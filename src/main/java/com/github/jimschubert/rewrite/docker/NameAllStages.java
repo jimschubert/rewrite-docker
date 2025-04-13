@@ -59,7 +59,7 @@ public class NameAllStages extends Recipe {
                 Docker.Stage stage = Objects.requireNonNull(getCursor().getParent()).firstEnclosing(Docker.Stage.class);
                 if (stage != null && stage.getMarkers() != null && stage.getMarkers().findFirst(Counter.class).isPresent()) {
                     Counter counter = stage.getMarkers().findFirst(Counter.class).get();
-                    if (!counter.isLast) {
+                    if (!counter.isLast && (from.getAlias().getElement().getText() == null || from.getAlias().getElement().getText().isEmpty())) {
                         return from.alias("stage" + counter.index);
                     }
                 }
