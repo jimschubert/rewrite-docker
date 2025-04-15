@@ -17,7 +17,7 @@ package com.github.jimschubert.rewrite.docker;
 
 import com.github.jimschubert.rewrite.docker.tree.Docker;
 import org.intellij.lang.annotations.Language;
-import org.openrewrite.internal.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.test.SourceSpec;
 import org.openrewrite.test.SourceSpecs;
 
