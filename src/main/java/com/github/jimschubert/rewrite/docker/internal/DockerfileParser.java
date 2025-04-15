@@ -645,6 +645,14 @@ public class DockerfileParser {
                 }
 
                 line = handleRightPadding(line, parser);
+
+                // TODO: consider a better way to handle "inline" comments
+                if (state.isContinuation() && line.startsWith("#"))  {
+                    parser.append(line);
+                    parser.append(NEWLINE);
+                    continue;
+                }
+
                 line = handleInstructionType(line, parser, state);
                 line = handleHeredoc(line, parser, scanner);
 

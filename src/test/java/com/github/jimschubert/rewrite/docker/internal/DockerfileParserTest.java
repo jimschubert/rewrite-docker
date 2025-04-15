@@ -1224,4 +1224,38 @@ class DockerfileParserTest {
         assertRightPaddedLiteral(cmd.getCommands().get(1), Quoting.DOUBLE_QUOTED, " ", "/final_stage.txt", "", "");
         assertEquals(" ", cmd.getExecFormPrefix().getWhitespace());
     }
+
+    @Test
+    void testDockerfileWithCommentBetweenContinuationLines() {
+        DockerfileParser parser = new DockerfileParser();
+        Docker.Document doc = parser.parse(new ByteArrayInputStream(
+                """
+                RUN echo Hello World \\
+                # This is a comment
+                && echo Goodbye World
+                """.getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
+
+        Docker.Run cmd = (Docker.Run) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, cmd.getPrefix());
+
+        List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
+        assertEquals(11, args.size());
+
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "echo", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "Hello", "", "");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, " ", "World", "", " \\\n");
+        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, "", "#", "", "");
+        assertRightPaddedLiteral(args.get(4), Quoting.UNQUOTED, " ", "This", "", "");
+        assertRightPaddedLiteral(args.get(5), Quoting.UNQUOTED, " ", "is", "", "");
+        assertRightPaddedLiteral(args.get(6), Quoting.UNQUOTED, " ", "a", "", "");
+
+        // TODO: this should be two separate literals
+        assertRightPaddedLiteral(args.get(7), Quoting.UNQUOTED, " ", "comment\n&&", "", "");
+        assertRightPaddedLiteral(args.get(8), Quoting.UNQUOTED, " ", "echo", "", "");
+        assertRightPaddedLiteral(args.get(9), Quoting.UNQUOTED, " ", "Goodbye", "", "");
+        assertRightPaddedLiteral(args.get(10), Quoting.UNQUOTED, " ", "World", "", "");
+
+    }
 }
