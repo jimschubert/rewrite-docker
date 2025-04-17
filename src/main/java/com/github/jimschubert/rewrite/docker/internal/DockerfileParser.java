@@ -632,7 +632,7 @@ public class DockerfileParser {
                     continue;
                 }
 
-                line = handleLeadingWhitespace(line, parser);
+                line = handleLeadingWhitespace(line, state);
                 if (line.isEmpty()) {
                     eof = Space.append(eof, Space.build(NEWLINE));
                     continue;
@@ -644,7 +644,7 @@ public class DockerfileParser {
                     eof = Space.EMPTY;
                 }
 
-                line = handleRightPadding(line, parser);
+                line = handleRightPadding(line, state);
 
                 // TODO: consider a better way to handle "inline" comments
                 if (state.isContinuation() && line.startsWith("#"))  {
@@ -721,7 +721,7 @@ public class DockerfileParser {
         return heredocContent.toString();
     }
 
-    private String handleLeadingWhitespace(String line, InstructionParser parser) {
+    private static String handleLeadingWhitespace(String line, ParserState state) {
         // drain the line of any leading whitespace, storing in parser.addPrefix, then inspect the first "word" to determine the instruction type
         while (line.startsWith(SPACE) || line.startsWith(TAB)) {
             state.appendPrefix(Space.build(line.substring(0, 1)));
@@ -730,7 +730,7 @@ public class DockerfileParser {
         return line;
     }
 
-    private String handleRightPadding(String line, InstructionParser parser) {
+    private static String handleRightPadding(String line, ParserState state) {
         int idx = line.length() - 1;
         // walk line backwards to find the last non-whitespace character
         for (int i = line.length() - 1; i >= 0; i--) {
@@ -748,7 +748,7 @@ public class DockerfileParser {
         return line;
     }
 
-    private void handleDirectiveSpecialCase(String line, InstructionParser parser) {
+    private static void handleDirectiveSpecialCase(String line, InstructionParser parser) {
         String lower = line.toLowerCase().trim();
         // hack: if comment is a directive, change the type accordingly
         // directives are used so rarely that I don't care to make this much more robust atm
