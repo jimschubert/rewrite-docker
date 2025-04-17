@@ -49,11 +49,11 @@ public class DockerParserHelpers {
         assertNotNull(value.getElement(),
                 "Expected Comment to have an element but was null");
         assertEquals(expectedAfter, value.getAfter().getWhitespace(),
-                "Expected Comment to have trailing whitespace '" + expectedAfter + "' but was '" + value.getAfter().getWhitespace() + "'");
+                "Expected Comment to have trailing whitespace '" + printableWhiteSpace(expectedAfter) + "' but was '" + printableWhiteSpace(value.getAfter().getWhitespace()) + "'");
         assertEquals(expectedText, value.getElement().getText(),
                 "Expected Comment text to be '" + expectedText + "' but was '" + value.getElement().getText() + "'");
         assertEquals(expectedPrefix, value.getElement().getPrefix().getWhitespace(),
-                "Expected Comment prefix whitespace to be '" + expectedPrefix + "' but was '" + value.getElement().getPrefix().getWhitespace() + "'");
+                "Expected Comment prefix whitespace to be '" + printableWhiteSpace(expectedPrefix) + "' but was '" + printableWhiteSpace(value.getElement().getPrefix().getWhitespace()) + "'");
     }
 
     public static void assertDirective(Docker.Directive directive, String expectedPrefix, String expectedKey, boolean hasEquals, String expectedValue, String expectedAfter) {
@@ -62,7 +62,7 @@ public class DockerParserHelpers {
         assertNotNull(value.getElement(),
                 "Expected Directive to have an element but was null");
         assertEquals(expectedAfter, value.getAfter().getWhitespace(),
-                "Expected Directive to have trailing whitespace '" + expectedAfter + "' but was '" + value.getAfter().getWhitespace() + "'");
+                "Expected Directive to have trailing whitespace '" + printableWhiteSpace(expectedAfter) + "' but was '" + printableWhiteSpace(value.getAfter().getWhitespace()) + "'");
         assertEquals(expectedKey, value.getElement().key(),
                 "Expected Directive key to be '" + expectedKey + "' but was '" + value.getElement().key() + "'");
         assertEquals(hasEquals, value.getElement().isHasEquals(),
@@ -70,7 +70,7 @@ public class DockerParserHelpers {
         assertEquals(expectedValue, value.getElement().value(),
                 "Expected Directive value to be '" + expectedValue + "' but was '" + value.getElement().value() + "'");
         assertEquals(expectedPrefix, value.getElement().getPrefix().getWhitespace(),
-                "Expected Directive prefix whitespace to be '" + expectedPrefix + "' but was '" + value.getElement().getPrefix().getWhitespace() + "'");
+                "Expected Directive prefix whitespace to be '" + printableWhiteSpace(expectedPrefix) + "' but was '" + printableWhiteSpace(value.getElement().getPrefix().getWhitespace()) + "'");
     }
 
     public static void assertRightPaddedArg(
@@ -87,14 +87,14 @@ public class DockerParserHelpers {
         assertKeyArgs(value.getElement(), expectedQuoting, expectedPrefix, expectedKey, hasEquals, expectedValue);
 
         assertEquals(expectedAfter, value.getAfter().getWhitespace(),
-                "Expected KeyArgs to have trailing whitespace '" + expectedAfter + "' but was '" + value.getAfter().getWhitespace() + "'");
+                "Expected KeyArgs to have trailing whitespace '" + printableWhiteSpace(expectedAfter) + "' but was '" + printableWhiteSpace(value.getAfter().getWhitespace()) + "'");
     }
 
     public static void assertKeyArgs(Docker.KeyArgs value, Quoting expectedQuoting, String expectedPrefix, String expectedKey, boolean hasEquals, String expectedValue) {
         assertNotNull(value, "Expected KeyArgs to have an element but was null");
 
         assertEquals(expectedPrefix, value.getPrefix().getWhitespace(),
-                "Expected KeyArgs prefix whitespace to be '" + expectedPrefix + "' but was '" + value.getPrefix().getWhitespace() + "'");
+                "Expected KeyArgs prefix whitespace to be '" + printableWhiteSpace(expectedPrefix) + "' but was '" + (value.getPrefix().getWhitespace()) + "'");
 
         assertEquals(expectedKey, value.key(),
                 "Expected KeyArgs key to be '" + expectedKey + "' but was '" + value.key() + "'");
@@ -116,7 +116,7 @@ public class DockerParserHelpers {
                 "Expected DockerRightPadded to have an element but was null");
         assertLiteral(value.getElement(), expectedQuoting, expectedPrefix, expectedText, expectedTrailing);
         assertEquals(expectedAfter, value.getAfter().getWhitespace(),
-                "Expected DockerRightPadded to have trailing whitespace '" + expectedAfter + "' but was '" + value.getAfter().getWhitespace() + "'");
+                "Expected DockerRightPadded to have trailing whitespace '" + printableWhiteSpace(expectedAfter) + "' but was '" + printableWhiteSpace(value.getAfter().getWhitespace()) + "'");
     }
 
     public static void assertRightPaddedOption(
@@ -131,7 +131,7 @@ public class DockerParserHelpers {
                 "Expected DockerRightPadded to have an element but was null");
         assertOption(value.getElement(), expectedQuoting, expectedPrefix, expectedKey, expectedEqualsSign, expectedValue);
         assertEquals(expectedAfter, value.getAfter().getWhitespace(),
-                "Expected DockerRightPadded to have trailing whitespace '" + expectedAfter + "' but was '" + value.getAfter().getWhitespace() + "'");
+                "Expected DockerRightPadded to have trailing whitespace '" + printableWhiteSpace(expectedAfter) + "' but was '" + printableWhiteSpace(value.getAfter().getWhitespace()) + "'");
     }
 
     public static void assertLiteral(
@@ -143,7 +143,7 @@ public class DockerParserHelpers {
         assertEquals(expectedText, value.getText(),
                 "Expected Literal text to be '" + expectedText + "' but was '" + value.getText() + "'");
         assertEquals(expectedPrefix, value.getPrefix().getWhitespace(),
-                "Expected Literal prefix whitespace to be '" + expectedPrefix + "' but was '" + value.getPrefix().getWhitespace() + "'");
+                "Expected Literal prefix whitespace to be '" + printableWhiteSpace(expectedPrefix) + "' but was '" + printableWhiteSpace(value.getPrefix().getWhitespace()) + "'");
         assertEquals(expectedQuoting, value.getQuoting(),
                 "Expected Literal quoting to be '" + expectedQuoting + "' but was '" + value.getQuoting() + "'");
         assertEquals(expectedTrailing, value.getTrailing().getWhitespace(),
@@ -157,7 +157,11 @@ public class DockerParserHelpers {
             boolean expectedEqualsSign,
             String expectedValue) {
         assertEquals(expectedPrefix, value.getPrefix().getWhitespace(),
-                "Expected Option prefix whitespace to be '" + expectedPrefix + "' but was '" + value.getPrefix().getWhitespace() + "'");
+                "Expected Option prefix whitespace to be '" + printableWhiteSpace(expectedPrefix) + "' but was '" + printableWhiteSpace(value.getPrefix().getWhitespace()) + "'");
         assertKeyArgs(value.getKeyArgs(), expectedQuoting, "", expectedKey, expectedEqualsSign, expectedValue);
+    }
+
+    public static String printableWhiteSpace(String whitespace) {
+        return whitespace.replaceAll(" ", "·").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "→");
     }
 }
