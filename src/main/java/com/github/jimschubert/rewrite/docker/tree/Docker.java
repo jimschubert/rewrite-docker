@@ -164,6 +164,8 @@ public interface Docker extends Tree {
 
         Markers markers;
 
+        Space trailing;
+
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitOption(this, p);
@@ -176,11 +178,11 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Option(Tree.randomId(), prefix, keyArgs, markers == null ? Markers.EMPTY : Markers.build(markers.getMarkers()));
+            return new Option(Tree.randomId(), prefix, keyArgs, markers == null ? Markers.EMPTY : Markers.build(markers.getMarkers()), trailing);
         }
 
         public static Option build(String key, String value) {
-            return new Option(Tree.randomId(), Space.EMPTY, KeyArgs.build(key, value).withHasEquals(true), Markers.EMPTY);
+            return new Option(Tree.randomId(), Space.EMPTY, KeyArgs.build(key, value).withHasEquals(true), Markers.EMPTY, Space.EMPTY);
         }
     }
 
@@ -1003,8 +1005,8 @@ public interface Docker extends Tree {
 
         Space prefix;
 
-        List<DockerRightPadded<Option>> options;
-        List<DockerRightPadded<Literal>> commands;
+        List<Option> options;
+        List<Literal> commands;
 
         Markers markers;
         Space eol;
@@ -1030,7 +1032,6 @@ public interface Docker extends Tree {
                     null,
                     Arrays.stream(commands)
                             .map(s -> Literal.build(s).withPrefix(Space.build(" ")))
-                            .map(DockerRightPadded::build)
                             .collect(Collectors.toList()),
                     Markers.EMPTY,
                     Space.build("\n"));

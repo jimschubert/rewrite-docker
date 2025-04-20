@@ -360,12 +360,11 @@ public class DockerfileParser {
 
                 String value = literal.getElement().getText();
                 if (value.startsWith("--")) {
-                    // TODO: literal.getAfter()?
                     options.add(0, new Docker.Option(
                             Tree.randomId(),
                             literal.getElement().getPrefix(),
                             stringToKeyArgs(literal.getElement().getText()),
-                            Markers.EMPTY));
+                            Markers.EMPTY, literal.getAfter()));
                 } else {
                     sources.add(0, literal.getElement().withTrailing(Space.append(literal.getElement().getTrailing(), literal.getAfter())));
                 }
@@ -597,21 +596,21 @@ public class DockerfileParser {
         private Docker.@NotNull Run parseRun() {
             // TODO: Run allows for JSON array syntax (exec form)
             List<DockerRightPadded<Docker.Literal>> literals = parseLiterals(instruction.toString());
-            List<DockerRightPadded<Docker.Option>> options = new ArrayList<>();
-            List<DockerRightPadded<Docker.Literal>> commands = new ArrayList<>();
+            List<Docker.Option> options = new ArrayList<>();
+            List<Docker.Literal> commands = new ArrayList<>();
 
             boolean doneWithOptions = false;
             for (DockerRightPadded<Docker.Literal> literal : literals) {
                 String value = literal.getElement().getText();
                 if (!doneWithOptions && (value.startsWith("--mount") || value.startsWith("--network") || value.startsWith("--security"))) {
-                    options.add(DockerRightPadded.build(new Docker.Option(
+                    options.add(new Docker.Option(
                             Tree.randomId(),
                             literal.getElement().getPrefix(),
                             stringToKeyArgs(literal.getElement().getText()),
-                            Markers.EMPTY)).withAfter(literal.getAfter()));
+                            Markers.EMPTY, literal.getAfter()));
                 } else {
                     doneWithOptions = true;
-                    commands.add(literal);
+                    commands.add(literal.getElement().withTrailing(Space.append(literal.getElement().getTrailing(), literal.getAfter())));
                 }
             }
 
