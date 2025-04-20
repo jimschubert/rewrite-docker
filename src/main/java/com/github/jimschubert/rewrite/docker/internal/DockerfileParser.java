@@ -419,7 +419,10 @@ public class DockerfileParser {
                 return new Docker.Workdir(Tree.randomId(), state.prefix(), lit.isEmpty() ? null : lit.get(0).getElement(), Markers.EMPTY, Space.EMPTY);
             }
 
-            return new Docker.Entrypoint(Tree.randomId(), form, state.prefix(), execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY, Space.EMPTY);
+            return new Docker.Entrypoint(Tree.randomId(), form, state.prefix(), execFormPrefix,
+                    parseLiterals(form, content).stream()
+                            .map(d -> d.getElement().withTrailing(Space.append(d.getElement().getTrailing(), d.getAfter())))
+                            .collect(Collectors.toList()), execFormSuffix, Markers.EMPTY, Space.EMPTY);
         }
 
         private Docker.@NotNull Comment parseComment() {

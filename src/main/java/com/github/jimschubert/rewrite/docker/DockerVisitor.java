@@ -137,7 +137,7 @@ public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
                 .withForm(entrypoint.getForm())
                 .withPrefix(visitSpace(entrypoint.getPrefix(), p))
                 .withExecFormPrefix(visitSpace(entrypoint.getExecFormPrefix(), p))
-                .withCommands(ListUtils.map(entrypoint.getCommands(), c -> visitDockerRightPadded(c, p)))
+                .withCommands(ListUtils.map(entrypoint.getCommands(), c -> visitAndCast(c, p)))
                 .withExecFormSuffix(visitSpace(entrypoint.getExecFormSuffix(), p))
                 .withMarkers(visitMarkers(entrypoint.getMarkers(), p));
     }

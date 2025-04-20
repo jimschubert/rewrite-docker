@@ -433,23 +433,22 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
             p.append("[");
         }
 
-        List<DockerRightPadded<Docker.Literal>> commands = entrypoint.getCommands();
+        List<Docker.Literal> commands = entrypoint.getCommands();
         for (int i = 0; i < commands.size(); i++) {
-            DockerRightPadded<Docker.Literal> padded = commands.get(i);
+            Docker.Literal padded = commands.get(i);
 
             if (entrypoint.getForm() == Form.SHELL
                 && i > 0
                 && i < commands.size() - 1
-                && "".equals(padded.getElement().getPrefix().getWhitespace())) {
+                && "".equals(padded.getPrefix().getWhitespace())) {
                 p.append(" ");
             }
 
-            visitDockerRightPaddedLiteral(padded, p);
+            visitLiteral(padded, p);
 
             if (i < commands.size() - 1 && entrypoint.getForm() == Form.EXEC) {
                 p.append(",");
             }
-            visitSpace(padded.getAfter(), p);
         }
         if (entrypoint.getForm() == Form.EXEC) {
             p.append("]");

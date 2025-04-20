@@ -197,11 +197,11 @@ class DockerfileParserTest {
         Docker.Entrypoint entrypoint = (Docker.Entrypoint) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, entrypoint.getPrefix());
 
-        List<DockerRightPadded<Docker.Literal>> args = entrypoint.getCommands();
+        List<Docker.Literal> args = entrypoint.getCommands();
         assertEquals(2, args.size());
 
-        assertRightPaddedLiteral(args.get(0), Quoting.DOUBLE_QUOTED, " ", "echo", "", "");
-        assertRightPaddedLiteral(args.get(1), Quoting.DOUBLE_QUOTED, " ", "Hello World", " ", "");
+        assertLiteral(args.get(0), Quoting.DOUBLE_QUOTED, " ", "echo", "");
+        assertLiteral(args.get(1), Quoting.DOUBLE_QUOTED, " ", "Hello World", " ");
 
         assertEquals("   ", entrypoint.getExecFormSuffix().getWhitespace());
     }
@@ -216,12 +216,12 @@ class DockerfileParserTest {
         Docker.Entrypoint entrypoint = (Docker.Entrypoint) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, entrypoint.getPrefix());
 
-        List<DockerRightPadded<Docker.Literal>> args = entrypoint.getCommands();
+        List<Docker.Literal> args = entrypoint.getCommands();
         assertEquals(3, args.size());
 
-        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "echo", "", "");
-        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "Hello", "", "");
-        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, " ", "World", "", "   ");
+        assertLiteral(args.get(0), Quoting.UNQUOTED, " ", "echo", "");
+        assertLiteral(args.get(1), Quoting.UNQUOTED, " ", "Hello",  "");
+        assertLiteral(args.get(2), Quoting.UNQUOTED, " ", "World",  "   ");
     }
 
     @Test
@@ -234,10 +234,10 @@ class DockerfileParserTest {
         Docker.Entrypoint entrypoint = (Docker.Entrypoint) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, entrypoint.getPrefix());
 
-        List<DockerRightPadded<Docker.Literal>> args = entrypoint.getCommands();
+        List<Docker.Literal> args = entrypoint.getCommands();
         assertEquals(1, args.size());
 
-        assertRightPaddedLiteral(args.get(0), Quoting.DOUBLE_QUOTED, " ", "echo Hello World", "", "   ");
+        assertLiteral(args.get(0), Quoting.DOUBLE_QUOTED, " ", "echo Hello World",  "   ");
     }
 
     @Test
@@ -984,8 +984,8 @@ class DockerfileParserTest {
         assertEquals(Space.EMPTY, entryPoint.getPrefix());
         assertEquals(2, entryPoint.getCommands().size());
         assertEquals(Form.EXEC, entryPoint.getForm());
-        assertRightPaddedLiteral(entryPoint.getCommands().get(0), Quoting.DOUBLE_QUOTED, " ", "echo", "", "");
-        assertRightPaddedLiteral(entryPoint.getCommands().get(1), Quoting.DOUBLE_QUOTED, " ", "Hello", " ", "");
+        assertLiteral(entryPoint.getCommands().get(0), Quoting.DOUBLE_QUOTED, " ", "echo", "");
+        assertLiteral(entryPoint.getCommands().get(1), Quoting.DOUBLE_QUOTED, " ", "Hello", " ");
         assertEquals(" ", entryPoint.getExecFormPrefix().getWhitespace());
         assertEquals("", entryPoint.getExecFormSuffix().getWhitespace());
 
