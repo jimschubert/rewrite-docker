@@ -206,8 +206,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         }
 
         for (int i = 0; i < cmd.getCommands().size(); i++) {
-            DockerRightPadded<Docker.Literal> padded = cmd.getCommands().get(i);
-            Docker.Literal literal = padded.getElement();
+            Docker.Literal literal = cmd.getCommands().get(i);
             String text = literal.getText();
             visitSpace(literal.getPrefix(), p);
 
@@ -220,7 +219,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
             } else {
                 p.append(text);
             }
-            visitSpace(padded.getAfter(), p);
+            visitSpace(literal.getTrailing(), p);
         }
 
         if (form == Form.EXEC) {

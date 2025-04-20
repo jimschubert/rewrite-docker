@@ -406,7 +406,10 @@ public class DockerfileParser {
             }
 
             if (name.equals(Docker.Cmd.class.getSimpleName())) {
-                return new Docker.Cmd(Tree.randomId(), form, state.prefix(), execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY, Space.EMPTY);
+                return new Docker.Cmd(Tree.randomId(), form, state.prefix(), execFormPrefix,
+                        parseLiterals(form, content).stream()
+                                .map(d -> d.getElement().withTrailing(Space.append(d.getElement().getTrailing(), d.getAfter())))
+                                .collect(Collectors.toList()), execFormSuffix, Markers.EMPTY, Space.EMPTY);
             } else if (name.equals(Docker.Shell.class.getSimpleName())) {
                 return new Docker.Shell(Tree.randomId(), state.prefix(), execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY, Space.EMPTY);
             } else if (name.equals(Docker.Volume.class.getSimpleName())) {
