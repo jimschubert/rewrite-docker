@@ -277,13 +277,9 @@ class DockerfilePrinterTest {
                                         Docker.Option.build("--keep-git-dir", "false"))
                         ),
                         List.of(
-                                DockerRightPadded.build(
-                                        Docker.Literal.build("https://example.com/archive.zip").withPrefix(Space.build(" "))
-                                )
+                            Docker.Literal.build("https://example.com/archive.zip").withPrefix(Space.build(" "))
                         ),
-                        DockerRightPadded.build(
-                                Docker.Literal.build("/usr/src/things/").withPrefix(Space.build(" ")
-                            )
+                            Docker.Literal.build("/usr/src/things/").withPrefix(Space.build(" ")
                         ),
                         Markers.EMPTY,
                         Space.build("\n")

@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static com.github.jimschubert.rewrite.docker.internal.ParserConstants.*;
 import static com.github.jimschubert.rewrite.docker.internal.ParserUtils.stringToKeyArgs;
@@ -370,7 +371,13 @@ public class DockerfileParser {
             }
 
             if (name.equals(Docker.Add.class.getSimpleName())) {
-                return new Docker.Add(Tree.randomId(), state.prefix(), options, sources, destination, Markers.EMPTY, Space.EMPTY);
+                return new Docker.Add(Tree.randomId(), state.prefix(), options,
+                        sources.stream().map(l -> {
+                            Docker.Literal lit = l.getElement();
+                            return lit.withTrailing(Space.append(lit.getTrailing(), l.getAfter()));
+                        }).collect(Collectors.toList()),
+                        destination == null ? null : destination.getElement().withTrailing(Space.append(destination.getElement().getTrailing(), destination.getAfter())),
+                        Markers.EMPTY, Space.EMPTY);
             }
 
             return new Docker.Copy(Tree.randomId(), state.prefix(), options, sources, destination, Markers.EMPTY, Space.EMPTY);

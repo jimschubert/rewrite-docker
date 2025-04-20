@@ -389,11 +389,11 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
 
         if (add.getSources() != null) {
             for (int i = 0; i < add.getSources().size(); i++) {
-                visitDockerRightPaddedLiteral(add.getSources().get(i), p);
+                visitLiteral(add.getSources().get(i), p);
             }
         }
 
-        visitDockerRightPaddedLiteral(add.getDestination(), p);
+        visitLiteral(add.getDestination(), p);
 
         afterSyntax(add, p);
         return add;

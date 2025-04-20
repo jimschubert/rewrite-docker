@@ -118,8 +118,8 @@ public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
         return add
                 .withPrefix(visitSpace(add.getPrefix(), p))
                 .withOptions(ListUtils.map(add.getOptions(), o -> visitDockerRightPadded(o, p)))
-                .withSources(ListUtils.map(add.getSources(), s -> visitDockerRightPadded(s, p)))
-                .withDestination(visitDockerRightPadded(add.getDestination(), p))
+                .withSources(ListUtils.map(add.getSources(), s -> visitAndCast(s, p)))
+                .withDestination(visitAndCast(add.getDestination(), p))
                 .withMarkers(visitMarkers(add.getMarkers(), p));
     }
 

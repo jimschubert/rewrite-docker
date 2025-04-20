@@ -274,8 +274,8 @@ public interface Docker extends Tree {
 
         List<DockerRightPadded<Option>> options;
 
-        List<DockerRightPadded<Literal>> sources;
-        DockerRightPadded<Literal> destination;
+        List<Literal> sources;
+        Literal destination;
 
         Markers markers;
 

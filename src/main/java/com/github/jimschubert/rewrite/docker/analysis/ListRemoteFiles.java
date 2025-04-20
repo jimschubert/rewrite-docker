@@ -61,15 +61,15 @@ public class ListRemoteFiles extends ScanningRecipe<List<RemoteFileReport.Row>> 
                             for (Docker child : stage.getChildren()) {
                                 if (child instanceof Docker.Add) {
                                     Docker.Add instruction = (Docker.Add) child;
-                                    List<DockerRightPadded<Docker.Literal>> urls = instruction.getSources().stream()
-                                            .filter(s -> s.getElement().getText().startsWith("http"))
-                                            .collect(Collectors.toCollection(ArrayList::new));
+                                    List<Docker.Literal> urls = instruction.getSources().stream()
+                                            .filter(s -> s.getText().startsWith("http"))
+                                            .collect(Collectors.toList());
 
                                     if (!urls.isEmpty()) {
                                         urls.forEach(url -> {
                                             acc.add(new RemoteFileReport.Row(
                                                     dockerfile.getSourcePath().toString(),
-                                                    url.getElement().getText()
+                                                    url.getText()
                                             ));
                                         });
                                     }

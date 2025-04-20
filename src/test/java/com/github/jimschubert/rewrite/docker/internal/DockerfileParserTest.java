@@ -647,16 +647,16 @@ class DockerfileParserTest {
         Docker.Add add = (Docker.Add) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, add.getPrefix());
 
-        List<DockerRightPadded<Docker.Literal>> args = add.getSources();
+        List<Docker.Literal> args = add.getSources();
         assertEquals(4, args.size());
 
-        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "foo.txt", "", " \\\n\t\t");
-        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, "", "bar.txt", "", " \\\n\t\t");
-        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, "", "baz.txt", "", " \\\n\t\t");
-        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, "", "qux.txt", "", "");
+        assertLiteral(args.get(0), Quoting.UNQUOTED, " ", "foo.txt", " \\\n\t\t");
+        assertLiteral(args.get(1), Quoting.UNQUOTED, "", "bar.txt",  " \\\n\t\t");
+        assertLiteral(args.get(2), Quoting.UNQUOTED, "", "baz.txt",  " \\\n\t\t");
+        assertLiteral(args.get(3), Quoting.UNQUOTED, "", "qux.txt", "");
 
-        DockerRightPadded<Docker.Literal> dest = add.getDestination();
-        assertRightPaddedLiteral(dest, Quoting.UNQUOTED, " ", "/tmp/", "", "\t");
+        Docker.Literal dest = add.getDestination();
+        assertLiteral(dest, Quoting.UNQUOTED, " ", "/tmp/", "\t");
     }
 
     @Test
@@ -669,16 +669,16 @@ class DockerfileParserTest {
         Docker.Add add = (Docker.Add) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, add.getPrefix());
 
-        List<DockerRightPadded<Docker.Literal>> args = add.getSources();
+        List<Docker.Literal> args = add.getSources();
         assertEquals(4, args.size());
 
-        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "foo.txt", "", " \\\n\t\t");
-        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, "", "bar.txt", "", " \\\n\t\t");
-        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, "", "baz.txt", "", " \\\n\t\t");
-        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, "", "qux.txt", "", "");
+        assertLiteral(args.get(0), Quoting.UNQUOTED, " ", "foo.txt",  " \\\n\t\t");
+        assertLiteral(args.get(1), Quoting.UNQUOTED, "", "bar.txt",  " \\\n\t\t");
+        assertLiteral(args.get(2), Quoting.UNQUOTED, "", "baz.txt",  " \\\n\t\t");
+        assertLiteral(args.get(3), Quoting.UNQUOTED, "", "qux.txt",  "");
 
-        DockerRightPadded<Docker.Literal> dest = add.getDestination();
-        assertRightPaddedLiteral(dest, Quoting.UNQUOTED, " ", "/tmp/", "", "\t");
+        Docker.Literal dest = add.getDestination();
+        assertLiteral(dest, Quoting.UNQUOTED, " ", "/tmp/", "\t");
 
         List<DockerRightPadded<Docker.Option>> options = add.getOptions();
         assertEquals(3, options.size());
