@@ -400,7 +400,7 @@ public interface Docker extends Tree {
 
         Space prefix;
 
-        DockerRightPadded<Literal> text;
+        Literal text;
 
         Markers markers;
 
@@ -424,7 +424,7 @@ public interface Docker extends Tree {
         public static Comment build(String text) {
             return new Comment(Tree.randomId(),
                     Space.EMPTY,
-                    DockerRightPadded.build(Literal.build(text).withPrefix(Space.build(" "))),
+                    Literal.build(text).withPrefix(Space.build(" ")),
                     Markers.EMPTY,
                     Space.build("\n"));
         }

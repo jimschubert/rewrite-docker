@@ -148,13 +148,11 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
 
     @Override
     public Docker visitComment(Docker.Comment comment, PrintOutputCapture<P> p) {
-        Docker.Literal literal = comment.getText().getElement();
+        Docker.Literal literal = comment.getText();
         if (literal != null) {
             beforeSyntax(comment, p);
             p.append("#");
-            visitSpace(literal.getPrefix(), p);
-            p.append(literal.getText().replace("\n", "\n# "));
-            visitSpace(comment.getText().getAfter(), p);
+            visitLiteral(literal.withText(literal.getText().replaceAll("\n", "\n# ")), p);
             afterSyntax(comment, p);
         }
         return comment;

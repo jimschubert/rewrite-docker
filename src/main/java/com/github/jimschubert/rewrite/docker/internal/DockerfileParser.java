@@ -424,11 +424,11 @@ public class DockerfileParser {
 
         private Docker.@NotNull Comment parseComment() {
             StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
-
+            Docker.Literal commentLiteral = createLiteral(stringWithPadding.content()).withPrefix(stringWithPadding.prefix());
             return new Docker.Comment(
                     Tree.randomId(),
                     state.prefix(),
-                    DockerRightPadded.build(createLiteral(stringWithPadding.content()).withPrefix(stringWithPadding.prefix())).withAfter(state.rightPadding()),
+                    commentLiteral.withTrailing(Space.append(commentLiteral.getTrailing(), state.rightPadding())),
                     Markers.EMPTY,
                     Space.EMPTY
             );
