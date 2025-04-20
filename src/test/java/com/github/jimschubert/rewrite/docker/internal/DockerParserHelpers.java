@@ -147,7 +147,7 @@ public class DockerParserHelpers {
         assertEquals(expectedQuoting, value.getQuoting(),
                 "Expected Literal quoting to be '" + expectedQuoting + "' but was '" + value.getQuoting() + "'");
         assertEquals(expectedTrailing, value.getTrailing().getWhitespace(),
-                "Expected Literal trailing whitespace to be '" + expectedTrailing + "' but was '" + value.getTrailing() + "'");
+                "Expected Literal trailing whitespace to be '" + printableWhiteSpace(expectedTrailing) + "' but was '" + printableWhiteSpace(value.getTrailing().getWhitespace()) + "'");
     }
 
     public static void assertOption(

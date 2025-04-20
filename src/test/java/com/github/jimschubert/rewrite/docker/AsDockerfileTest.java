@@ -42,8 +42,8 @@ class AsDockerfileTest implements RewriteTest {
         assertThat(doc.getStages().get(0)).isNotNull();
 
         Docker.From from =(Docker.From)doc.getStages().get(0).getChildren().get(0);
-        assertThat(from.getImage().getElement().getText()).isEqualTo("alpine");
-        assertThat(from.getVersion().getElement().getText()).isEqualTo(":latest");
+        assertThat(from.getImage().getText()).isEqualTo("alpine");
+        assertThat(from.getVersion().getText()).isEqualTo(":latest");
     }
 
     @Test

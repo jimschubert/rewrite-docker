@@ -53,11 +53,11 @@ public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
 
     public Docker visitFrom(Docker.From from, P p) {
         return from.withPrefix(visitSpace(from.getPrefix(), p))
-                .withImage(visitDockerRightPadded(from.getImage(), p))
-                .withPlatform(visitDockerRightPadded(from.getPlatform(), p))
-                .withVersion(visitDockerRightPadded(from.getVersion(), p))
+                .withImage(visitAndCast(from.getImage(), p))
+                .withPlatform(visitAndCast(from.getPlatform(), p))
+                .withVersion(visitAndCast(from.getVersion(), p))
                 .withAs(visitAndCast(from.getAs(), p))
-                .withAlias(visitDockerRightPadded(from.getAlias(), p))
+                .withAlias(visitAndCast(from.getAlias(), p))
                 .withMarkers(visitMarkers(from.getMarkers(), p));
     }
 

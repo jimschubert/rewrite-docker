@@ -710,11 +710,11 @@ public interface Docker extends Tree {
         UUID id;
 
         Space prefix;
-        DockerRightPadded<Literal> platform;
-        DockerRightPadded<Literal> image;
-        DockerRightPadded<Literal> version;
+        Literal platform;
+        Literal image;
+        Literal version;
         Literal as;
-        DockerRightPadded<Literal> alias;
+        Literal alias;
         Space trailing;
         Markers markers;
         Space eol;
@@ -735,18 +735,18 @@ public interface Docker extends Tree {
         }
 
         public String getImageSpec() {
-            return image.getElement().getText();
+            return image.getText();
         }
 
         public String getImageSpecWithVersion() {
-            if (version.getElement() == null || version.getElement().getText() == null) {
-                return image.getElement().getText();
+            if (version.getText() == null) {
+                return image.getText();
             }
-            return image.getElement().getText() + version.getElement().getText();
+            return image.getText() + version.getText();
         }
 
         public String getDigest() {
-            String v = version.getElement().getText();
+            String v = version.getText();
             if (v == null) {
                 return null;
             }
@@ -754,15 +754,15 @@ public interface Docker extends Tree {
         }
 
         public From platform(String platform) {
-            return this.withPlatform(this.platform.map(p -> p.withText(platform)));
+            return this.withPlatform(this.platform.withText(platform));
         }
 
         public From image(String image) {
-            return this.withImage(this.image.map(i -> i.withText(image)));
+            return this.withImage(this.image.withText(image));
         }
 
         public From version(String version) {
-            return this.withVersion(this.version.map(v -> v.withText(version)));
+            return this.withVersion(this.version.withText(version));
         }
 
         public From withDigest(String digest) {
@@ -782,7 +782,7 @@ public interface Docker extends Tree {
         }
 
         public String getTag() {
-            String v = version.getElement().getText();
+            String v = version.getText();
             if (v == null) {
                 return null;
             }
@@ -795,16 +795,17 @@ public interface Docker extends Tree {
             if (this.as.getText() == null || this.as.getText().isBlank()) {
                 result = result.withAs(Literal.build("AS").withPrefix(this.as.getPrefix().map(p -> p == null || p.isEmpty() ? " " : p)));
             }
-            return result.withAlias(this.alias.map(a -> a.withText(alias).withPrefix(a.getPrefix().map(p -> p == null || p.isEmpty() ? " " : p))));
+            return result.withAlias(this.alias.withText(alias).withPrefix(this.alias.getPrefix().map(p -> p == null || p.isEmpty() ? " " : p)));
         }
 
         public static From build(String image) {
-            return new From(Tree.randomId(), Space.EMPTY,
-                    DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" "))),
-                    DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" "))),
-                    DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" "))),
+            return new From(Tree.randomId(),
+                    Space.EMPTY,
                     Literal.build(null).withPrefix(Space.build(" ")),
-                    DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" "))),
+                    Literal.build(null).withPrefix(Space.build(" ")),
+                    /*version*/Literal.build(null).withPrefix(Space.EMPTY).withTrailing(Space.EMPTY),
+                    Literal.build(null).withPrefix(Space.build(" ")),
+                    Literal.build(null).withPrefix(Space.build(" ")),
                     Space.EMPTY,
                     Markers.EMPTY,
                     Space.build("\n")).image(image);
@@ -812,11 +813,11 @@ public interface Docker extends Tree {
 
         public static From build(String prefix, String platform, String image, String version, String alias) {
             return new From(Tree.randomId(), Space.build(prefix),
-                    DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" "))),
-                    DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" "))),
-                    DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" "))),
+                    Literal.build(null).withPrefix(Space.build(" ")),
+                    Literal.build(null).withPrefix(Space.build(" ")),
+                    Literal.build(null).withPrefix(Space.build(" ")),
                     alias != null && !alias.isBlank() ? Literal.build("AS").withPrefix(Space.build(" ")) : null,
-                    DockerRightPadded.build(Literal.build(alias).withPrefix(Space.build(" "))),
+                    Literal.build(alias).withPrefix(Space.build(" ")),
                     Space.EMPTY,
                     Markers.EMPTY,
                     Space.build("\n")

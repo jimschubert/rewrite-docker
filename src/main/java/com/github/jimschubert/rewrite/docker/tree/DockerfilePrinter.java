@@ -109,29 +109,26 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     public Docker visitFrom(Docker.From from, PrintOutputCapture<P> p) {
         beforeSyntax(from, p);
         p.append("FROM");
-        if (from.getPlatform() != null && !StringUtils.isBlank(from.getPlatform().getElement().getText())) {
-            visitSpace(from.getPlatform().getElement().getPrefix(), p);
-            if (!from.getPlatform().getElement().getText().startsWith("--")) {
-                if (from.getPlatform().getElement().getPrefix().getWhitespace() == "") {
+        if (from.getPlatform() != null && !StringUtils.isBlank(from.getPlatform().getText())) {
+            visitSpace(from.getPlatform().getPrefix(), p);
+            if (!from.getPlatform().getText().startsWith("--")) {
+                if ("".equals(from.getPlatform().getPrefix().getWhitespace())) {
                     p.append(" ");
                 }
                 p.append("--platform=");
             }
 
-            p.append(from.getPlatform().getElement().getText());
-            visitSpace(from.getPlatform().getElement().getTrailing(), p);
-            visitSpace(from.getPlatform().getAfter(), p);
+            p.append(from.getPlatform().getText());
+            visitSpace(from.getPlatform().getTrailing(), p);
         }
 
-        appendRightPaddedLiteral(from.getImage(), p);
-        appendRightPaddedLiteral(from.getVersion(), p);
+        visitLiteral(from.getImage(), p);
+        visitLiteral(from.getVersion(), p);
 
         if (from.getAlias() != null &&
-            from.getAlias().getElement() != null &&
-            from.getAlias().getElement().getText() != null) {
-            visitSpace(from.getAs().getPrefix(), p);
-            p.append(from.getAs().getText());
-            appendRightPaddedLiteral(from.getAlias(), p);
+            from.getAlias().getText() != null) {
+            visitLiteral(from.getAs(), p);
+            visitLiteral(from.getAlias(), p);
         }
 
         afterSyntax(from, p);

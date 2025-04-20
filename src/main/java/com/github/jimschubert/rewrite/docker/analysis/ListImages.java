@@ -63,8 +63,8 @@ public class ListImages extends ScanningRecipe<List<ImageUseReport.Row>> {
                                 if (child instanceof Docker.From) {
                                     Docker.From from = (Docker.From) child;
                                     String platformSwitch = null;
-                                    if (from.getPlatform().getElement() != null && from.getPlatform().getElement().getText() != null) {
-                                        platformSwitch = from.getPlatform().getElement().getText().split("=")[1];
+                                    if (from.getPlatform().getText() != null) {
+                                        platformSwitch = from.getPlatform().getText().split("=")[1];
                                     }
 
                                     acc.add(new ImageUseReport.Row(
@@ -73,7 +73,7 @@ public class ListImages extends ScanningRecipe<List<ImageUseReport.Row>> {
                                             from.getTag(),
                                             from.getDigest(),
                                             platformSwitch,
-                                            from.getAlias().getElement().getText()
+                                            from.getAlias().getText()
                                     ));
                                 }
                             }

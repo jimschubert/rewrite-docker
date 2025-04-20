@@ -470,25 +470,27 @@ public class DockerfileParser {
 
         private Docker.@NotNull From parseFrom() {
             String content = instruction.toString();
-            DockerRightPadded<Docker.Literal> platform = DockerRightPadded.build(Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY));
-            DockerRightPadded<Docker.Literal> image = DockerRightPadded.build(Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY));
-            DockerRightPadded<Docker.Literal> version = DockerRightPadded.build(Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY));
-            DockerRightPadded<Docker.Literal> as = DockerRightPadded.build(Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY));
-            DockerRightPadded<Docker.Literal> alias = DockerRightPadded.build(Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY));
+            Docker.Literal platform = Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY);
+            Docker.Literal image = Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY);
+            Docker.Literal version = Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY);
+            Docker.Literal as = Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY);
+            Docker.Literal alias = Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY);
 
             List<DockerRightPadded<Docker.Literal>> literals = parseLiterals(content);
             if (!literals.isEmpty()) {
                 while (!literals.isEmpty()) {
                     DockerRightPadded<Docker.Literal> literal = literals.remove(0);
+                    Docker.Literal elem = literal.getElement();
                     String value = literal.getElement().getText();
+                    Space after = Space.append(elem.getTrailing(), literal.getAfter());
                     if (value.startsWith("--platform")) {
-                        platform = literal;
-                    } else if (image.getElement().getText() != null && "as".equalsIgnoreCase(value)) {
-                        as = literal;
-                    } else if ("as".equalsIgnoreCase(as.getElement().getText())) {
-                        alias = literal;
-                    } else if (image.getElement().getText() == null) {
-                        image = literal;
+                        platform = elem.withTrailing(after);
+                    } else if (image.getText() != null && "as".equalsIgnoreCase(value)) {
+                        as = elem.withTrailing(after);
+                    } else if ("as".equalsIgnoreCase(as.getText())) {
+                        alias = elem.withTrailing(after);
+                    } else if (image.getText() == null) {
+                        image = elem.withTrailing(after);
                         String imageText = literal.getElement().getText();
                         // walk imageText forwards to find the first ':' or '@' to determine the version
                         int idx = 0;
@@ -500,17 +502,19 @@ public class DockerfileParser {
                         }
 
                         if (idx < imageText.length() - 1) {
-                            version = DockerRightPadded.build(createLiteral(imageText.substring(idx))).withAfter(image.getAfter());
+                            version = createLiteral(imageText.substring(idx))
+                                    .withPrefix(Space.EMPTY)
+                                    .withTrailing(image.getTrailing());
                             imageText = imageText.substring(0, idx);
 
                             String img = imageText;
-                            image = image.map(i -> i.withText(img)).withAfter(Space.EMPTY);
+                            image = image.withText(img).withTrailing(Space.EMPTY);
                         }
                     }
                 }
             }
 
-            return new Docker.From(Tree.randomId(), state.prefix(), platform, image, version, as.getElement(), alias, state.rightPadding(), Markers.EMPTY, Space.EMPTY);
+            return new Docker.From(Tree.randomId(), state.prefix(), platform, image, version, as, alias, state.rightPadding(), Markers.EMPTY, Space.EMPTY);
         }
 
         private Docker.@NotNull Healthcheck parseHealthcheck() {
