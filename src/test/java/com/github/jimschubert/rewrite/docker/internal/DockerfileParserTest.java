@@ -603,10 +603,10 @@ class DockerfileParserTest {
         Docker.Healthcheck healthCheck = (Docker.Healthcheck) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, healthCheck.getPrefix());
 
-        List<DockerRightPadded<Docker.Literal>> commands = healthCheck.getCommands();
+        List<Docker.Literal> commands = healthCheck.getCommands();
         assertEquals(1, commands.size());
 
-        assertRightPaddedLiteral(commands.get(0), Quoting.UNQUOTED, " ", "NONE", "", "");
+        assertLiteral(commands.get(0), Quoting.UNQUOTED, " ", "NONE", "");
     }
 
     @Test
@@ -625,16 +625,16 @@ class DockerfileParserTest {
         assertRightPaddedArg(options.get(0), Quoting.UNQUOTED, " ", "--interval", true, "5m", "");
         assertRightPaddedArg(options.get(1), Quoting.UNQUOTED, " ", "--timeout", true, "3s", " \\\n");
 
-        List<DockerRightPadded<Docker.Literal>> commands = healthCheck.getCommands();
+        List<Docker.Literal> commands = healthCheck.getCommands();
         assertEquals(7, commands.size());
 
-        assertRightPaddedLiteral(commands.get(0), Quoting.UNQUOTED, "  ", "CMD", "", "");
-        assertRightPaddedLiteral(commands.get(1), Quoting.UNQUOTED, " ", "curl", "", "");
-        assertRightPaddedLiteral(commands.get(2), Quoting.UNQUOTED, " ", "-f", "", "");
-        assertRightPaddedLiteral(commands.get(3), Quoting.UNQUOTED, " ", "http://localhost/", "", "");
-        assertRightPaddedLiteral(commands.get(4), Quoting.UNQUOTED, " ", "||", "", "");
-        assertRightPaddedLiteral(commands.get(5), Quoting.UNQUOTED, " ", "exit", "", "");
-        assertRightPaddedLiteral(commands.get(6), Quoting.UNQUOTED, " ", "1", "", "");
+        assertLiteral(commands.get(0), Quoting.UNQUOTED, "  ", "CMD", "");
+        assertLiteral(commands.get(1), Quoting.UNQUOTED, " ", "curl", "");
+        assertLiteral(commands.get(2), Quoting.UNQUOTED, " ", "-f", "");
+        assertLiteral(commands.get(3), Quoting.UNQUOTED, " ", "http://localhost/", "");
+        assertLiteral(commands.get(4), Quoting.UNQUOTED, " ", "||", "");
+        assertLiteral(commands.get(5), Quoting.UNQUOTED, " ", "exit", "");
+        assertLiteral(commands.get(6), Quoting.UNQUOTED, " ", "1", "");
     }
 
     @Test
@@ -1046,7 +1046,7 @@ class DockerfileParserTest {
         Docker.Healthcheck healthCheck = (Docker.Healthcheck) stage.getChildren().get(11);
         assertEquals(Space.EMPTY, healthCheck.getPrefix());
         assertEquals(1, healthCheck.getCommands().size());
-        assertRightPaddedLiteral(healthCheck.getCommands().get(0), Quoting.UNQUOTED, " ", "NONE", "", "");
+        assertLiteral(healthCheck.getCommands().get(0), Quoting.UNQUOTED, " ", "NONE", "");
     }
 
     @Test

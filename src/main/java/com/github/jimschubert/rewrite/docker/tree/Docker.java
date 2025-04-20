@@ -840,7 +840,7 @@ public interface Docker extends Tree {
         Type type;
 
         List<DockerRightPadded<KeyArgs>> options;
-        List<DockerRightPadded<Literal>> commands;
+        List<Literal> commands;
 
         Markers markers;
 
@@ -861,8 +861,8 @@ public interface Docker extends Tree {
             return new Healthcheck(Tree.randomId(),
                     prefix,
                     type,
-                    options == null ? new ArrayList<>() : new ArrayList<>(options),
-                    commands == null ? new ArrayList<>() : new ArrayList<>(commands),
+                    options,
+                    commands,
                     markers,
                     eol);
         }

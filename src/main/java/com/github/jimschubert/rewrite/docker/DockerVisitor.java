@@ -194,7 +194,7 @@ public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
                 .withPrefix(visitSpace(healthcheck.getPrefix(), p))
                 .withType(healthcheck.getType())
                 .withOptions(ListUtils.map(healthcheck.getOptions(), o -> visitDockerRightPadded(o, p)))
-                .withCommands(ListUtils.map(healthcheck.getCommands(), c -> visitDockerRightPadded(c, p)))
+                .withCommands(ListUtils.map(healthcheck.getCommands(), c -> visitAndCast(c, p)))
                 .withMarkers(visitMarkers(healthcheck.getMarkers(), p));
     }
 

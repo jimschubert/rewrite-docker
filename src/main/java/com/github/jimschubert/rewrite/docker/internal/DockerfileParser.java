@@ -531,11 +531,11 @@ public class DockerfileParser {
         private Docker.@NotNull Healthcheck parseHealthcheck() {
             StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
             String content = stringWithPadding.content();
-            List<DockerRightPadded<Docker.Literal>> commands;
+            List<Docker.Literal> commands;
             if (content.equalsIgnoreCase("NONE")) {
                 commands = new ArrayList<>();
                 Docker.Literal none = Docker.Literal.build(Quoting.UNQUOTED, stringWithPadding.prefix(), content, stringWithPadding.suffix());
-                commands.add(DockerRightPadded.build(none).withAfter(state.rightPadding()));
+                commands.add(none.withTrailing(state.rightPadding()));
                 return new Docker.Healthcheck(Tree.randomId(), state.prefix(), Docker.Healthcheck.Type.NONE, null, commands, Markers.EMPTY, Space.EMPTY);
             }
 
@@ -552,10 +552,17 @@ public class DockerfileParser {
                 }
 
                 // the second part is the command, prefix it with any keyargs trailing whitespace
-                commands = parseLiterals(Form.SHELL, swp.suffix().getWhitespace() + "CMD" + parts[1]);
+                commands = parseLiterals(Form.SHELL, swp.suffix().getWhitespace() + "CMD" + parts[1])
+                        .stream().map(d ->
+                                d.getElement()
+                                .withTrailing(Space.append(d.getElement().getTrailing(), d.getAfter())))
+                        .collect(Collectors.toList());
             } else {
                 args = new ArrayList<>();
-                commands = parseLiterals(Form.SHELL, content);
+                commands = parseLiterals(Form.SHELL, content)
+                        .stream().map(d ->
+                                d.getElement().withTrailing(Space.append(d.getElement().getTrailing(), d.getAfter())))
+                        .collect(Collectors.toList());
             }
 
             return new Docker.Healthcheck(Tree.randomId(), state.prefix(), Docker.Healthcheck.Type.CMD, args, commands, Markers.EMPTY, Space.EMPTY);

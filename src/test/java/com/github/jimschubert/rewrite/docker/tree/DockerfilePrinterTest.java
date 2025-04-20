@@ -445,9 +445,7 @@ class DockerfilePrinterTest {
                                 )
                         ),
                         List.of(
-                                DockerRightPadded.build(
-                                        Docker.Literal.build("curl -f http://localhost/ || exit 1").withPrefix(Space.build(" "))
-                                )
+                            Docker.Literal.build("curl -f http://localhost/ || exit 1").withPrefix(Space.build(" "))
                         ),
                         Markers.EMPTY,
                         Space.build("\n")
