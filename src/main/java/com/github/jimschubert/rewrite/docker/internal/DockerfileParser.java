@@ -28,7 +28,9 @@ import org.openrewrite.marker.Markers;
 
 import java.io.InputStream;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -134,7 +136,7 @@ public class DockerfileParser {
             for (int i = 0; i < input.length(); i++) {
                 char c = input.charAt(i);
                 if (inCollectible) {
-                    if ((c == quote||c == bracketClose || c == braceClose || c == squareBracketClose) && lastChar != escape) {
+                    if ((c == quote || c == bracketClose || c == braceClose || c == squareBracketClose) && lastChar != escape) {
                         inCollectible = false;
                     }
                     currentElement.append(c);
@@ -303,10 +305,10 @@ public class DockerfileParser {
                 return parseArgLike(name);
             } else if (
                     name.equals(Docker.Cmd.class.getSimpleName()) ||
-                            name.equals(Docker.Entrypoint.class.getSimpleName()) ||
-                            name.equals(Docker.Shell.class.getSimpleName()) ||
-                            name.equals(Docker.Volume.class.getSimpleName()) ||
-                            name.equals(Docker.Workdir.class.getSimpleName())) {
+                    name.equals(Docker.Entrypoint.class.getSimpleName()) ||
+                    name.equals(Docker.Shell.class.getSimpleName()) ||
+                    name.equals(Docker.Volume.class.getSimpleName()) ||
+                    name.equals(Docker.Workdir.class.getSimpleName())) {
                 return parseCmdLike(name);
             } else if (name.equals(Docker.Comment.class.getSimpleName())) {
                 return parseComment();
@@ -555,7 +557,7 @@ public class DockerfileParser {
 
         private Docker.@NotNull OnBuild parseOnBuild() {
             StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
-             state.prefix(Space.append(state.prefix(), stringWithPadding.prefix()));
+            state.prefix(Space.append(state.prefix(), stringWithPadding.prefix()));
 
             String content = stringWithPadding.content();
             if (stringWithPadding.suffix() != null) {
@@ -659,7 +661,7 @@ public class DockerfileParser {
                 line = handleRightPadding(line, state);
 
                 // TODO: consider a better way to handle "inline" comments
-                if (state.isContinuation() && line.startsWith("#"))  {
+                if (state.isContinuation() && line.startsWith("#")) {
                     parser.append(line);
                     parser.append(eol.getWhitespace());
                     continue;

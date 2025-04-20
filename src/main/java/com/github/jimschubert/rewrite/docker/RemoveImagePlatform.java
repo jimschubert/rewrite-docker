@@ -15,11 +15,15 @@
 package com.github.jimschubert.rewrite.docker;
 
 import com.github.jimschubert.rewrite.docker.tree.Docker;
-import lombok.*;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,7 +49,7 @@ public class RemoveImagePlatform extends Recipe {
     }
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor(){
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new DockerIsoVisitor<>() {
             @Override
             public Docker.From visitFrom(Docker.From from, ExecutionContext executionContext) {

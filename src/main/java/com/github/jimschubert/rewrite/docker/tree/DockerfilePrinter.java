@@ -127,8 +127,8 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         appendRightPaddedLiteral(from.getVersion(), p);
 
         if (from.getAlias() != null &&
-                from.getAlias().getElement() != null &&
-                from.getAlias().getElement().getText() != null) {
+            from.getAlias().getElement() != null &&
+            from.getAlias().getElement().getText() != null) {
             visitSpace(from.getAs().getPrefix(), p);
             p.append(from.getAs().getText());
             appendRightPaddedLiteral(from.getAlias(), p);
@@ -279,7 +279,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         visitSpace(padded.getAfter(), p);
         afterSyntax(padded.getMarkers(), p);
 
-        return  padded;
+        return padded;
     }
 
     private Docker.KeyArgs visitKeyArgs(Docker.KeyArgs keyArgs, PrintOutputCapture<P> p) {
@@ -372,7 +372,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
                 visitQuoting(kvp.getQuoting(), p);
             }
 
-            visitSpace(padded.getAfter(),p);
+            visitSpace(padded.getAfter(), p);
         }
         afterSyntax(env, p);
         return env;
@@ -390,7 +390,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
             });
         }
 
-        if (add.getSources() != null ) {
+        if (add.getSources() != null) {
             for (int i = 0; i < add.getSources().size(); i++) {
                 visitDockerRightPaddedLiteral(add.getSources().get(i), p);
             }
@@ -414,7 +414,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
             });
         }
 
-        if (copy.getSources() != null ) {
+        if (copy.getSources() != null) {
             for (int i = 0; i < copy.getSources().size(); i++) {
                 visitDockerRightPaddedLiteral(copy.getSources().get(i), p);
             }
@@ -446,9 +446,9 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
             DockerRightPadded<Docker.Literal> padded = commands.get(i);
 
             if (entrypoint.getForm() == Form.SHELL
-                    && i > 0
-                    && i < commands.size() - 1
-            && "".equals(padded.getElement().getPrefix().getWhitespace())) {
+                && i > 0
+                && i < commands.size() - 1
+                && "".equals(padded.getElement().getPrefix().getWhitespace())) {
                 p.append(" ");
             }
 
@@ -484,9 +484,9 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         for (int i = 0; i < volume.getPaths().size(); i++) {
             DockerRightPadded<Docker.Literal> padded = volume.getPaths().get(i);
             if (volume.getForm() == Form.SHELL
-                    && i > 0
-                    && i < volume.getPaths().size() - 1
-                    && "".equals(padded.getElement().getPrefix().getWhitespace())) {
+                && i > 0
+                && i < volume.getPaths().size() - 1
+                && "".equals(padded.getElement().getPrefix().getWhitespace())) {
                 p.append(" ");
             }
 
@@ -637,7 +637,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
             DockerRightPadded<Docker.Literal> padded = shell.getCommands().get(i);
             Docker.Literal literal = padded.getElement();
             if (literal.getQuoting() != Quoting.DOUBLE_QUOTED) {
-                literal = ((Docker.Literal)literal.copyPaste())
+                literal = ((Docker.Literal) literal.copyPaste())
                         .withQuoting(Quoting.DOUBLE_QUOTED)
                         .withText(trimDoubleQuotes(literal.getText()));
                 padded = DockerRightPadded.build(literal)

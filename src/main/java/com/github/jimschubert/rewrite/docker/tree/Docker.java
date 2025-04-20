@@ -16,11 +16,10 @@ package com.github.jimschubert.rewrite.docker.tree;
 
 import com.github.jimschubert.rewrite.docker.DockerVisitor;
 import lombok.*;
-import lombok.experimental.Accessors;
 import lombok.experimental.NonFinal;
 import org.jspecify.annotations.NonNull;
-import org.openrewrite.*;
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.*;
 import org.openrewrite.marker.Markers;
 
 import java.lang.ref.SoftReference;
@@ -35,13 +34,14 @@ import static com.github.jimschubert.rewrite.docker.internal.StringUtil.trimSing
 
 // TODO: maybe revisit some of the types here to determine if any can be simplified (e.g. DockerRightPadded<Literal>)
 // TODO: maybe add helper methods to simplify setting of (most) fields?
+
 /**
  * A Dockerfile AST.
  */
 public interface Docker extends Tree {
 
     interface Instruction extends Docker {
-        < T extends Tree> T withEol(Space eol);
+        <T extends Tree> T withEol(Space eol);
 
         Space getEol();
     }
@@ -241,7 +241,7 @@ public interface Docker extends Tree {
                     stages.stream().map(Stage::copyPaste).collect(Collectors.toCollection(ArrayList::new)), eof, markers);
         }
 
-        public static Document build(Instruction ...instructions) {
+        public static Document build(Instruction... instructions) {
             Stage stage = new Stage(Tree.randomId(), Arrays.stream(instructions).collect(Collectors.toCollection(ArrayList::new)), Markers.EMPTY);
             return new Document(Tree.randomId(), Path.of("Dockerfile"), null, StandardCharsets.UTF_8.name(), false, null,
                     List.of(stage), Space.EMPTY, Markers.EMPTY);
@@ -335,7 +335,7 @@ public interface Docker extends Tree {
             ), Markers.EMPTY, Space.build("\n"));
         }
 
-        public static Arg build(KeyArgs ...args) {
+        public static Arg build(KeyArgs... args) {
             return new Arg(Tree.randomId(), Space.EMPTY, Arrays.stream(args)
                     .map(DockerRightPadded::build)
                     .collect(Collectors.toCollection(ArrayList::new)), Markers.EMPTY, Space.build("\n"));
@@ -371,16 +371,17 @@ public interface Docker extends Tree {
             return new Cmd(Tree.randomId(), form, prefix, execFormPrefix, commands, execFormSuffix, markers, eol);
         }
 
-        public static Cmd build(String ...commands) {
+        public static Cmd build(String... commands) {
             return build(Form.EXEC, commands);
         }
-        public static Cmd build(Form form, String ...commands) {
+
+        public static Cmd build(Form form, String... commands) {
             return new Cmd(Tree.randomId(), form, Space.EMPTY,
                     Space.build(" "),
                     Arrays.stream(commands)
                             .map(s -> Literal.build(s)
                                     .withQuoting(form == Form.EXEC ? Quoting.DOUBLE_QUOTED : Quoting.UNQUOTED)
-                                    .withPrefix(form == Form.EXEC ? Space.EMPTY: Space.build(" "))
+                                    .withPrefix(form == Form.EXEC ? Space.EMPTY : Space.build(" "))
                                     .withTrailing(Space.EMPTY)
                             )
                             .map(DockerRightPadded::build)
@@ -477,7 +478,7 @@ public interface Docker extends Tree {
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
-             return v.visitDirective(this, p);
+            return v.visitDirective(this, p);
         }
 
         @Override
@@ -526,7 +527,7 @@ public interface Docker extends Tree {
             return new Directive(Tree.randomId(),
                     Space.EMPTY,
                     DockerRightPadded.build(
-                            new KeyArgs(Space.build(" "), Literal.build(key),Literal.build(value), true, Quoting.UNQUOTED)
+                            new KeyArgs(Space.build(" "), Literal.build(key), Literal.build(value), true, Quoting.UNQUOTED)
                     ),
                     Markers.EMPTY,
                     Space.build("\n"));
@@ -559,14 +560,14 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Entrypoint(Tree.randomId(), form, prefix,execFormPrefix, commands, execFormSuffix, markers, eol);
+            return new Entrypoint(Tree.randomId(), form, prefix, execFormPrefix, commands, execFormSuffix, markers, eol);
         }
 
-        public static Entrypoint build(String ...commands) {
+        public static Entrypoint build(String... commands) {
             return build(Form.EXEC, commands);
         }
 
-        public static Entrypoint build(Form form, String ...commands) {
+        public static Entrypoint build(Form form, String... commands) {
             return new Entrypoint(Tree.randomId(),
                     form,
                     Space.EMPTY,
@@ -574,7 +575,7 @@ public interface Docker extends Tree {
                     Arrays.stream(commands)
                             .map(s -> Literal.build(s)
                                     .withQuoting(form == Form.EXEC ? Quoting.DOUBLE_QUOTED : Quoting.UNQUOTED)
-                                    .withPrefix(form == Form.EXEC ? Space.EMPTY: Space.build(" "))
+                                    .withPrefix(form == Form.EXEC ? Space.EMPTY : Space.build(" "))
                                     .withTrailing(Space.EMPTY)
                             )
                             .map(DockerRightPadded::build)
@@ -618,15 +619,15 @@ public interface Docker extends Tree {
             return new Env(Tree.randomId(),
                     Space.EMPTY,
                     List.of(
-                        DockerRightPadded.build(
-                            new KeyArgs(Space.build(" "), Literal.build(key), Literal.build(value), true, Quoting.UNQUOTED)
-                        )
+                            DockerRightPadded.build(
+                                    new KeyArgs(Space.build(" "), Literal.build(key), Literal.build(value), true, Quoting.UNQUOTED)
+                            )
                     ),
                     Markers.EMPTY,
                     Space.build("\n"));
         }
 
-        public static Env build(KeyArgs ...args) {
+        public static Env build(KeyArgs... args) {
             return new Env(Tree.randomId(), Space.EMPTY, Arrays.stream(args)
                     .map(arg -> {
                         if ("".equals(arg.getPrefix().getWhitespace())) {
@@ -672,7 +673,7 @@ public interface Docker extends Tree {
             return new Expose(Tree.randomId(), prefix, ports, markers, eol);
         }
 
-        public static Expose build(String ...ports) {
+        public static Expose build(String... ports) {
             List<DockerRightPadded<Port>> portsList = new ArrayList<>();
 
             for (String port : ports) {
@@ -820,9 +821,9 @@ public interface Docker extends Tree {
                     Markers.EMPTY,
                     Space.build("\n")
             )
-            .image(image)
-            .version(version)
-            .platform(platform);
+                    .image(image)
+                    .version(version)
+                    .platform(platform);
         }
     }
 
@@ -905,7 +906,7 @@ public interface Docker extends Tree {
             ), Markers.EMPTY, Space.build("\n"));
         }
 
-        public static Label build(KeyArgs ...args) {
+        public static Label build(KeyArgs... args) {
             return new Label(Tree.randomId(), Space.EMPTY, Arrays.stream(args)
                     .map(DockerRightPadded::build)
                     .collect(Collectors.toCollection(ArrayList::new)), Markers.EMPTY, Space.build("\n"));
@@ -945,9 +946,9 @@ public interface Docker extends Tree {
             }
 
             Quoting quoting = Quoting.UNQUOTED;
-           if (name.startsWith("'") && name.endsWith("'")) {
+            if (name.startsWith("'") && name.endsWith("'")) {
                 name = trimSingleQuotes(name);
-               quoting = Quoting.SINGLE_QUOTED;
+                quoting = Quoting.SINGLE_QUOTED;
             } else if (name.startsWith("\"") && name.endsWith("\"")) {
                 name = trimDoubleQuotes(name);
                 quoting = Quoting.DOUBLE_QUOTED;
@@ -1024,7 +1025,7 @@ public interface Docker extends Tree {
             return new Run(Tree.randomId(), prefix, options, commands, markers, eol);
         }
 
-        public static Run build(String ...commands) {
+        public static Run build(String... commands) {
             return new Run(Tree.randomId(),
                     Space.EMPTY,
                     null,
@@ -1068,7 +1069,7 @@ public interface Docker extends Tree {
             return new Shell(Tree.randomId(), prefix, execFormPrefix, commands, execFormSuffix, markers, eol);
         }
 
-        public static Shell build(String ...commands) {
+        public static Shell build(String... commands) {
             return new Shell(Tree.randomId(),
                     Space.EMPTY,
                     Space.build(" "),
@@ -1195,11 +1196,11 @@ public interface Docker extends Tree {
         }
 
 
-        public static Volume build(String ...commands) {
+        public static Volume build(String... commands) {
             return build(Form.EXEC, commands);
         }
 
-        public static Volume build(Form form, String ...commands) {
+        public static Volume build(Form form, String... commands) {
             return new Volume(Tree.randomId(),
                     form,
                     Space.EMPTY,
@@ -1207,7 +1208,7 @@ public interface Docker extends Tree {
                     Arrays.stream(commands)
                             .map(s -> Literal.build(s)
                                     .withQuoting(form == Form.EXEC ? Quoting.DOUBLE_QUOTED : Quoting.UNQUOTED)
-                                    .withPrefix(form == Form.EXEC ? Space.EMPTY: Space.build(" "))
+                                    .withPrefix(form == Form.EXEC ? Space.EMPTY : Space.build(" "))
                                     .withTrailing(Space.EMPTY)
                             )
                             .map(DockerRightPadded::build)
@@ -1244,7 +1245,7 @@ public interface Docker extends Tree {
             return new Stage(Tree.randomId(), children, markers);
         }
 
-        public static Stage build(Instruction ...instructions) {
+        public static Stage build(Instruction... instructions) {
             return new Stage(Tree.randomId(),
                     Arrays.stream(instructions).collect(Collectors.toCollection(ArrayList::new)),
                     Markers.EMPTY);

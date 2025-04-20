@@ -15,9 +15,15 @@
 package com.github.jimschubert.rewrite.docker;
 
 import com.github.jimschubert.rewrite.docker.tree.Docker;
-import lombok.*;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Option;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,8 +47,8 @@ public class ChangeImage extends Recipe {
     @Nullable
     @Option(displayName = "New version",
             description = "The new version (tag or digest) for the image found by `oldImage`. Can be format `:tagName`, `@digest`, or `tagName`. " +
-                    "If not provided, the version will be left as-is. " +
-                    "To unset a tag, newImage must not contain a tag, and newVersion must be set to an empty string.",
+                          "If not provided, the version will be left as-is. " +
+                          "To unset a tag, newImage must not contain a tag, and newVersion must be set to an empty string.",
             example = ":latest",
             required = false)
     String newVersion;
@@ -50,9 +56,9 @@ public class ChangeImage extends Recipe {
     @Nullable
     @Option(displayName = "New platform",
             description = "The new platform for the image found by `matchImage`. Can be full format " +
-                    "(`--platform=linux/amd64`), partial (`linux/amd64`)" +
-                    "If not provided, the platform will be left as-is. " +
-                    "To unset a platform, newPlatform must be set to an empty string.",
+                          "(`--platform=linux/amd64`), partial (`linux/amd64`)" +
+                          "If not provided, the platform will be left as-is. " +
+                          "To unset a platform, newPlatform must be set to an empty string.",
             example = "--platform=linux/amd64",
             required = false)
     String newPlatform;

@@ -35,8 +35,8 @@ public class ModifyLiteral extends Recipe {
 
     @Option(displayName = "Replacement text",
             description = "The replacement text for the matched text. " +
-                    "This will replace the full literal text, or a single matching group defined in `matchText`. " +
-                    "Be careful as this may result in an invalid Dockerfile.",
+                          "This will replace the full literal text, or a single matching group defined in `matchText`. " +
+                          "Be careful as this may result in an invalid Dockerfile.",
             example = "java-21")
     String replacementText;
 
@@ -64,7 +64,7 @@ public class ModifyLiteral extends Recipe {
 
                     if (n.getTree().getMarkers().findFirst(Modified.class).filter(
                             m -> m.matchText.equals(matchText) && m.replacementText.equals(replacementText)
-                        ).isPresent()) {
+                    ).isPresent()) {
                         return n.getTree();
                     }
 

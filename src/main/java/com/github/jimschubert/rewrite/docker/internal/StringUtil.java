@@ -17,14 +17,15 @@ package com.github.jimschubert.rewrite.docker.internal;
 import org.jspecify.annotations.NonNull;
 
 public class StringUtil {
-    private StringUtil() {}
+    private StringUtil() {
+    }
 
     public static @NonNull String trimDoubleQuotes(String text) {
         return trim(text, "\"");
     }
 
     public static @NonNull String trimSingleQuotes(String text) {
-       return trim(text, "'");
+        return trim(text, "'");
     }
 
     public static @NonNull String trim(String text, String cutset) {

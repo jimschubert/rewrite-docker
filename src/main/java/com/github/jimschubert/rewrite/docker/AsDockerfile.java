@@ -32,7 +32,7 @@ import java.util.Optional;
  * <p>
  * For example, if you have a file named "Dockerfile.dev" and you want to treat it as a Dockerfile, you can use this recipe.
  * <p>
- *
+ * <p>
  * The idea for this recipe came from a discussion on the OpenRewrite Slack channel, where it was suggested to
  * <a href="https://github.com/openrewrite/rewrite/pull/3993#issuecomment-2227376531">force load via recipe</a>.
  */
@@ -43,7 +43,7 @@ import java.util.Optional;
 public class AsDockerfile extends Recipe {
     @Option(displayName = "File pattern",
             description = "A file path glob expression to match from the project root. Blank/null matches all." +
-                    "Supports multiple patterns separated by a semicolon `;`.",
+                          "Supports multiple patterns separated by a semicolon `;`.",
             required = false,
             example = ".github/workflows/*.yml")
     String filePattern;

@@ -49,6 +49,7 @@ public class DockerLiteral implements Trait<Docker.@NonNull Literal> {
 
     public static class Matcher extends SimpleTraitMatcher<@NonNull DockerLiteral> {
         private final Pattern pattern;
+
         public Matcher(Pattern pattern) {
             this.pattern = pattern;
         }
@@ -56,7 +57,7 @@ public class DockerLiteral implements Trait<Docker.@NonNull Literal> {
         @Override
         protected DockerLiteral test(@NonNull Cursor cursor) {
             if (pattern != null && cursor.getValue() instanceof Docker.Literal) {
-                String text = ((Docker.Literal)cursor.getValue()).getText();
+                String text = ((Docker.Literal) cursor.getValue()).getText();
                 if (text != null && pattern.matcher(text).matches()) {
                     return new DockerLiteral(cursor);
                 }

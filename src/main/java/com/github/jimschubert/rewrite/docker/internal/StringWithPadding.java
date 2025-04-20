@@ -27,9 +27,9 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor(force = true)
 @Accessors(fluent = true)
 public class StringWithPadding {
-     String content;
-     Space prefix;
-     Space suffix;
+    String content;
+    Space prefix;
+    Space suffix;
 
     public static StringWithPadding of(String value) {
         if (value == null || value.isEmpty()) {

@@ -32,14 +32,14 @@ public class DockerParser implements Parser {
     @Override
     public Stream<SourceFile> parseInputs(Iterable<Parser.Input> sources, @Nullable Path relativeTo, ExecutionContext ctx) {
         ParsingEventListener parsingListener = ParsingExecutionContextView.view(ctx).getParsingListener();
-        return acceptedInputs(sources).map(input ->{
+        return acceptedInputs(sources).map(input -> {
             parsingListener.startedParsing(input);
             try (EncodingDetectingInputStream is = input.getSource(ctx)) {
                 DockerfileParser parser = new DockerfileParser();
 
                 Docker.Document document = parser.parse(is)
                         .withFileAttributes(input.getFileAttributes())
-                                .withSourcePath(input.getPath());
+                        .withSourcePath(input.getPath());
 
                 parsingListener.parsed(input, document);
 
@@ -59,7 +59,7 @@ public class DockerParser implements Parser {
     public boolean accept(Path path) {
         String fileName = path.toString();
         return fileName.endsWith(".dockerfile") || fileName.equalsIgnoreCase("dockerfile") ||
-                fileName.endsWith(".containerfile") || fileName.equalsIgnoreCase("containerfile");
+               fileName.endsWith(".containerfile") || fileName.equalsIgnoreCase("containerfile");
     }
 
     @Override
@@ -67,7 +67,9 @@ public class DockerParser implements Parser {
         return prefix.resolve("Dockerfile");
     }
 
-    public static Builder builder() { return new Builder(); }
+    public static Builder builder() {
+        return new Builder();
+    }
 
     public static class Builder extends Parser.Builder {
         public Builder() {

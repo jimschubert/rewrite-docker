@@ -19,7 +19,10 @@ import com.github.jimschubert.rewrite.docker.table.RemoteFileReport;
 import com.github.jimschubert.rewrite.docker.tree.Docker;
 import com.github.jimschubert.rewrite.docker.tree.DockerRightPadded;
 import lombok.EqualsAndHashCode;
-import org.openrewrite.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.ScanningRecipe;
+import org.openrewrite.SourceFile;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.marker.SearchResult;
 
 import java.util.ArrayList;

@@ -45,7 +45,7 @@ public class Assertions {
     }
 
     public static SourceSpecs dockerfile(@Language("dockerfile") @Nullable String before, @Language("dockerfile") @Nullable String after,
-                                   Consumer<SourceSpec<Docker.Document>> spec) {
+                                         Consumer<SourceSpec<Docker.Document>> spec) {
         SourceSpec<Docker.Document> doc = new SourceSpec<>(Docker.Document.class, null, DockerParser.builder(), before, s -> after);
         doc.path("Dockerfile");
         spec.accept(doc);
