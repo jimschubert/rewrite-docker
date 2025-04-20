@@ -272,7 +272,7 @@ public interface Docker extends Tree {
 
         Space prefix;
 
-        List<DockerRightPadded<Option>> options;
+        List<Option> options;
 
         List<Literal> sources;
         Literal destination;
@@ -440,9 +440,9 @@ public interface Docker extends Tree {
 
         Space prefix;
 
-        List<DockerRightPadded<Option>> options;
-        List<DockerRightPadded<Literal>> sources;
-        DockerRightPadded<Literal> destination;
+        List<Option> options;
+        List<Literal> sources;
+        Literal destination;
 
         Markers markers;
 

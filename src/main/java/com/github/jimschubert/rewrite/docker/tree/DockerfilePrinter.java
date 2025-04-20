@@ -382,8 +382,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
 
         if (add.getOptions() != null) {
             add.getOptions().forEach(o -> {
-                visitOption(o.getElement(), p);
-                visitSpace(o.getAfter(), p);
+                visitOption(o, p);
             });
         }
 
@@ -406,18 +405,17 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
 
         if (copy.getOptions() != null) {
             copy.getOptions().forEach(o -> {
-                visitOption(o.getElement(), p);
-                visitSpace(o.getAfter(), p);
+                visitOption(o, p);
             });
         }
 
         if (copy.getSources() != null) {
             for (int i = 0; i < copy.getSources().size(); i++) {
-                visitDockerRightPaddedLiteral(copy.getSources().get(i), p);
+                visitLiteral(copy.getSources().get(i), p);
             }
         }
 
-        visitDockerRightPaddedLiteral(copy.getDestination(), p);
+        visitLiteral(copy.getDestination(), p);
 
         afterSyntax(copy, p);
         return copy;

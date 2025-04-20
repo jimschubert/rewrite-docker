@@ -680,17 +680,11 @@ class DockerfileParserTest {
         Docker.Literal dest = add.getDestination();
         assertLiteral(dest, Quoting.UNQUOTED, " ", "/tmp/", "\t");
 
-        List<DockerRightPadded<Docker.Option>> options = add.getOptions();
+        List<Docker.Option> options = add.getOptions();
         assertEquals(3, options.size());
-
-        assertOption(options.get(0).getElement(), Quoting.UNQUOTED, " ", "--chown", true, "foo:bar");
-        assertEquals("", options.get(0).getAfter().getWhitespace());
-
-        assertOption(options.get(1).getElement(), Quoting.UNQUOTED, " ", "--keep-git-dir", false, null);
-        assertEquals("", options.get(1).getAfter().getWhitespace());
-
-        assertOption(options.get(2).getElement(), Quoting.UNQUOTED, " ", "--checksum", true, "sha256:24454f830c");
-        assertEquals("", options.get(2).getAfter().getWhitespace());
+        assertOption(options.get(0), Quoting.UNQUOTED, " ", "--chown", true, "foo:bar");
+        assertOption(options.get(1), Quoting.UNQUOTED, " ", "--keep-git-dir", false, null);
+        assertOption(options.get(2), Quoting.UNQUOTED, " ", "--checksum", true, "sha256:24454f830c");
     }
 
     @Test
@@ -703,16 +697,16 @@ class DockerfileParserTest {
         Docker.Copy copy = (Docker.Copy) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, copy.getPrefix());
 
-        List<DockerRightPadded<Docker.Literal>> args = copy.getSources();
+        List<Docker.Literal> args = copy.getSources();
         assertEquals(4, args.size());
 
-        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "foo.txt", "", " \\\n\t\t");
-        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, "", "bar.txt", "", " \\\n\t\t");
-        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, "", "baz.txt", "", " \\\n\t\t");
-        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, "", "qux.txt", "", "");
+        assertLiteral(args.get(0), Quoting.UNQUOTED, " ", "foo.txt",  " \\\n\t\t");
+        assertLiteral(args.get(1), Quoting.UNQUOTED, "", "bar.txt",  " \\\n\t\t");
+        assertLiteral(args.get(2), Quoting.UNQUOTED, "", "baz.txt",  " \\\n\t\t");
+        assertLiteral(args.get(3), Quoting.UNQUOTED, "", "qux.txt",  "");
 
-        DockerRightPadded<Docker.Literal> dest = copy.getDestination();
-        assertRightPaddedLiteral(dest, Quoting.UNQUOTED, " ", "/tmp/", "", "\t");
+        Docker.Literal dest = copy.getDestination();
+        assertLiteral(dest, Quoting.UNQUOTED, " ", "/tmp/", "\t");
     }
 
     /**
@@ -736,13 +730,13 @@ class DockerfileParserTest {
         Docker.Copy cmd = (Docker.Copy) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, cmd.getPrefix());
 
-        List<DockerRightPadded<Docker.Literal>> args = cmd.getSources();
+        List<Docker.Literal> args = cmd.getSources();
         assertEquals(4, args.size());
 
-        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "<<EOF", "", "");
-        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "/usr/share/nginx/html/index.html", "", "\n");
-        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, "", "(your index page goes here)", "", "\n");
-        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, "", "EOF", "", "\n");
+        assertLiteral(args.get(0), Quoting.UNQUOTED, " ", "<<EOF", "");
+        assertLiteral(args.get(1), Quoting.UNQUOTED, " ", "/usr/share/nginx/html/index.html",  "\n");
+        assertLiteral(args.get(2), Quoting.UNQUOTED, "", "(your index page goes here)",  "\n");
+        assertLiteral(args.get(3), Quoting.UNQUOTED, "", "EOF",  "\n");
     }
 
     @Test
@@ -1188,14 +1182,14 @@ class DockerfileParserTest {
 
         Docker.Copy copy = (Docker.Copy) stage1.getChildren().get(1);
         assertEquals(Space.EMPTY, copy.getPrefix());
-        List<DockerRightPadded<Docker.Option>> opts = copy.getOptions();
-        assertRightPaddedOption(opts.get(0), Quoting.UNQUOTED, " ", "--from", true, "0", "");
+        List<Docker.Option> opts = copy.getOptions();
+        assertOption(opts.get(0), Quoting.UNQUOTED, " ", "--from", true, "0");
 
-        args = copy.getSources();
-        assertEquals(1, args.size());
-        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "/stage1.txt", "", "");
-        DockerRightPadded<Docker.Literal> dest = copy.getDestination();
-        assertRightPaddedLiteral(dest, Quoting.UNQUOTED, " ", "/stage2.txt", "", "");
+        List<Docker.Literal> sources = copy.getSources();
+        assertEquals(1, sources.size());
+        assertLiteral(sources.get(0), Quoting.UNQUOTED, " ", "/stage1.txt", "");
+        Docker.Literal dest = copy.getDestination();
+        assertLiteral(dest, Quoting.UNQUOTED, " ", "/stage2.txt", "");
 
         run = (Docker.Run) stage1.getChildren().get(2);
         assertEquals(Space.EMPTY, run.getPrefix());
@@ -1217,13 +1211,13 @@ class DockerfileParserTest {
         copy = (Docker.Copy) stage2.getChildren().get(1);
         assertEquals(Space.EMPTY, copy.getPrefix());
         opts = copy.getOptions();
-        args = copy.getSources();
-        assertEquals(1, args.size());
+        sources = copy.getSources();
+        assertEquals(1, sources.size());
 
-        assertRightPaddedOption(opts.get(0), Quoting.UNQUOTED, " ", "--from", true, "1", "");
-        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "/stage2_complete.txt", "", "");
+        assertOption(opts.get(0), Quoting.UNQUOTED, " ", "--from", true, "1");
+        assertLiteral(sources.get(0), Quoting.UNQUOTED, " ", "/stage2_complete.txt", "");
         dest = copy.getDestination();
-        assertRightPaddedLiteral(dest, Quoting.UNQUOTED, " ", "/stage3.txt", "", "");
+        assertLiteral(dest, Quoting.UNQUOTED, " ", "/stage3.txt", "");
         run = (Docker.Run) stage2.getChildren().get(2);
         assertEquals(Space.EMPTY, run.getPrefix());
         args = run.getCommands();
@@ -1245,12 +1239,12 @@ class DockerfileParserTest {
         assertEquals(Space.EMPTY, copy.getPrefix());
 
         opts = copy.getOptions();
-        args = copy.getSources();
-        assertEquals(1, args.size());
-        assertRightPaddedOption(opts.get(0), Quoting.UNQUOTED, " ", "--from", true, "2", "");
-        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "/stage3_complete.txt", "", "");
+        sources = copy.getSources();
+        assertEquals(1, sources.size());
+        assertOption(opts.get(0), Quoting.UNQUOTED, " ", "--from", true, "2");
+        assertLiteral(sources.get(0), Quoting.UNQUOTED, " ", "/stage3_complete.txt", "");
         dest = copy.getDestination();
-        assertRightPaddedLiteral(dest, Quoting.UNQUOTED, " ", "/final_stage.txt", "", "");
+        assertLiteral(dest, Quoting.UNQUOTED, " ", "/final_stage.txt", "");
 
         Docker.Cmd cmd = (Docker.Cmd) finalStage.getChildren().get(2);
         assertEquals(Space.EMPTY, cmd.getPrefix());

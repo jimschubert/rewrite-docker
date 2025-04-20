@@ -117,7 +117,7 @@ public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
     public Docker visitAdd(Docker.Add add, P p) {
         return add
                 .withPrefix(visitSpace(add.getPrefix(), p))
-                .withOptions(ListUtils.map(add.getOptions(), o -> visitDockerRightPadded(o, p)))
+                .withOptions(ListUtils.map(add.getOptions(), o -> visitAndCast(o, p)))
                 .withSources(ListUtils.map(add.getSources(), s -> visitAndCast(s, p)))
                 .withDestination(visitAndCast(add.getDestination(), p))
                 .withMarkers(visitMarkers(add.getMarkers(), p));
@@ -126,9 +126,9 @@ public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
     public Docker visitCopy(Docker.Copy copy, P p) {
         return copy
                 .withPrefix(visitSpace(copy.getPrefix(), p))
-                .withOptions(ListUtils.map(copy.getOptions(), o -> visitDockerRightPadded(o, p)))
-                .withSources(ListUtils.map(copy.getSources(), s -> visitDockerRightPadded(s, p)))
-                .withDestination(visitDockerRightPadded(copy.getDestination(), p))
+                .withOptions(ListUtils.map(copy.getOptions(), o -> visitAndCast(o, p)))
+                .withSources(ListUtils.map(copy.getSources(), s -> visitAndCast(s, p)))
+                .withDestination(visitAndCast(copy.getDestination(), p))
                 .withMarkers(visitMarkers(copy.getMarkers(), p));
     }
 

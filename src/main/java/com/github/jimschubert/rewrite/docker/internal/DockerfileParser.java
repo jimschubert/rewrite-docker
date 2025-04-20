@@ -340,9 +340,9 @@ public class DockerfileParser {
             // TODO: COPY allows for heredoc with redirection, but ADD does not
             List<DockerRightPadded<Docker.Literal>> literals = parseLiterals(instruction.toString());
 
-            List<DockerRightPadded<Docker.Option>> options = new ArrayList<>();
-            List<DockerRightPadded<Docker.Literal>> sources = new ArrayList<>();
-            DockerRightPadded<Docker.Literal> destination = null;
+            List<Docker.Option> options = new ArrayList<>();
+            List<Docker.Literal> sources = new ArrayList<>();
+            Docker.Literal destination = null;
 
             // reverse literals iteration
             for (int i = literals.size() - 1; i >= 0; i--) {
@@ -350,7 +350,7 @@ public class DockerfileParser {
                 // hack: if we have a heredoc, it'll all become the "sources"
                 if (heredoc == null && i == literals.size() - 1) {
                     // the last literal is the destination
-                    destination = literal;
+                    destination = literal.getElement().withTrailing(Space.append(literal.getElement().getTrailing(), literal.getAfter()));
                     continue;
                 }
 
@@ -360,23 +360,21 @@ public class DockerfileParser {
 
                 String value = literal.getElement().getText();
                 if (value.startsWith("--")) {
-                    options.add(0, DockerRightPadded.build(new Docker.Option(
+                    // TODO: literal.getAfter()?
+                    options.add(0, new Docker.Option(
                             Tree.randomId(),
                             literal.getElement().getPrefix(),
                             stringToKeyArgs(literal.getElement().getText()),
-                            Markers.EMPTY)).withAfter(literal.getAfter()));
+                            Markers.EMPTY));
                 } else {
-                    sources.add(0, literal);
+                    sources.add(0, literal.getElement().withTrailing(Space.append(literal.getElement().getTrailing(), literal.getAfter())));
                 }
             }
 
             if (name.equals(Docker.Add.class.getSimpleName())) {
                 return new Docker.Add(Tree.randomId(), state.prefix(), options,
-                        sources.stream().map(l -> {
-                            Docker.Literal lit = l.getElement();
-                            return lit.withTrailing(Space.append(lit.getTrailing(), l.getAfter()));
-                        }).collect(Collectors.toList()),
-                        destination == null ? null : destination.getElement().withTrailing(Space.append(destination.getElement().getTrailing(), destination.getAfter())),
+                        sources,
+                        destination,
                         Markers.EMPTY, Space.EMPTY);
             }
 

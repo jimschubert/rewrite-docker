@@ -273,8 +273,7 @@ class DockerfilePrinterTest {
                         Tree.randomId(),
                         Space.EMPTY,
                         List.of(
-                                DockerRightPadded.build(
-                                        Docker.Option.build("--keep-git-dir", "false"))
+                            Docker.Option.build("--keep-git-dir", "false")
                         ),
                         List.of(
                             Docker.Literal.build("https://example.com/archive.zip").withPrefix(Space.build(" "))
@@ -299,18 +298,12 @@ class DockerfilePrinterTest {
                         Tree.randomId(),
                         Space.EMPTY,
                         List.of(
-                                DockerRightPadded.build(
-                                        Docker.Option.build("--chown", "user:group"))
+                            Docker.Option.build("--chown", "user:group")
                         ),
                         List.of(
-                                DockerRightPadded.build(
-                                        Docker.Literal.build("src").withPrefix(Space.build(" "))
-                                )
+                            Docker.Literal.build("src").withPrefix(Space.build(" "))
                         ),
-                        DockerRightPadded.build(
-                                Docker.Literal.build("/dest").withPrefix(Space.build(" ")
-                            )
-                        ),
+                        Docker.Literal.build("/dest").withPrefix(Space.build(" ")),
                         Markers.EMPTY,
                         Space.build("\n")
                 )
