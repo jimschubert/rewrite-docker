@@ -197,7 +197,6 @@ public class DockerfileParser {
 
                                 // if we have a heredoc name, we are done with the heredoc
                                 inHeredoc = false;
-                                currentElement.append('\n');
                             }
 
                         // "peek": if the current character is an escape and the next character is newline or carriage return, 'after' and advance
@@ -369,19 +368,19 @@ public class DockerfileParser {
             }
 
             if (name.equals(Docker.Add.class.getSimpleName())) {
-                return new Docker.Add(Tree.randomId(), state.prefix(), options, sources, destination, Markers.EMPTY);
+                return new Docker.Add(Tree.randomId(), state.prefix(), options, sources, destination, Markers.EMPTY, Space.EMPTY);
             }
 
-            return new Docker.Copy(Tree.randomId(), state.prefix(), options, sources, destination, Markers.EMPTY);
+            return new Docker.Copy(Tree.randomId(), state.prefix(), options, sources, destination, Markers.EMPTY, Space.EMPTY);
         }
 
         private Docker.@NotNull Instruction parseArgLike(String name) {
             List<DockerRightPadded<Docker.KeyArgs>> args = parseArgs(instruction.toString());
 
             if (name.equals(Docker.Label.class.getSimpleName())) {
-                return new Docker.Label(Tree.randomId(), state.prefix(), args, Markers.EMPTY);
+                return new Docker.Label(Tree.randomId(), state.prefix(), args, Markers.EMPTY, Space.EMPTY);
             }
-            return new Docker.Arg(Tree.randomId(), state.prefix(), args, Markers.EMPTY);
+            return new Docker.Arg(Tree.randomId(), state.prefix(), args, Markers.EMPTY, Space.EMPTY);
         }
 
         private Docker.@NotNull Instruction parseCmdLike(String name) {
@@ -400,23 +399,28 @@ public class DockerfileParser {
             }
 
             if (name.equals(Docker.Cmd.class.getSimpleName())) {
-                return new Docker.Cmd(Tree.randomId(), form, state.prefix(), execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY);
+                return new Docker.Cmd(Tree.randomId(), form, state.prefix(), execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY, Space.EMPTY);
             } else if (name.equals(Docker.Shell.class.getSimpleName())) {
-                return new Docker.Shell(Tree.randomId(), state.prefix(), execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY);
+                return new Docker.Shell(Tree.randomId(), state.prefix(), execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY, Space.EMPTY);
             } else if (name.equals(Docker.Volume.class.getSimpleName())) {
-                return new Docker.Volume(Tree.randomId(), form, state.prefix(), execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY);
+                return new Docker.Volume(Tree.randomId(), form, state.prefix(), execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY, Space.EMPTY);
             } else if (name.equals(Docker.Workdir.class.getSimpleName())) {
                 List<DockerRightPadded<Docker.Literal>> lit = parseLiterals(form, content);
-                return new Docker.Workdir(Tree.randomId(), state.prefix(), lit.isEmpty() ? null : lit.get(0).getElement(), Markers.EMPTY);
+                return new Docker.Workdir(Tree.randomId(), state.prefix(), lit.isEmpty() ? null : lit.get(0).getElement(), Markers.EMPTY, Space.EMPTY);
             }
 
-            return new Docker.Entrypoint(Tree.randomId(), form, state.prefix(), execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY);
+            return new Docker.Entrypoint(Tree.randomId(), form, state.prefix(), execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY, Space.EMPTY);
         }
 
         private Docker.@NotNull Comment parseComment() {
             StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
 
-            return new Docker.Comment(Tree.randomId(), state.prefix(), DockerRightPadded.build(createLiteral(stringWithPadding.content()).withPrefix(stringWithPadding.prefix())).withAfter(state.rightPadding()), Markers.EMPTY
+            return new Docker.Comment(
+                    Tree.randomId(),
+                    state.prefix(),
+                    DockerRightPadded.build(createLiteral(stringWithPadding.content()).withPrefix(stringWithPadding.prefix())).withAfter(state.rightPadding()),
+                    Markers.EMPTY,
+                    Space.EMPTY
             );
         }
 
@@ -437,13 +441,14 @@ public class DockerfileParser {
                             state.rightPadding(),
                             Markers.EMPTY
                     ),
-                    Markers.EMPTY);
+                    Markers.EMPTY,
+                    Space.EMPTY);
         }
 
         private Docker.@NotNull Instruction parseEnvLike(String name) {
             List<DockerRightPadded<Docker.KeyArgs>> args = parseArgs(instruction.toString());
             if (name.equals(Docker.Env.class.getSimpleName())) {
-                return new Docker.Env(Tree.randomId(), state.prefix(), args, Markers.EMPTY);
+                return new Docker.Env(Tree.randomId(), state.prefix(), args, Markers.EMPTY, Space.EMPTY);
             }
 
             Docker.Literal signal = null;
@@ -452,13 +457,13 @@ public class DockerfileParser {
                 signal = Docker.Literal.build(Quoting.UNQUOTED, arg.getElement().getPrefix(), arg.getElement().key(), arg.getAfter());
             }
 
-            return new Docker.StopSignal(Tree.randomId(), state.prefix(), signal, Markers.EMPTY);
+            return new Docker.StopSignal(Tree.randomId(), state.prefix(), signal, Markers.EMPTY, Space.EMPTY);
         }
 
         private Docker.@NotNull Expose refactorExpose() {
             List<DockerRightPadded<Docker.Port>> ports = parsePorts(instruction.toString());
 
-            return new Docker.Expose(Tree.randomId(), state.prefix(), ports, Markers.EMPTY);
+            return new Docker.Expose(Tree.randomId(), state.prefix(), ports, Markers.EMPTY, Space.EMPTY);
         }
 
         private Docker.@NotNull From parseFrom() {
@@ -503,7 +508,7 @@ public class DockerfileParser {
                 }
             }
 
-            return new Docker.From(Tree.randomId(), state.prefix(), platform, image, version, as.getElement(), alias, state.rightPadding(), Markers.EMPTY);
+            return new Docker.From(Tree.randomId(), state.prefix(), platform, image, version, as.getElement(), alias, state.rightPadding(), Markers.EMPTY, Space.EMPTY);
         }
 
         private Docker.@NotNull Healthcheck parseHealthcheck() {
@@ -514,7 +519,7 @@ public class DockerfileParser {
                 commands = new ArrayList<>();
                 Docker.Literal none = Docker.Literal.build(Quoting.UNQUOTED, stringWithPadding.prefix(), content, stringWithPadding.suffix());
                 commands.add(DockerRightPadded.build(none).withAfter(state.rightPadding()));
-                return new Docker.Healthcheck(Tree.randomId(), state.prefix(), Docker.Healthcheck.Type.NONE, null, commands, Markers.EMPTY);
+                return new Docker.Healthcheck(Tree.randomId(), state.prefix(), Docker.Healthcheck.Type.NONE, null, commands, Markers.EMPTY, Space.EMPTY);
             }
 
             List<DockerRightPadded<Docker.KeyArgs>> args;
@@ -536,7 +541,7 @@ public class DockerfileParser {
                 commands = parseLiterals(Form.SHELL, content);
             }
 
-            return new Docker.Healthcheck(Tree.randomId(), state.prefix(), Docker.Healthcheck.Type.CMD, args, commands, Markers.EMPTY);
+            return new Docker.Healthcheck(Tree.randomId(), state.prefix(), Docker.Healthcheck.Type.CMD, args, commands, Markers.EMPTY, Space.EMPTY);
         }
 
         private Docker.@NotNull Maintainer parseMaintainer() {
@@ -545,7 +550,7 @@ public class DockerfileParser {
                     Docker.Literal.build(stringWithPadding.content())
                             .withPrefix(stringWithPadding.prefix())
                             .withTrailing(Space.append(stringWithPadding.suffix(), state.rightPadding())),
-                    Markers.EMPTY);
+                    Markers.EMPTY, Space.EMPTY);
         }
 
         private Docker.@NotNull OnBuild parseOnBuild() {
@@ -562,7 +567,7 @@ public class DockerfileParser {
             nestedInstruction.instruction.append(content);
             Docker nested = nestedInstruction.parse();
 
-            return new Docker.OnBuild(Tree.randomId(), state.prefix(), nested, state.rightPadding(), Markers.EMPTY);
+            return new Docker.OnBuild(Tree.randomId(), state.prefix(), nested, state.rightPadding(), Markers.EMPTY, Space.EMPTY);
         }
 
         private Docker.@NotNull Run parseRun() {
@@ -586,7 +591,7 @@ public class DockerfileParser {
                 }
             }
 
-            return new Docker.Run(Tree.randomId(), state.prefix(), options, commands, Markers.EMPTY);
+            return new Docker.Run(Tree.randomId(), state.prefix(), options, commands, Markers.EMPTY, Space.EMPTY);
         }
 
         private Docker.@NotNull User parseUser() {
@@ -602,7 +607,7 @@ public class DockerfileParser {
                 user = Docker.Literal.build(Quoting.UNQUOTED, stringWithPadding.prefix(), parts[0], Space.append(stringWithPadding.suffix(), state.rightPadding()));
             }
 
-            return new Docker.User(Tree.randomId(), state.prefix(), user, group, Markers.EMPTY);
+            return new Docker.User(Tree.randomId(), state.prefix(), user, group, Markers.EMPTY, Space.EMPTY);
         }
     }
     // endregion
@@ -624,24 +629,31 @@ public class DockerfileParser {
         Space eof = Space.EMPTY;
         InstructionParser parser = new InstructionParser(state);
 
-        try (Scanner scanner = new Scanner(input)) {
-            while (scanner.hasNextLine()) {
-                String line = scanner.nextLine();
-                if (line.isEmpty()) {
-                    eof = Space.append(eof, Space.build(NEWLINE));
-                    continue;
+        try (FullLineIterator scanner = new FullLineIterator(input)) {
+            while (scanner.hasNext()) {
+                String line = scanner.next();
+                Space eol = scanner.hasEol() ? Space.build(NEWLINE) : Space.EMPTY;
+
+                // if the line ends in /r, we need to remove it and prepend it to newline above
+                if (!line.isEmpty() && line.charAt(line.length() - 1) == '\r') {
+                    eol = Space.append(Space.build("\r"), eol);
+                    line = line.substring(0, line.length() - 1);
                 }
 
                 line = handleLeadingWhitespace(line, state);
                 if (line.isEmpty()) {
-                    eof = Space.append(eof, Space.build(NEWLINE));
+                    eof = Space.append(eof, eol);
                     continue;
                 }
 
-                if (!eof.isEmpty()) {
+                if (scanner.hasNext() && !eof.isEmpty()) {
                     // at this point, we have a line, so eof is the line prefix
                     state.appendPrefix(eof);
                     eof = Space.EMPTY;
+                } else if (!scanner.hasNext()) {
+                    // if we are at the end of the file with a newline
+                    eof = Space.append(eof, eol);
+                    eol = Space.EMPTY;
                 }
 
                 line = handleRightPadding(line, state);
@@ -649,12 +661,16 @@ public class DockerfileParser {
                 // TODO: consider a better way to handle "inline" comments
                 if (state.isContinuation() && line.startsWith("#"))  {
                     parser.append(line);
-                    parser.append(NEWLINE);
+                    parser.append(eol.getWhitespace());
                     continue;
                 }
 
                 line = handleInstructionType(line, parser, state);
+                String beforeHeredoc = line;
                 line = handleHeredoc(line, parser, scanner);
+                if (!beforeHeredoc.equals(line)) {
+                    eol = Space.EMPTY;// clear, let heredoc handle this.
+                }
 
                 if (parser.instructionType == Docker.Comment.class) {
                     handleDirectiveSpecialCase(line, parser);
@@ -662,12 +678,15 @@ public class DockerfileParser {
 
                 parser.append(line);
                 if (line.endsWith(state.getEscapeString())) {
-                    parser.append(NEWLINE);
+                    parser.append(eol.getWhitespace());
                     state.isContinuation(true);
                     continue;
                 }
 
                 Docker.Instruction instr = parser.parse();
+                if (instr != null) {
+                    instr = instr.withEol(eol);
+                }
                 currentInstructions.add(instr);
                 if (instr instanceof Docker.From) {
                     stages.add(new Docker.Stage(Tree.randomId(), new ArrayList<>(currentInstructions), Markers.EMPTY));
@@ -677,7 +696,6 @@ public class DockerfileParser {
                     stages.get(stages.size() - 1).getChildren().add(instr);
                     currentInstructions.clear();
                 }
-
                 parser.reset();
             }
         }
@@ -689,7 +707,7 @@ public class DockerfileParser {
         return new Docker.Document(Tree.randomId(), Paths.get("Dockerfile"), null, null, false, null, stages, eof, Markers.EMPTY);
     }
 
-    private String handleHeredoc(String line, InstructionParser parser, Scanner scanner) {
+    private String handleHeredoc(String line, InstructionParser parser, FullLineIterator scanner) {
         // if the line does not have heredoc syntax, return the line
         int heredocIndex = line.indexOf("<<-");
         if (heredocIndex == -1) {
@@ -708,14 +726,23 @@ public class DockerfileParser {
         parser.heredoc = new Heredoc(line.substring(heredocIndex), matcher.group("heredoc"), matcher.group("target"));
 
         StringBuilder heredocContent = new StringBuilder(line);
-        heredocContent.append(NEWLINE);
-        while (scanner.hasNextLine()) {
-            line = scanner.nextLine();
+        if (scanner.hasEol()) {
+            heredocContent.append(NEWLINE);
+        }
+        while (scanner.hasNext()) {
+            line = scanner.next();
             if (line.trim().equals(parser.heredoc.name)) {
                 heredocContent.append(line);
+                if (scanner.hasEol()) {
+                    heredocContent.append(NEWLINE);
+                }
                 break;
             }
-            heredocContent.append(line).append(NEWLINE);
+
+            heredocContent.append(line);
+            if (scanner.hasEol()) {
+                heredocContent.append(NEWLINE);
+            }
         }
 
         return heredocContent.toString();

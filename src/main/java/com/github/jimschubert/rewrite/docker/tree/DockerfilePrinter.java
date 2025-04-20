@@ -62,6 +62,12 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     }
 
     protected void afterSyntax(Docker t, PrintOutputCapture<P> p) {
+        if (t instanceof Docker.Instruction) {
+            Docker.Instruction instruction = (Docker.Instruction) t;
+            if (instruction.getEol() != null) {
+                visitSpace(instruction.getEol(), p);
+            }
+        }
         afterSyntax(t.getMarkers(), p);
     }
 
@@ -80,9 +86,6 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         for (int i = 0; i < stages.size(); i++) {
             Docker.Stage stage = stages.get(i);
             visit(stage, p);
-            if (i < stages.size() - 1) {
-                p.append("\n");
-            }
         }
 
         visitSpace(dockerfile.getEof(), p);
@@ -97,9 +100,6 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         for (int i = 0; i < children.size(); i++) {
             Docker instruction = children.get(i);
             visit(instruction, p);
-            if (i < children.size() - 1) {
-                p.append("\n");
-            }
         }
         afterSyntax(stage, p);
         return stage;

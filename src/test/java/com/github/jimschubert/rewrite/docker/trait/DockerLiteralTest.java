@@ -80,7 +80,8 @@ class DockerLiteralTest implements RewriteTest {
                   RUN /usr/lib/jvm/java-21-openjdk-amd64/bin/javac Main.java
                   
                   # Command to run the application
-                  CMD ["/usr/lib/jvm/java-21-openjdk-amd64/bin/java", "Main"]"""
+                  CMD ["/usr/lib/jvm/java-21-openjdk-amd64/bin/java", "Main"]
+                  """
           )
         );
     }

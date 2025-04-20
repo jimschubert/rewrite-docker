@@ -38,6 +38,18 @@ class DockerfileParserTest {
     }
 
     @Test
+    void testRetainCarriageReturn() {
+        DockerfileParser parser = new DockerfileParser();
+        Docker.Document doc = parser.parse(new ByteArrayInputStream("# This is a comment\t\t\r\n".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
+
+        Docker.Comment comment = (Docker.Comment) stage.getChildren().get(0);
+        assertComment(comment, " ", "This is a comment", "\t\t");
+        assertEquals(printableWhiteSpace("\r\n"), printableWhiteSpace(doc.getEof().getWhitespace()));
+    }
+
+    @Test
     void testDirective() {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream("#    syntax=docker/dockerfile:1".getBytes(StandardCharsets.UTF_8)));
@@ -730,7 +742,7 @@ class DockerfileParserTest {
         assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "<<EOF", "", "");
         assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "/usr/share/nginx/html/index.html", "", "\n");
         assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, "", "(your index page goes here)", "", "\n");
-        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, "", "EOF", "", "");
+        assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, "", "EOF", "", "\n");
     }
 
     @Test
@@ -821,7 +833,7 @@ class DockerfileParserTest {
         assertRightPaddedLiteral(args.get(4), Quoting.UNQUOTED, " ", "install", "", "");
         assertRightPaddedLiteral(args.get(5), Quoting.UNQUOTED, " ", "-y", "", "");
         assertRightPaddedLiteral(args.get(6), Quoting.UNQUOTED, " ", "curl", "", "\n");
-        assertRightPaddedLiteral(args.get(7), Quoting.UNQUOTED, "", "EOF", "", "");
+        assertRightPaddedLiteral(args.get(7), Quoting.UNQUOTED, "", "EOF", "", "\n");
     }
 
     /**
@@ -861,7 +873,7 @@ class DockerfileParserTest {
         assertRightPaddedLiteral(args.get(5), Quoting.UNQUOTED, " ", "f:", "", "\n");
         assertRightPaddedLiteral(args.get(6), Quoting.UNQUOTED, "    ", "print(\"Hello\", file=f)", "", "\n");
         assertRightPaddedLiteral(args.get(7), Quoting.UNQUOTED, "    ", "print(\"World\", file=f)", "", "\n");
-        assertRightPaddedLiteral(args.get(8), Quoting.UNQUOTED, "", "EOF", "", "");
+        assertRightPaddedLiteral(args.get(8), Quoting.UNQUOTED, "", "EOF", "", "\n");
     }
 
     /**
@@ -896,7 +908,7 @@ class DockerfileParserTest {
         assertRightPaddedLiteral(args.get(3), Quoting.UNQUOTED, " ", "/hello", "", "\n");
         assertRightPaddedLiteral(args.get(4), Quoting.UNQUOTED, "", "print(\"Hello\")", "", "\n");
         assertRightPaddedLiteral(args.get(5), Quoting.UNQUOTED, "", "print(\"World\")", "", "\n");
-        assertRightPaddedLiteral(args.get(6), Quoting.UNQUOTED, "", "EOF", "", "");
+        assertRightPaddedLiteral(args.get(6), Quoting.UNQUOTED, "", "EOF", "", "\n");
     }
 
     @Test
@@ -928,7 +940,7 @@ class DockerfileParserTest {
         assertRightPaddedLiteral(args.get(7), Quoting.UNQUOTED, " ", "install", "", "");
         assertRightPaddedLiteral(args.get(8), Quoting.UNQUOTED, " ", "-y", "", "");
         assertRightPaddedLiteral(args.get(9), Quoting.UNQUOTED, " ", "curl", "", "\n");
-        assertRightPaddedLiteral(args.get(10), Quoting.UNQUOTED, "", "EOF", "", "");
+        assertRightPaddedLiteral(args.get(10), Quoting.UNQUOTED, "", "EOF", "", "\n");
     }
 
     @Test
@@ -1062,8 +1074,30 @@ class DockerfileParserTest {
         assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "echo", "", "");
         assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "Hello", "", "");
         assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, " ", "World", "", "");
-        assertEquals("\n\n\n", doc.getEof().getWhitespace());
+        assertEquals(printableWhiteSpace("\n\n\n"), printableWhiteSpace(doc.getEof().getWhitespace()));
+    }
 
+    @Test
+    @SuppressWarnings("TrailingWhitespacesInTextBlock")
+    void handleMultipleCRLFinEOF() {
+        DockerfileParser parser = new DockerfileParser();
+         Docker.Document doc = parser.parse(new ByteArrayInputStream(
+                """
+                RUN echo Hello World
+                \r
+                \r
+                \r 
+                """.getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
+        Docker.Run cmd = (Docker.Run) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, cmd.getPrefix());
+        List<DockerRightPadded<Docker.Literal>> args = cmd.getCommands();
+        assertEquals(3, args.size());
+        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "echo", "", "");
+        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "Hello", "", "");
+        assertRightPaddedLiteral(args.get(2), Quoting.UNQUOTED, " ", "World", "", "");
+        assertEquals(printableWhiteSpace("\r\n\r\n\r\n"), printableWhiteSpace(doc.getEof().getWhitespace()));
     }
 
     @Test

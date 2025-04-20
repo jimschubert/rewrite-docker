@@ -16,6 +16,7 @@ package com.github.jimschubert.rewrite.docker.tree;
 
 import com.github.jimschubert.rewrite.docker.DockerVisitor;
 import lombok.*;
+import lombok.experimental.Accessors;
 import lombok.experimental.NonFinal;
 import org.jspecify.annotations.NonNull;
 import org.openrewrite.*;
@@ -39,7 +40,11 @@ import static com.github.jimschubert.rewrite.docker.internal.StringUtil.trimSing
  */
 public interface Docker extends Tree {
 
-    interface Instruction extends Docker {}
+    interface Instruction extends Docker {
+        < T extends Tree> T withEol(Space eol);
+
+        Space getEol();
+    }
 
 
     static boolean same(String first, String second) {
@@ -274,6 +279,8 @@ public interface Docker extends Tree {
 
         Markers markers;
 
+        Space eol;
+
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitAdd(this, p);
@@ -286,7 +293,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Add(Tree.randomId(), prefix, options, sources, destination, markers);
+            return new Add(Tree.randomId(), prefix, options, sources, destination, markers, eol);
         }
 
         // todo: builder function?
@@ -305,6 +312,8 @@ public interface Docker extends Tree {
 
         Markers markers;
 
+        Space eol;
+
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitArg(this, p);
@@ -317,19 +326,19 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Arg(Tree.randomId(), prefix, args, markers);
+            return new Arg(Tree.randomId(), prefix, args, markers, eol);
         }
 
         public static Arg build(String key, String value) {
             return new Arg(Tree.randomId(), Space.EMPTY, List.of(
                     DockerRightPadded.build(new KeyArgs(Space.build(" "), Literal.build(key), Literal.build(value), true, Quoting.UNQUOTED))
-            ), Markers.EMPTY);
+            ), Markers.EMPTY, Space.build("\n"));
         }
 
         public static Arg build(KeyArgs ...args) {
             return new Arg(Tree.randomId(), Space.EMPTY, Arrays.stream(args)
                     .map(DockerRightPadded::build)
-                    .collect(Collectors.toCollection(ArrayList::new)), Markers.EMPTY);
+                    .collect(Collectors.toCollection(ArrayList::new)), Markers.EMPTY, Space.build("\n"));
         }
     }
 
@@ -345,6 +354,7 @@ public interface Docker extends Tree {
         List<DockerRightPadded<Literal>> commands;
         Space execFormSuffix;
         Markers markers;
+        Space eol;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -358,7 +368,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Cmd(Tree.randomId(), form, prefix, execFormPrefix, commands, execFormSuffix, markers);
+            return new Cmd(Tree.randomId(), form, prefix, execFormPrefix, commands, execFormSuffix, markers, eol);
         }
 
         public static Cmd build(String ...commands) {
@@ -376,7 +386,8 @@ public interface Docker extends Tree {
                             .map(DockerRightPadded::build)
                             .collect(Collectors.toCollection(ArrayList::new)),
                     Space.EMPTY,
-                    Markers.EMPTY);
+                    Markers.EMPTY,
+                    Space.build("\n"));
         }
     }
 
@@ -393,6 +404,8 @@ public interface Docker extends Tree {
 
         Markers markers;
 
+        Space eol;
+
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitComment(this, p);
@@ -405,11 +418,15 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Comment(Tree.randomId(), prefix, text, markers);
+            return new Comment(Tree.randomId(), prefix, text, markers, eol);
         }
 
         public static Comment build(String text) {
-            return new Comment(Tree.randomId(), Space.EMPTY, DockerRightPadded.build(Literal.build(text).withPrefix(Space.build(" "))), Markers.EMPTY);
+            return new Comment(Tree.randomId(),
+                    Space.EMPTY,
+                    DockerRightPadded.build(Literal.build(text).withPrefix(Space.build(" "))),
+                    Markers.EMPTY,
+                    Space.build("\n"));
         }
     }
 
@@ -428,6 +445,8 @@ public interface Docker extends Tree {
 
         Markers markers;
 
+        Space eol;
+
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitCopy(this, p);
@@ -440,7 +459,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Copy(Tree.randomId(), prefix, new ArrayList<>(options), sources, destination, markers);
+            return new Copy(Tree.randomId(), prefix, new ArrayList<>(options), sources, destination, markers, eol);
         }
     }
 
@@ -454,6 +473,7 @@ public interface Docker extends Tree {
         Space prefix;
         DockerRightPadded<KeyArgs> directive;
         Markers markers;
+        Space eol;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -467,7 +487,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Directive(Tree.randomId(), prefix, directive, markers);
+            return new Directive(Tree.randomId(), prefix, directive, markers, eol);
         }
 
         public String getKey() {
@@ -503,7 +523,13 @@ public interface Docker extends Tree {
         }
 
         public static Directive build(String key, String value) {
-            return new Directive(Tree.randomId(), Space.EMPTY, DockerRightPadded.build(new KeyArgs(Space.build(" "), Literal.build(key),Literal.build(value), true, Quoting.UNQUOTED)), Markers.EMPTY);
+            return new Directive(Tree.randomId(),
+                    Space.EMPTY,
+                    DockerRightPadded.build(
+                            new KeyArgs(Space.build(" "), Literal.build(key),Literal.build(value), true, Quoting.UNQUOTED)
+                    ),
+                    Markers.EMPTY,
+                    Space.build("\n"));
         }
     }
 
@@ -519,6 +545,7 @@ public interface Docker extends Tree {
         List<DockerRightPadded<Literal>> commands;
         Space execFormSuffix;
         Markers markers;
+        Space eol;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -532,7 +559,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Entrypoint(Tree.randomId(), form, prefix,execFormPrefix, commands, execFormSuffix, markers);
+            return new Entrypoint(Tree.randomId(), form, prefix,execFormPrefix, commands, execFormSuffix, markers, eol);
         }
 
         public static Entrypoint build(String ...commands) {
@@ -553,7 +580,8 @@ public interface Docker extends Tree {
                             .map(DockerRightPadded::build)
                             .collect(Collectors.toCollection(ArrayList::new)),
                     Space.EMPTY,
-                    Markers.EMPTY);
+                    Markers.EMPTY,
+                    Space.build("\n"));
         }
     }
 
@@ -569,6 +597,7 @@ public interface Docker extends Tree {
         List<DockerRightPadded<KeyArgs>> args;
 
         Markers markers;
+        Space eol;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -582,13 +611,19 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Env(Tree.randomId(), prefix, args, markers);
+            return new Env(Tree.randomId(), prefix, args, markers, eol);
         }
 
         public static Env build(String key, String value) {
-            return new Env(Tree.randomId(), Space.EMPTY, List.of(
-                    DockerRightPadded.build(new KeyArgs(Space.build(" "), Literal.build(key), Literal.build(value), true, Quoting.UNQUOTED))
-            ), Markers.EMPTY);
+            return new Env(Tree.randomId(),
+                    Space.EMPTY,
+                    List.of(
+                        DockerRightPadded.build(
+                            new KeyArgs(Space.build(" "), Literal.build(key), Literal.build(value), true, Quoting.UNQUOTED)
+                        )
+                    ),
+                    Markers.EMPTY,
+                    Space.build("\n"));
         }
 
         public static Env build(KeyArgs ...args) {
@@ -600,7 +635,9 @@ public interface Docker extends Tree {
                         return arg;
                     })
                     .map(DockerRightPadded::build)
-                    .collect(Collectors.toCollection(ArrayList::new)), Markers.EMPTY);
+                    .collect(Collectors.toCollection(ArrayList::new)),
+                    Markers.EMPTY,
+                    Space.build("\n"));
         }
     }
 
@@ -618,6 +655,8 @@ public interface Docker extends Tree {
 
         Markers markers;
 
+        Space eol;
+
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitExpose(this, p);
@@ -630,7 +669,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Expose(Tree.randomId(), prefix, ports, markers);
+            return new Expose(Tree.randomId(), prefix, ports, markers, eol);
         }
 
         public static Expose build(String ...ports) {
@@ -654,42 +693,30 @@ public interface Docker extends Tree {
                                 protocol != null)));
             }
 
-            return new Expose(Tree.randomId(), Space.EMPTY,
+            return new Expose(Tree.randomId(),
+                    Space.EMPTY,
                     portsList,
-                    Markers.EMPTY);
+                    Markers.EMPTY,
+                    Space.build("\n"));
         }
     }
 
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
     class From implements Docker.Instruction {
-        @With
         @EqualsAndHashCode.Include
         UUID id;
 
-        @With
         Space prefix;
-
-        @With
         DockerRightPadded<Literal> platform;
-
-        @With
         DockerRightPadded<Literal> image;
-
-        @With
         DockerRightPadded<Literal> version;
-
-        @With
         Literal as;
-
-        @With
         DockerRightPadded<Literal> alias;
-
-        @With
         Space trailing;
-
-        @With
         Markers markers;
+        Space eol;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -703,7 +730,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new From(Tree.randomId(), prefix, platform, image, version, as, alias, trailing, markers);
+            return new From(Tree.randomId(), prefix, platform, image, version, as, alias, trailing, markers, eol);
         }
 
         public String getImageSpec() {
@@ -778,7 +805,8 @@ public interface Docker extends Tree {
                     Literal.build(null).withPrefix(Space.build(" ")),
                     DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" "))),
                     Space.EMPTY,
-                    Markers.EMPTY).image(image);
+                    Markers.EMPTY,
+                    Space.build("\n")).image(image);
         }
 
         public static From build(String prefix, String platform, String image, String version, String alias) {
@@ -787,7 +815,10 @@ public interface Docker extends Tree {
                     DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" "))),
                     DockerRightPadded.build(Literal.build(null).withPrefix(Space.build(" "))),
                     alias != null && !alias.isBlank() ? Literal.build("AS").withPrefix(Space.build(" ")) : null,
-                    DockerRightPadded.build(Literal.build(alias).withPrefix(Space.build(" "))), Space.EMPTY, Markers.EMPTY
+                    DockerRightPadded.build(Literal.build(alias).withPrefix(Space.build(" "))),
+                    Space.EMPTY,
+                    Markers.EMPTY,
+                    Space.build("\n")
             )
             .image(image)
             .version(version)
@@ -813,6 +844,8 @@ public interface Docker extends Tree {
 
         Markers markers;
 
+        Space eol;
+
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitHealthcheck(this, p);
@@ -830,7 +863,8 @@ public interface Docker extends Tree {
                     type,
                     options == null ? new ArrayList<>() : new ArrayList<>(options),
                     commands == null ? new ArrayList<>() : new ArrayList<>(commands),
-                    markers);
+                    markers,
+                    eol);
         }
     }
 
@@ -848,6 +882,8 @@ public interface Docker extends Tree {
 
         Markers markers;
 
+        Space eol;
+
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
             return v.visitLabel(this, p);
@@ -860,19 +896,19 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Label(Tree.randomId(), prefix, args, markers);
+            return new Label(Tree.randomId(), prefix, args, markers, eol);
         }
 
         public static Label build(String key, String value) {
             return new Label(Tree.randomId(), Space.EMPTY, List.of(
                     DockerRightPadded.build(new KeyArgs(Space.build(" "), Literal.build(key), Literal.build(value), true, Quoting.UNQUOTED))
-            ), Markers.EMPTY);
+            ), Markers.EMPTY, Space.build("\n"));
         }
 
         public static Label build(KeyArgs ...args) {
             return new Label(Tree.randomId(), Space.EMPTY, Arrays.stream(args)
                     .map(DockerRightPadded::build)
-                    .collect(Collectors.toCollection(ArrayList::new)), Markers.EMPTY);
+                    .collect(Collectors.toCollection(ArrayList::new)), Markers.EMPTY, Space.build("\n"));
         }
     }
 
@@ -886,6 +922,7 @@ public interface Docker extends Tree {
         Space prefix;
         Literal name;
         Markers markers;
+        Space eol;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -899,7 +936,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Maintainer(Tree.randomId(), quoting, prefix, name, markers);
+            return new Maintainer(Tree.randomId(), quoting, prefix, name, markers, eol);
         }
 
         public static Maintainer build(String name) {
@@ -918,7 +955,7 @@ public interface Docker extends Tree {
 
             return new Maintainer(Tree.randomId(), quoting, Space.EMPTY,
                     Literal.build(name).withPrefix(Space.build(" ")),
-                    Markers.EMPTY);
+                    Markers.EMPTY, Space.build("\n"));
         }
     }
 
@@ -935,6 +972,7 @@ public interface Docker extends Tree {
         Space trailing;
 
         Markers markers;
+        Space eol;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -948,11 +986,11 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new OnBuild(Tree.randomId(), prefix, instruction.copyPaste(), trailing, markers);
+            return new OnBuild(Tree.randomId(), prefix, instruction.copyPaste(), trailing, markers, eol);
         }
 
         public static OnBuild build(Docker instruction) {
-            return new OnBuild(Tree.randomId(), Space.EMPTY, instruction, Space.EMPTY, Markers.EMPTY);
+            return new OnBuild(Tree.randomId(), Space.EMPTY, instruction, Space.EMPTY, Markers.EMPTY, Space.build("\n"));
         }
     }
 
@@ -969,6 +1007,7 @@ public interface Docker extends Tree {
         List<DockerRightPadded<Literal>> commands;
 
         Markers markers;
+        Space eol;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -982,7 +1021,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Run(Tree.randomId(), prefix, options, commands, markers);
+            return new Run(Tree.randomId(), prefix, options, commands, markers, eol);
         }
 
         public static Run build(String ...commands) {
@@ -993,7 +1032,8 @@ public interface Docker extends Tree {
                             .map(s -> Literal.build(s).withPrefix(Space.build(" ")))
                             .map(DockerRightPadded::build)
                             .collect(Collectors.toList()),
-                    Markers.EMPTY);
+                    Markers.EMPTY,
+                    Space.build("\n"));
         }
     }
 
@@ -1011,6 +1051,7 @@ public interface Docker extends Tree {
         List<DockerRightPadded<Literal>> commands;
         Space execFormSuffix;
         Markers markers;
+        Space eol;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -1024,7 +1065,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Shell(Tree.randomId(), prefix, execFormPrefix, commands, execFormSuffix, markers);
+            return new Shell(Tree.randomId(), prefix, execFormPrefix, commands, execFormSuffix, markers, eol);
         }
 
         public static Shell build(String ...commands) {
@@ -1036,7 +1077,8 @@ public interface Docker extends Tree {
                             .map(DockerRightPadded::build)
                             .collect(Collectors.toList()),
                     Space.EMPTY,
-                    Markers.EMPTY);
+                    Markers.EMPTY,
+                    Space.build("\n"));
         }
     }
 
@@ -1046,12 +1088,10 @@ public interface Docker extends Tree {
     class StopSignal implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
-
         Space prefix;
-
         Literal signal;
-
         Markers markers;
+        Space eol;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -1065,13 +1105,15 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new StopSignal(Tree.randomId(), prefix, signal, markers);
+            return new StopSignal(Tree.randomId(), prefix, signal, markers, eol);
         }
 
         public static StopSignal build(String signal) {
-            return new StopSignal(Tree.randomId(), Space.EMPTY,
+            return new StopSignal(Tree.randomId(),
+                    Space.EMPTY,
                     Literal.build(signal).withPrefix(Space.build(" ")),
-                    Markers.EMPTY);
+                    Markers.EMPTY,
+                    Space.build("\n"));
         }
     }
 
@@ -1088,6 +1130,7 @@ public interface Docker extends Tree {
         Literal group;
 
         Markers markers;
+        Space eol;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -1101,7 +1144,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new User(Tree.randomId(), prefix, username, group, markers);
+            return new User(Tree.randomId(), prefix, username, group, markers, eol);
         }
 
         public static User build(String username) {
@@ -1112,7 +1155,8 @@ public interface Docker extends Tree {
             return new User(Tree.randomId(), Space.EMPTY,
                     username == null ? null : Literal.build(username).withPrefix(Space.build(" ")),
                     group == null ? null : Literal.build(group).withPrefix(Space.build(" ")),
-                    Markers.EMPTY);
+                    Markers.EMPTY,
+                    Space.build("\n"));
         }
     }
 
@@ -1133,6 +1177,7 @@ public interface Docker extends Tree {
         Space execFormSuffix;
 
         Markers markers;
+        Space eol;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -1146,7 +1191,7 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Volume(Tree.randomId(), form, prefix, execFormPrefix, paths, execFormSuffix, markers);
+            return new Volume(Tree.randomId(), form, prefix, execFormPrefix, paths, execFormSuffix, markers, eol);
         }
 
 
@@ -1168,7 +1213,8 @@ public interface Docker extends Tree {
                             .map(DockerRightPadded::build)
                             .collect(Collectors.toCollection(ArrayList::new)),
                     Space.EMPTY,
-                    Markers.EMPTY);
+                    Markers.EMPTY,
+                    Space.build("\n"));
         }
     }
 
@@ -1199,7 +1245,9 @@ public interface Docker extends Tree {
         }
 
         public static Stage build(Instruction ...instructions) {
-            return new Stage(Tree.randomId(), Arrays.stream(instructions).collect(Collectors.toCollection(ArrayList::new)), Markers.EMPTY);
+            return new Stage(Tree.randomId(),
+                    Arrays.stream(instructions).collect(Collectors.toCollection(ArrayList::new)),
+                    Markers.EMPTY);
         }
     }
 
@@ -1209,12 +1257,10 @@ public interface Docker extends Tree {
     class Workdir implements Docker.Instruction {
         @EqualsAndHashCode.Include
         UUID id;
-
         Space prefix;
-
         Literal path;
-
         Markers markers;
+        Space eol;
 
         @Override
         public <P> Docker acceptDocker(DockerVisitor<P> v, P p) {
@@ -1228,13 +1274,15 @@ public interface Docker extends Tree {
 
         @Override
         public Docker copyPaste() {
-            return new Workdir(Tree.randomId(), prefix, path, markers);
+            return new Workdir(Tree.randomId(), prefix, path, markers, eol);
         }
 
         public static Workdir build(String path) {
-            return new Workdir(Tree.randomId(), Space.EMPTY,
+            return new Workdir(Tree.randomId(),
+                    Space.EMPTY,
                     Literal.build(path).withPrefix(Space.build(" ")),
-                    Markers.EMPTY);
+                    Markers.EMPTY,
+                    Space.build("\n"));
         }
     }
 
