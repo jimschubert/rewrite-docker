@@ -1049,7 +1049,7 @@ public interface Docker extends Tree {
         Space prefix;
 
         Space execFormPrefix;
-        List<DockerRightPadded<Literal>> commands;
+        List<Literal> commands;
         Space execFormSuffix;
         Markers markers;
         Space eol;
@@ -1075,7 +1075,6 @@ public interface Docker extends Tree {
                     Space.build(" "),
                     Arrays.stream(commands)
                             .map(Literal::build)
-                            .map(DockerRightPadded::build)
                             .collect(Collectors.toList()),
                     Space.EMPTY,
                     Markers.EMPTY,

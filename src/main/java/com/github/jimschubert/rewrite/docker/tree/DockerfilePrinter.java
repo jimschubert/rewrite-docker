@@ -623,23 +623,18 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         p.append("[");
 
         for (int i = 0; i < shell.getCommands().size(); i++) {
-            DockerRightPadded<Docker.Literal> padded = shell.getCommands().get(i);
-            Docker.Literal literal = padded.getElement();
+            Docker.Literal literal = shell.getCommands().get(i);
             if (literal.getQuoting() != Quoting.DOUBLE_QUOTED) {
                 literal = ((Docker.Literal) literal.copyPaste())
                         .withQuoting(Quoting.DOUBLE_QUOTED)
                         .withText(trimDoubleQuotes(literal.getText()));
-                padded = DockerRightPadded.build(literal)
-                        .withMarkers(padded.getMarkers())
-                        .withAfter(padded.getAfter());
             }
 
-            visitDockerRightPaddedLiteral(padded, p);
+            visitLiteral(literal, p);
 
             if (i < shell.getCommands().size() - 1) {
                 p.append(",");
             }
-            visitSpace(padded.getAfter(), p);
         }
 
         p.append("]");

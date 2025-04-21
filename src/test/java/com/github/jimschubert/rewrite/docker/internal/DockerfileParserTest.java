@@ -408,11 +408,11 @@ class DockerfileParserTest {
         Docker.Shell shell = (Docker.Shell) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, shell.getPrefix());
 
-        List<DockerRightPadded<Docker.Literal>> commands = shell.getCommands();
+        List<Docker.Literal> commands = shell.getCommands();
         assertEquals(2, commands.size());
 
-        assertRightPaddedLiteral(commands.get(0), Quoting.DOUBLE_QUOTED, "  ", "powershell", "", "");
-        assertRightPaddedLiteral(commands.get(1), Quoting.DOUBLE_QUOTED, " ", "-Command", "   ", "");
+        assertLiteral(commands.get(0), Quoting.DOUBLE_QUOTED, "  ", "powershell", "");
+        assertLiteral(commands.get(1), Quoting.DOUBLE_QUOTED, " ", "-Command", "   ");
 
         assertEquals(" ", shell.getExecFormPrefix().getWhitespace());
         assertEquals("\t", shell.getExecFormSuffix().getWhitespace());
@@ -428,13 +428,13 @@ class DockerfileParserTest {
         Docker.Shell shell = (Docker.Shell) stage.getChildren().get(0);
         assertEquals(Space.EMPTY, shell.getPrefix());
 
-        List<DockerRightPadded<Docker.Literal>> commands = shell.getCommands();
+        List<Docker.Literal> commands = shell.getCommands();
         assertEquals(4, commands.size());
 
-        assertRightPaddedLiteral(commands.get(0), Quoting.DOUBLE_QUOTED, "  ", "powershell", "", "");
-        assertRightPaddedLiteral(commands.get(1), Quoting.DOUBLE_QUOTED, " ", "-Command", " ", " \t\\\n\t\t  ");
-        assertRightPaddedLiteral(commands.get(2), Quoting.DOUBLE_QUOTED, "", "bash", "", "");
-        assertRightPaddedLiteral(commands.get(3), Quoting.DOUBLE_QUOTED, " ", "-c", "   ", "");
+        assertLiteral(commands.get(0), Quoting.DOUBLE_QUOTED, "  ", "powershell", "");
+        assertLiteral(commands.get(1), Quoting.DOUBLE_QUOTED, " ", "-Command", "  \t\\\n\t\t  ");
+        assertLiteral(commands.get(2), Quoting.DOUBLE_QUOTED, "", "bash", "");
+        assertLiteral(commands.get(3), Quoting.DOUBLE_QUOTED, " ", "-c", "   ");
 
         assertEquals(" ", shell.getExecFormPrefix().getWhitespace());
         assertEquals("", shell.getExecFormSuffix().getWhitespace());
@@ -1011,8 +1011,8 @@ class DockerfileParserTest {
         Docker.Shell shell = (Docker.Shell) stage.getChildren().get(5);
         assertEquals(Space.EMPTY, shell.getPrefix());
         assertEquals(2, shell.getCommands().size());
-        assertRightPaddedLiteral(shell.getCommands().get(0), Quoting.DOUBLE_QUOTED, " ", "powershell", "", "");
-        assertRightPaddedLiteral(shell.getCommands().get(1), Quoting.DOUBLE_QUOTED, " ", "-Command", " ", "");
+        assertLiteral(shell.getCommands().get(0), Quoting.DOUBLE_QUOTED, " ", "powershell", "");
+        assertLiteral(shell.getCommands().get(1), Quoting.DOUBLE_QUOTED, " ", "-Command", " ");
         assertEquals(" ", shell.getExecFormPrefix().getWhitespace());
         assertEquals("", shell.getExecFormSuffix().getWhitespace());
 
