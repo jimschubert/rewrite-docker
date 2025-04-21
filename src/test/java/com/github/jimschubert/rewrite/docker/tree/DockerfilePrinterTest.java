@@ -80,7 +80,7 @@ class DockerfilePrinterTest {
     @Test
     void visitRun() {
         Docker.Document doc = Docker.Document.build(
-                Docker.Run.build("echo Hello World").withEol(Space.build("\n")),
+                Docker.Run.build("echo Hello World").withEol(Space.NEWLINE),
                 Docker.Run.build("echo Goodbye World").withEol(Space.EMPTY)
         ).withEof(Space.EMPTY);
 
@@ -281,7 +281,7 @@ class DockerfilePrinterTest {
                             Docker.Literal.build("/usr/src/things/").withPrefix(Space.build(" ")
                         ),
                         Markers.EMPTY,
-                        Space.build("\n")
+                        Space.NEWLINE
                 )
         ).withEof(Space.EMPTY);
 
@@ -305,7 +305,7 @@ class DockerfilePrinterTest {
                         ),
                         Docker.Literal.build("/dest").withPrefix(Space.build(" ")),
                         Markers.EMPTY,
-                        Space.build("\n")
+                        Space.NEWLINE
                 )
         ).withEof(Space.EMPTY);
 
@@ -448,7 +448,7 @@ class DockerfilePrinterTest {
                             Docker.Literal.build("curl -f http://localhost/ || exit 1").withPrefix(Space.build(" "))
                         ),
                         Markers.EMPTY,
-                        Space.build("\n")
+                        Space.NEWLINE
                 )
         ).withEof(Space.EMPTY);
 
@@ -468,7 +468,7 @@ class DockerfilePrinterTest {
                         List.of(),
                         List.of(),
                         Markers.EMPTY,
-                        Space.build("\n")
+                        Space.NEWLINE
                 )
         ).withEof(Space.EMPTY);
 
@@ -481,7 +481,7 @@ class DockerfilePrinterTest {
     @Test
     void visitShell() {
         Docker.Document doc = Docker.Document.build(
-                Docker.Shell.build("sh", "-c").withEol(Space.build("\n"))
+                Docker.Shell.build("sh", "-c").withEol(Space.NEWLINE)
         ).withEof(Space.EMPTY);
 
         String expected = """

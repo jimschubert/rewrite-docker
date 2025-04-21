@@ -1173,7 +1173,7 @@ class DockerfileParserTest {
 
 
         Docker.From from1 = (Docker.From) stage1.getChildren().get(0);
-        assertEquals(Space.build("\n"), from1.getPrefix());
+        assertEquals(Space.NEWLINE, from1.getPrefix());
         assertLiteral(from1.getImage(), Quoting.UNQUOTED, " ", "ubuntu", "");
         assertLiteral(from1.getVersion(), Quoting.UNQUOTED, "", ":20.04", "");
         assertEquals("20.04", from1.getTag());
@@ -1201,7 +1201,7 @@ class DockerfileParserTest {
         assertLiteral(commands.get(3), Quoting.UNQUOTED, " ", "/stage2_complete.txt", "");
 
         Docker.From from2 = (Docker.From) stage2.getChildren().get(0);
-        assertEquals(Space.build("\n"), from2.getPrefix());
+        assertEquals(Space.NEWLINE, from2.getPrefix());
         assertLiteral(from2.getImage(), Quoting.UNQUOTED, " ", "ubuntu", "");
         assertLiteral(from2.getVersion(), Quoting.UNQUOTED, "", ":20.04", "");
         assertEquals("20.04", from2.getTag());
@@ -1228,7 +1228,7 @@ class DockerfileParserTest {
         assertLiteral(commands.get(3), Quoting.UNQUOTED, " ", "/stage3_complete.txt", "");
 
         Docker.From from3 = (Docker.From) finalStage.getChildren().get(0);
-        assertEquals(Space.build("\n"), from3.getPrefix());
+        assertEquals(Space.NEWLINE, from3.getPrefix());
         assertLiteral(from3.getImage(), Quoting.UNQUOTED, " ", "ubuntu", "");
         assertLiteral(from3.getVersion(), Quoting.UNQUOTED, "", ":20.04", "");
         assertEquals("20.04", from3.getTag());

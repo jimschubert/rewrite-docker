@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
 import static com.github.jimschubert.rewrite.docker.internal.StringUtil.trimDoubleQuotes;
 import static com.github.jimschubert.rewrite.docker.internal.StringUtil.trimSingleQuotes;
 
-// TODO: maybe revisit some of the types here to determine if any can be simplified (e.g. DockerRightPadded<Literal>)
 // TODO: maybe add helper methods to simplify setting of (most) fields?
 
 /**
@@ -334,13 +333,13 @@ public interface Docker extends Tree {
         public static Arg build(String key, String value) {
             return new Arg(Tree.randomId(), Space.EMPTY, List.of(
                     DockerRightPadded.build(new KeyArgs(Space.build(" "), Literal.build(key), Literal.build(value), true, Quoting.UNQUOTED))
-            ), Markers.EMPTY, Space.build("\n"));
+            ), Markers.EMPTY, Space.NEWLINE);
         }
 
         public static Arg build(KeyArgs... args) {
             return new Arg(Tree.randomId(), Space.EMPTY, Arrays.stream(args)
                     .map(DockerRightPadded::build)
-                    .collect(Collectors.toCollection(ArrayList::new)), Markers.EMPTY, Space.build("\n"));
+                    .collect(Collectors.toCollection(ArrayList::new)), Markers.EMPTY, Space.NEWLINE);
         }
     }
 
@@ -389,7 +388,7 @@ public interface Docker extends Tree {
                             .collect(Collectors.toList()),
                     Space.EMPTY,
                     Markers.EMPTY,
-                    Space.build("\n"));
+                    Space.NEWLINE);
         }
     }
 
@@ -428,7 +427,7 @@ public interface Docker extends Tree {
                     Space.EMPTY,
                     Literal.build(text).withPrefix(Space.build(" ")),
                     Markers.EMPTY,
-                    Space.build("\n"));
+                    Space.NEWLINE);
         }
     }
 
@@ -531,7 +530,7 @@ public interface Docker extends Tree {
                             new KeyArgs(Space.build(" "), Literal.build(key), Literal.build(value), true, Quoting.UNQUOTED)
                     ),
                     Markers.EMPTY,
-                    Space.build("\n"));
+                    Space.NEWLINE);
         }
     }
 
@@ -582,7 +581,7 @@ public interface Docker extends Tree {
                             .collect(Collectors.toList()),
                     Space.EMPTY,
                     Markers.EMPTY,
-                    Space.build("\n"));
+                    Space.NEWLINE);
         }
     }
 
@@ -624,7 +623,7 @@ public interface Docker extends Tree {
                             )
                     ),
                     Markers.EMPTY,
-                    Space.build("\n"));
+                    Space.NEWLINE);
         }
 
         public static Env build(KeyArgs... args) {
@@ -638,7 +637,7 @@ public interface Docker extends Tree {
                     .map(DockerRightPadded::build)
                     .collect(Collectors.toCollection(ArrayList::new)),
                     Markers.EMPTY,
-                    Space.build("\n"));
+                    Space.NEWLINE);
         }
     }
 
@@ -698,7 +697,7 @@ public interface Docker extends Tree {
                     Space.EMPTY,
                     portsList,
                     Markers.EMPTY,
-                    Space.build("\n"));
+                    Space.NEWLINE);
         }
     }
 
@@ -808,7 +807,7 @@ public interface Docker extends Tree {
                     Literal.build(null).withPrefix(Space.build(" ")),
                     Space.EMPTY,
                     Markers.EMPTY,
-                    Space.build("\n")).image(image);
+                    Space.NEWLINE).image(image);
         }
 
         public static From build(String prefix, String platform, String image, String version, String alias) {
@@ -820,7 +819,7 @@ public interface Docker extends Tree {
                     Literal.build(alias).withPrefix(Space.build(" ")),
                     Space.EMPTY,
                     Markers.EMPTY,
-                    Space.build("\n")
+                    Space.NEWLINE
             )
                     .image(image)
                     .version(version)
@@ -904,13 +903,13 @@ public interface Docker extends Tree {
         public static Label build(String key, String value) {
             return new Label(Tree.randomId(), Space.EMPTY, List.of(
                     DockerRightPadded.build(new KeyArgs(Space.build(" "), Literal.build(key), Literal.build(value), true, Quoting.UNQUOTED))
-            ), Markers.EMPTY, Space.build("\n"));
+            ), Markers.EMPTY, Space.NEWLINE);
         }
 
         public static Label build(KeyArgs... args) {
             return new Label(Tree.randomId(), Space.EMPTY, Arrays.stream(args)
                     .map(DockerRightPadded::build)
-                    .collect(Collectors.toCollection(ArrayList::new)), Markers.EMPTY, Space.build("\n"));
+                    .collect(Collectors.toCollection(ArrayList::new)), Markers.EMPTY, Space.NEWLINE);
         }
     }
 
@@ -957,7 +956,7 @@ public interface Docker extends Tree {
 
             return new Maintainer(Tree.randomId(), quoting, Space.EMPTY,
                     Literal.build(name).withPrefix(Space.build(" ")),
-                    Markers.EMPTY, Space.build("\n"));
+                    Markers.EMPTY, Space.NEWLINE);
         }
     }
 
@@ -992,7 +991,7 @@ public interface Docker extends Tree {
         }
 
         public static OnBuild build(Docker instruction) {
-            return new OnBuild(Tree.randomId(), Space.EMPTY, instruction, Space.EMPTY, Markers.EMPTY, Space.build("\n"));
+            return new OnBuild(Tree.randomId(), Space.EMPTY, instruction, Space.EMPTY, Markers.EMPTY, Space.NEWLINE);
         }
     }
 
@@ -1034,7 +1033,7 @@ public interface Docker extends Tree {
                             .map(s -> Literal.build(s).withPrefix(Space.build(" ")))
                             .collect(Collectors.toList()),
                     Markers.EMPTY,
-                    Space.build("\n"));
+                    Space.NEWLINE);
         }
     }
 
@@ -1078,7 +1077,7 @@ public interface Docker extends Tree {
                             .collect(Collectors.toList()),
                     Space.EMPTY,
                     Markers.EMPTY,
-                    Space.build("\n"));
+                    Space.NEWLINE);
         }
     }
 
@@ -1113,7 +1112,7 @@ public interface Docker extends Tree {
                     Space.EMPTY,
                     Literal.build(signal).withPrefix(Space.build(" ")),
                     Markers.EMPTY,
-                    Space.build("\n"));
+                    Space.NEWLINE);
         }
     }
 
@@ -1156,7 +1155,7 @@ public interface Docker extends Tree {
                     username == null ? null : Literal.build(username).withPrefix(Space.build(" ")),
                     group == null ? null : Literal.build(group).withPrefix(Space.build(" ")),
                     Markers.EMPTY,
-                    Space.build("\n"));
+                    Space.NEWLINE);
         }
     }
 
@@ -1213,7 +1212,7 @@ public interface Docker extends Tree {
                             .collect(Collectors.toList()),
                     Space.EMPTY,
                     Markers.EMPTY,
-                    Space.build("\n"));
+                    Space.NEWLINE);
         }
     }
 
@@ -1281,7 +1280,7 @@ public interface Docker extends Tree {
                     Space.EMPTY,
                     Literal.build(path).withPrefix(Space.build(" ")),
                     Markers.EMPTY,
-                    Space.build("\n"));
+                    Space.NEWLINE);
         }
     }
 
@@ -1328,14 +1327,6 @@ public interface Docker extends Tree {
         }
     }
 
-//    @Value
-//    @With
-//    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-//    class SecurityOption {
-//        Space prefix;
-//        String name;
-//    }
-
     @Value
     @With
     @EqualsAndHashCode
@@ -1345,23 +1336,4 @@ public interface Docker extends Tree {
         String protocol;
         boolean protocolProvided;
     }
-
-//    @Value
-//    @With
-//    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-//    class NetworkOption {
-//        Space prefix;
-//        String name;
-//    }
-
-//    // TODO: Extends Dockerfile, add visitor
-//    @Value
-//    @With
-//    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-//    class Mount{
-//        Space prefix;
-//        String type;
-//        List<KeyArgs> options;
-//        String id;
-//    }
 }

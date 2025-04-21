@@ -32,6 +32,7 @@ import java.util.function.UnaryOperator;
 @JsonIdentityInfo(generator = ObjectIdGenerators.IntSequenceGenerator.class, property = "@ref")
 public class Space {
     public static final Space EMPTY = new Space("");
+    public static final Space NEWLINE = new Space("\n");
 
     @Nullable
     private final String whitespace;
