@@ -491,11 +491,11 @@ class DockerfileParserTest {
         assertEquals(" ", volume.getExecFormPrefix().getWhitespace());
         assertEquals("\t", volume.getExecFormSuffix().getWhitespace());
 
-        List<DockerRightPadded<Docker.Literal>> args = volume.getPaths();
+        List<Docker.Literal> args = volume.getPaths();
         assertEquals(2, args.size());
 
-        assertRightPaddedLiteral(args.get(0), Quoting.DOUBLE_QUOTED, " ", "/var/log", "", "");
-        assertRightPaddedLiteral(args.get(1), Quoting.DOUBLE_QUOTED, " ", "/var/log2", " ", "");
+        assertLiteral(args.get(0), Quoting.DOUBLE_QUOTED, " ", "/var/log", "");
+        assertLiteral(args.get(1), Quoting.DOUBLE_QUOTED, " ", "/var/log2", " ");
     }
 
     @Test
@@ -510,11 +510,11 @@ class DockerfileParserTest {
         assertEquals("", volume.getExecFormPrefix().getWhitespace());
         assertEquals("", volume.getExecFormSuffix().getWhitespace());
 
-        List<DockerRightPadded<Docker.Literal>> args = volume.getPaths();
+        List<Docker.Literal> args = volume.getPaths();
         assertEquals(2, args.size());
 
-        assertRightPaddedLiteral(args.get(0), Quoting.UNQUOTED, " ", "/var/log", "", "");
-        assertRightPaddedLiteral(args.get(1), Quoting.UNQUOTED, " ", "/var/log2", "", "\t");
+        assertLiteral(args.get(0), Quoting.UNQUOTED, " ", "/var/log", "");
+        assertLiteral(args.get(1), Quoting.UNQUOTED, " ", "/var/log2", "\t");
     }
 
     @Test
@@ -1026,8 +1026,8 @@ class DockerfileParserTest {
         assertEquals(" ", volume.getExecFormPrefix().getWhitespace());
         assertEquals("", volume.getExecFormSuffix().getWhitespace());
         assertEquals(2, volume.getPaths().size());
-        assertRightPaddedLiteral(volume.getPaths().get(0), Quoting.DOUBLE_QUOTED, " ", "/var/log", "", "");
-        assertRightPaddedLiteral(volume.getPaths().get(1), Quoting.DOUBLE_QUOTED, " ", "/var/log2", " ", "");
+        assertLiteral(volume.getPaths().get(0), Quoting.DOUBLE_QUOTED, " ", "/var/log", "");
+        assertLiteral(volume.getPaths().get(1), Quoting.DOUBLE_QUOTED, " ", "/var/log2", " ");
 
         Docker.Workdir workdir = (Docker.Workdir) stage.getChildren().get(8);
         assertEquals(Space.EMPTY, workdir.getPrefix());

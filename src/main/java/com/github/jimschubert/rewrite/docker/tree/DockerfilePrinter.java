@@ -434,16 +434,16 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
 
         List<Docker.Literal> commands = entrypoint.getCommands();
         for (int i = 0; i < commands.size(); i++) {
-            Docker.Literal padded = commands.get(i);
+            Docker.Literal literal = commands.get(i);
 
             if (entrypoint.getForm() == Form.SHELL
                 && i > 0
                 && i < commands.size() - 1
-                && "".equals(padded.getPrefix().getWhitespace())) {
+                && "".equals(literal.getPrefix().getWhitespace())) {
                 p.append(" ");
             }
 
-            visitLiteral(padded, p);
+            visitLiteral(literal, p);
 
             if (i < commands.size() - 1 && entrypoint.getForm() == Form.EXEC) {
                 p.append(",");
@@ -472,21 +472,19 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         }
 
         for (int i = 0; i < volume.getPaths().size(); i++) {
-            DockerRightPadded<Docker.Literal> padded = volume.getPaths().get(i);
+            Docker.Literal literal = volume.getPaths().get(i);
             if (volume.getForm() == Form.SHELL
                 && i > 0
                 && i < volume.getPaths().size() - 1
-                && "".equals(padded.getElement().getPrefix().getWhitespace())) {
+                && "".equals(literal.getPrefix().getWhitespace())) {
                 p.append(" ");
             }
 
-            visitDockerRightPaddedLiteral(padded, p);
+            visitLiteral(literal, p);
 
             if (volume.getForm() == Form.EXEC && i < volume.getPaths().size() - 1) {
                 p.append(",");
             }
-
-            visitSpace(padded.getAfter(), p);
         }
 
         if (volume.getForm() == Form.EXEC) {

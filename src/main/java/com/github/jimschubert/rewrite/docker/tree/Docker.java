@@ -1173,7 +1173,7 @@ public interface Docker extends Tree {
         Space prefix;
 
         Space execFormPrefix;
-        List<DockerRightPadded<Literal>> paths;
+        List<Literal> paths;
         Space execFormSuffix;
 
         Markers markers;
@@ -1210,8 +1210,7 @@ public interface Docker extends Tree {
                                     .withPrefix(form == Form.EXEC ? Space.EMPTY : Space.build(" "))
                                     .withTrailing(Space.EMPTY)
                             )
-                            .map(DockerRightPadded::build)
-                            .collect(Collectors.toCollection(ArrayList::new)),
+                            .collect(Collectors.toList()),
                     Space.EMPTY,
                     Markers.EMPTY,
                     Space.build("\n"));

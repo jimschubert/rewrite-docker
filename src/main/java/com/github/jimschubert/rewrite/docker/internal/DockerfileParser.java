@@ -417,7 +417,11 @@ public class DockerfileParser {
                                 .collect(Collectors.toList()),
                         execFormSuffix, Markers.EMPTY, Space.EMPTY);
             } else if (name.equals(Docker.Volume.class.getSimpleName())) {
-                return new Docker.Volume(Tree.randomId(), form, state.prefix(), execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY, Space.EMPTY);
+                return new Docker.Volume(Tree.randomId(), form, state.prefix(), execFormPrefix,
+                        parseLiterals(form, content).stream()
+                                .map(d -> d.getElement().withTrailing(Space.append(d.getElement().getTrailing(), d.getAfter())))
+                                .collect(Collectors.toList()),
+                        execFormSuffix, Markers.EMPTY, Space.EMPTY);
             } else if (name.equals(Docker.Workdir.class.getSimpleName())) {
                 List<DockerRightPadded<Docker.Literal>> lit = parseLiterals(form, content);
                 return new Docker.Workdir(Tree.randomId(), state.prefix(), lit.isEmpty() ? null : lit.get(0).getElement(), Markers.EMPTY, Space.EMPTY);
