@@ -17,7 +17,6 @@ package com.github.jimschubert.rewrite.docker.analysis;
 import com.github.jimschubert.rewrite.docker.DockerIsoVisitor;
 import com.github.jimschubert.rewrite.docker.table.RemoteFileReport;
 import com.github.jimschubert.rewrite.docker.tree.Docker;
-import com.github.jimschubert.rewrite.docker.tree.DockerRightPadded;
 import lombok.EqualsAndHashCode;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.ScanningRecipe;

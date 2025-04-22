@@ -22,7 +22,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static com.github.jimschubert.rewrite.docker.internal.DockerParserHelpers.*;
-import static com.github.jimschubert.rewrite.docker.internal.DockerParserHelpers.assertRightPaddedLiteral;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DockerfileParserTest {
