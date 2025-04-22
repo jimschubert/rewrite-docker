@@ -37,6 +37,58 @@ class DockerfileParserTest {
     }
 
     @Test
+    void testHeaderStyleComments() {
+        DockerfileParser parser = new DockerfileParser();
+        Docker.Document doc = parser.parse(new ByteArrayInputStream(
+                """
+                #
+                # NOTE: THIS DOCKERFILE IS GENERATED VIA "apply-templates.sh"
+                #
+                # PLEASE DO NOT EDIT IT DIRECTLY.
+                #
+                
+                FROM alpine:3.21
+                """.getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount(doc, 6);
+        assertComment((Docker.Comment) stage.getChildren().get(0), "", "", "");
+        assertComment((Docker.Comment) stage.getChildren().get(1), " ", "NOTE: THIS DOCKERFILE IS GENERATED VIA \"apply-templates.sh\"", "");
+        assertComment((Docker.Comment) stage.getChildren().get(2), "", "", "");
+        assertComment((Docker.Comment) stage.getChildren().get(3), " ", "PLEASE DO NOT EDIT IT DIRECTLY.", "");
+        assertComment((Docker.Comment) stage.getChildren().get(4), "", "", "");
+
+        Docker.From from = (Docker.From) stage.getChildren().get(5);
+        assertEquals(Space.EMPTY, from.getPrefix());
+        assertLiteral(from.getImage(), Quoting.UNQUOTED, " ", "alpine", "");
+        assertEquals("3.21", from.getTag());
+        assertEquals("", from.getImage().getTrailing().getWhitespace());
+        assertEquals(" ", from.getImage().getPrefix().getWhitespace());
+    }
+
+    @Test
+    void testFlowerboxStyleComments() {
+        DockerfileParser parser = new DockerfileParser();
+        Docker.Document doc = parser.parse(new ByteArrayInputStream(
+                """
+                ################################################
+                # ####
+                # This is a comment
+                #####
+                ################################################
+                """.getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount(doc, 5);
+        // note that this is one character less than the first line, because the first # is the "instruction"
+        assertComment((Docker.Comment) stage.getChildren().get(0), "", "###############################################", "");
+        assertComment((Docker.Comment) stage.getChildren().get(1), " ", "####", "");
+        assertComment((Docker.Comment) stage.getChildren().get(2), " ", "This is a comment", "");
+        // note the lack of the prefix space
+        assertComment((Docker.Comment) stage.getChildren().get(3), "", "####", "");
+        // note that this is one character less than the last line, because the first # is the "instruction"
+        assertComment((Docker.Comment) stage.getChildren().get(4), "", "###############################################", "");
+    }
+
+    @Test
     void testRetainCarriageReturn() {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream("# This is a comment\t\t\r\n".getBytes(StandardCharsets.UTF_8)));
