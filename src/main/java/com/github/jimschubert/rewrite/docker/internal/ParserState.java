@@ -32,6 +32,7 @@ public class ParserState {
         prefix = Space.EMPTY;
         rightPadding = Space.EMPTY;
         escapeChar = '\\';
+        isContinuation = false;
     }
 
     String getEscapeString() {

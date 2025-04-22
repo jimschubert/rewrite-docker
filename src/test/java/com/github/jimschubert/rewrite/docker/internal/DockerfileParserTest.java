@@ -845,6 +845,35 @@ class DockerfileParserTest {
         assertLiteral(args.get(7), Quoting.UNQUOTED, " ", "gcc", "");
     }
 
+    @Test
+    void testRunMultilineClearsContinuation() {
+        DockerfileParser parser = new DockerfileParser();
+        Docker.Document doc = parser.parse(new ByteArrayInputStream(
+                """
+                RUN echo Hello \\
+                    World
+                # This is a comment
+                # This is another comment
+                """.getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount(doc, 3);
+
+        Docker.Run cmd = (Docker.Run) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, cmd.getPrefix());
+
+        List<Docker.Literal> args = cmd.getCommands();
+        assertEquals(3, args.size());
+
+        assertLiteral(args.get(0), Quoting.UNQUOTED, " ", "echo", "");
+        assertLiteral(args.get(1), Quoting.UNQUOTED, " ", "Hello", " \\\n");
+        assertLiteral(args.get(2), Quoting.UNQUOTED, "    ", "World", "");
+
+        Docker.Comment comment1 = (Docker.Comment) stage.getChildren().get(1);
+        assertLiteral(comment1.getText(), Quoting.UNQUOTED, " ", "This is a comment", "");
+        Docker.Comment comment2 = (Docker.Comment) stage.getChildren().get(2);
+        assertLiteral(comment2.getText(), Quoting.UNQUOTED, " ", "This is another comment", "");
+    }
+
     /**
      * Test this example heredoc from the Dockerfile reference:
      * RUN <<EOF
