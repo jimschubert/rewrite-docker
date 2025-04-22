@@ -1366,4 +1366,35 @@ class DockerfileParserTest {
         assertLiteral(args.get(10), Quoting.UNQUOTED, " ", "World", "");
 
     }
+
+    @Test
+    void testInstructionPrefixWithContinuationCommands() {
+        String monster = """
+        ENV LAST_COMMIT=e2db71ff940a8b8c08c4ae894b952bfe7f0cf309
+        
+        RUN set -eux; \\
+        	\\
+        	apk add --no-cache --virtual .build-deps
+        """;
+
+        DockerfileParser parser = new DockerfileParser();
+        Docker.Document doc = parser.parse(new ByteArrayInputStream(monster.getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount(doc, 2);
+        Docker.Env env = (Docker.Env) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, env.getPrefix());
+        assertEquals(1, env.getArgs().size());
+        assertRightPaddedArg(env.getArgs().get(0), Quoting.UNQUOTED, " ", "LAST_COMMIT", true, "e2db71ff940a8b8c08c4ae894b952bfe7f0cf309", "");
+
+        Docker.Run run = (Docker.Run) stage.getChildren().get(1);
+        assertEquals(Space.NEWLINE, run.getPrefix());
+        assertEquals(7, run.getCommands().size());
+        assertLiteral(run.getCommands().get(0), Quoting.UNQUOTED, " ", "set", "");
+        assertLiteral(run.getCommands().get(1), Quoting.UNQUOTED, " ", "-eux;", " \\\n\t\\\n\t");
+        assertLiteral(run.getCommands().get(2), Quoting.UNQUOTED, "", "apk", "");
+        assertLiteral(run.getCommands().get(3), Quoting.UNQUOTED, " ", "add", "");
+        assertLiteral(run.getCommands().get(4), Quoting.UNQUOTED, " ", "--no-cache", "");
+        assertLiteral(run.getCommands().get(5), Quoting.UNQUOTED, " ", "--virtual", "");
+        assertLiteral(run.getCommands().get(6), Quoting.UNQUOTED, " ", ".build-deps", "");
+    }
 }

@@ -687,16 +687,6 @@ public class DockerfileParser {
                     continue;
                 }
 
-                if (scanner.hasNext() && !eof.isEmpty()) {
-                    // at this point, we have a line, so eof is the line prefix
-                    state.appendPrefix(eof);
-                    eof = Space.EMPTY;
-                } else if (!scanner.hasNext()) {
-                    // if we are at the end of the file with a newline
-                    eof = Space.append(eof, eol);
-                    eol = Space.EMPTY;
-                }
-
                 line = handleRightPadding(line, state);
 
                 // TODO: consider a better way to handle "inline" comments
@@ -718,10 +708,24 @@ public class DockerfileParser {
                 }
 
                 parser.append(line);
-                if (line.endsWith(state.getEscapeString())) {
+                // TODO: should we throw an error here if the line ends in the escape char and there are no more lines?
+                if (scanner.hasNext() && line.endsWith(state.getEscapeString())) {
                     parser.append(eol.getWhitespace());
                     state.isContinuation(true);
                     continue;
+                }
+
+                if (!eof.isEmpty() && (state.isContinuation() || scanner.hasNext())) {
+                    // any previously gathered whitespace is the prefix to this instruction
+                    state.appendPrefix(eof);
+                    eof = Space.EMPTY;
+                }
+
+                 if (!scanner.hasNext()) {
+                    // if we are at the end of the file with a newline, that is our eof.
+                    // other conditions such as multiple newlines or whitespace are handled earlier
+                    eof = Space.append(eof, eol);
+                    eol = Space.EMPTY;
                 }
 
                 Docker.Instruction instr = parser.parse();
