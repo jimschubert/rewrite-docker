@@ -22,6 +22,7 @@ import lombok.Value;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
+import org.openrewrite.quark.Quark;
 import org.openrewrite.text.PlainText;
 import org.openrewrite.text.PlainTextVisitor;
 
@@ -63,21 +64,30 @@ public class AsDockerfile extends Recipe {
         PlainTextVisitor<ExecutionContext> visitor = new PlainTextVisitor<>() {
             @Override
             public @Nullable Tree visit(@Nullable Tree tree, @NonNull ExecutionContext executionContext) {
+                Optional<SourceFile> maybeDockerfile = Optional.empty();
                 if (tree instanceof PlainText) {
                     PlainText plainText = (PlainText) tree;
-                    Optional<SourceFile> maybeDockerfile = DockerParser.builder().build().parse(plainText.print(getCursor())).findFirst();
-                    if (maybeDockerfile.isPresent()) {
-                        Docker.Document dockerfile = (Docker.Document) maybeDockerfile.get();
-                        return dockerfile
-                                .withId(plainText.getId())
-                                .withCharset(plainText.getCharset())
-                                .withSourcePath(plainText.getSourcePath())
-                                .withFileAttributes(plainText.getFileAttributes())
-                                .withChecksum(plainText.getChecksum())
-                                .withCharsetBomMarked(plainText.isCharsetBomMarked())
-                                .withMarkers(plainText.getMarkers());
-                    }
+                    maybeDockerfile = DockerParser.builder().build().parse(plainText.print(getCursor())).findFirst();
+                } else if (tree instanceof Quark) {
+                    Quark quark = (Quark) tree;
+                    maybeDockerfile = DockerParser.builder().build().parse(quark.print(getCursor())).findFirst();
                 }
+
+                // this instanceof is required because rewrite may expose an error as a
+                // org.openrewrite.tree.ParseError which extends SourceFile.
+                if (maybeDockerfile.isPresent() && maybeDockerfile.get() instanceof Docker.Document) {
+                    SourceFile input = (SourceFile)tree;
+                    Docker.Document dockerfile = (Docker.Document) maybeDockerfile.get();
+                    return dockerfile
+                            .withId(input.getId())
+                            .withCharset(input.getCharset())
+                            .withSourcePath(input.getSourcePath())
+                            .withFileAttributes(input.getFileAttributes())
+                            .withChecksum(input.getChecksum())
+                            .withCharsetBomMarked(input.isCharsetBomMarked())
+                            .withMarkers(input.getMarkers());
+                }
+
                 return super.visit(tree, executionContext);
             }
         };
