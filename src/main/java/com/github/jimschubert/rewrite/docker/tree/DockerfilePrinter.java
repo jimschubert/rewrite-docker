@@ -109,29 +109,26 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
     public Docker visitFrom(Docker.From from, PrintOutputCapture<P> p) {
         beforeSyntax(from, p);
         p.append("FROM");
-        if (from.getPlatform() != null && !StringUtils.isBlank(from.getPlatform().getElement().getText())) {
-            visitSpace(from.getPlatform().getElement().getPrefix(), p);
-            if (!from.getPlatform().getElement().getText().startsWith("--")) {
-                if (from.getPlatform().getElement().getPrefix().getWhitespace() == "") {
+        if (from.getPlatform() != null && !StringUtils.isBlank(from.getPlatform().getText())) {
+            visitSpace(from.getPlatform().getPrefix(), p);
+            if (!from.getPlatform().getText().startsWith("--")) {
+                if ("".equals(from.getPlatform().getPrefix().getWhitespace())) {
                     p.append(" ");
                 }
                 p.append("--platform=");
             }
 
-            p.append(from.getPlatform().getElement().getText());
-            visitSpace(from.getPlatform().getElement().getTrailing(), p);
-            visitSpace(from.getPlatform().getAfter(), p);
+            p.append(from.getPlatform().getText());
+            visitSpace(from.getPlatform().getTrailing(), p);
         }
 
-        appendRightPaddedLiteral(from.getImage(), p);
-        appendRightPaddedLiteral(from.getVersion(), p);
+        visitLiteral(from.getImage(), p);
+        visitLiteral(from.getVersion(), p);
 
         if (from.getAlias() != null &&
-            from.getAlias().getElement() != null &&
-            from.getAlias().getElement().getText() != null) {
-            visitSpace(from.getAs().getPrefix(), p);
-            p.append(from.getAs().getText());
-            appendRightPaddedLiteral(from.getAlias(), p);
+            from.getAlias().getText() != null) {
+            visitLiteral(from.getAs(), p);
+            visitLiteral(from.getAlias(), p);
         }
 
         afterSyntax(from, p);
@@ -151,13 +148,11 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
 
     @Override
     public Docker visitComment(Docker.Comment comment, PrintOutputCapture<P> p) {
-        Docker.Literal literal = comment.getText().getElement();
+        Docker.Literal literal = comment.getText();
         if (literal != null) {
             beforeSyntax(comment, p);
             p.append("#");
-            visitSpace(literal.getPrefix(), p);
-            p.append(literal.getText().replace("\n", "\n# "));
-            visitSpace(comment.getText().getAfter(), p);
+            visitLiteral(literal.withText(literal.getText().replaceAll("\n", "\n# ")), p);
             afterSyntax(comment, p);
         }
         return comment;
@@ -181,14 +176,13 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         p.append("RUN");
         if (run.getOptions() != null) {
             run.getOptions().forEach(o -> {
-                visitOption(o.getElement(), p);
-                visitSpace(o.getAfter(), p);
+                visitOption(o, p);
             });
         }
 
         if (run.getCommands() != null) {
             for (int i = 0; i < run.getCommands().size(); i++) {
-                visitDockerRightPaddedLiteral(run.getCommands().get(i), p);
+                visitLiteral(run.getCommands().get(i), p);
             }
         }
 
@@ -209,8 +203,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         }
 
         for (int i = 0; i < cmd.getCommands().size(); i++) {
-            DockerRightPadded<Docker.Literal> padded = cmd.getCommands().get(i);
-            Docker.Literal literal = padded.getElement();
+            Docker.Literal literal = cmd.getCommands().get(i);
             String text = literal.getText();
             visitSpace(literal.getPrefix(), p);
 
@@ -223,7 +216,7 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
             } else {
                 p.append(text);
             }
-            visitSpace(padded.getAfter(), p);
+            visitSpace(literal.getTrailing(), p);
         }
 
         if (form == Form.EXEC) {
@@ -385,18 +378,17 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
 
         if (add.getOptions() != null) {
             add.getOptions().forEach(o -> {
-                visitOption(o.getElement(), p);
-                visitSpace(o.getAfter(), p);
+                visitOption(o, p);
             });
         }
 
         if (add.getSources() != null) {
             for (int i = 0; i < add.getSources().size(); i++) {
-                visitDockerRightPaddedLiteral(add.getSources().get(i), p);
+                visitLiteral(add.getSources().get(i), p);
             }
         }
 
-        visitDockerRightPaddedLiteral(add.getDestination(), p);
+        visitLiteral(add.getDestination(), p);
 
         afterSyntax(add, p);
         return add;
@@ -409,18 +401,17 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
 
         if (copy.getOptions() != null) {
             copy.getOptions().forEach(o -> {
-                visitOption(o.getElement(), p);
-                visitSpace(o.getAfter(), p);
+                visitOption(o, p);
             });
         }
 
         if (copy.getSources() != null) {
             for (int i = 0; i < copy.getSources().size(); i++) {
-                visitDockerRightPaddedLiteral(copy.getSources().get(i), p);
+                visitLiteral(copy.getSources().get(i), p);
             }
         }
 
-        visitDockerRightPaddedLiteral(copy.getDestination(), p);
+        visitLiteral(copy.getDestination(), p);
 
         afterSyntax(copy, p);
         return copy;
@@ -441,23 +432,22 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
             p.append("[");
         }
 
-        List<DockerRightPadded<Docker.Literal>> commands = entrypoint.getCommands();
+        List<Docker.Literal> commands = entrypoint.getCommands();
         for (int i = 0; i < commands.size(); i++) {
-            DockerRightPadded<Docker.Literal> padded = commands.get(i);
+            Docker.Literal literal = commands.get(i);
 
             if (entrypoint.getForm() == Form.SHELL
                 && i > 0
                 && i < commands.size() - 1
-                && "".equals(padded.getElement().getPrefix().getWhitespace())) {
+                && "".equals(literal.getPrefix().getWhitespace())) {
                 p.append(" ");
             }
 
-            visitDockerRightPaddedLiteral(padded, p);
+            visitLiteral(literal, p);
 
             if (i < commands.size() - 1 && entrypoint.getForm() == Form.EXEC) {
                 p.append(",");
             }
-            visitSpace(padded.getAfter(), p);
         }
         if (entrypoint.getForm() == Form.EXEC) {
             p.append("]");
@@ -482,21 +472,19 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         }
 
         for (int i = 0; i < volume.getPaths().size(); i++) {
-            DockerRightPadded<Docker.Literal> padded = volume.getPaths().get(i);
+            Docker.Literal literal = volume.getPaths().get(i);
             if (volume.getForm() == Form.SHELL
                 && i > 0
                 && i < volume.getPaths().size() - 1
-                && "".equals(padded.getElement().getPrefix().getWhitespace())) {
+                && "".equals(literal.getPrefix().getWhitespace())) {
                 p.append(" ");
             }
 
-            visitDockerRightPaddedLiteral(padded, p);
+            visitLiteral(literal, p);
 
             if (volume.getForm() == Form.EXEC && i < volume.getPaths().size() - 1) {
                 p.append(",");
             }
-
-            visitSpace(padded.getAfter(), p);
         }
 
         if (volume.getForm() == Form.EXEC) {
@@ -596,25 +584,24 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
 
         if (healthcheck.getCommands() != null) {
             for (int i = 0; i < healthcheck.getCommands().size(); i++) {
-                DockerRightPadded<Docker.Literal> padded = healthcheck.getCommands().get(i);
+                Docker.Literal command = healthcheck.getCommands().get(i);
 
-                if (i == 0 && "CMD".equals(padded.getElement().getText())) {
-                    if (padded.getElement().getPrefix().isEmpty()) {
+                if (i == 0 && "CMD".equals(command.getText())) {
+                    if (command.getPrefix().isEmpty()) {
                         p.append(" ");
                     }
                     p.append("CMD");
-                    visitSpace(padded.getElement().getPrefix(), p);
+                    visitSpace(command.getPrefix(), p);
                     continue;
                 } else if (i == 0) {
                     p.append(" CMD");
                 }
 
-                if (i > 0 && "".equals(padded.getElement().getPrefix().getWhitespace())) {
+                if (i > 0 && "".equals(command.getPrefix().getWhitespace())) {
                     p.append(" ");
                 }
 
-                visitLiteral(padded.getElement(), p);
-                visitSpace(padded.getAfter(), p);
+                visitLiteral(command, p);
             }
         }
 
@@ -634,23 +621,18 @@ public class DockerfilePrinter<P> extends DockerVisitor<PrintOutputCapture<P>> {
         p.append("[");
 
         for (int i = 0; i < shell.getCommands().size(); i++) {
-            DockerRightPadded<Docker.Literal> padded = shell.getCommands().get(i);
-            Docker.Literal literal = padded.getElement();
+            Docker.Literal literal = shell.getCommands().get(i);
             if (literal.getQuoting() != Quoting.DOUBLE_QUOTED) {
                 literal = ((Docker.Literal) literal.copyPaste())
                         .withQuoting(Quoting.DOUBLE_QUOTED)
                         .withText(trimDoubleQuotes(literal.getText()));
-                padded = DockerRightPadded.build(literal)
-                        .withMarkers(padded.getMarkers())
-                        .withAfter(padded.getAfter());
             }
 
-            visitDockerRightPaddedLiteral(padded, p);
+            visitLiteral(literal, p);
 
             if (i < shell.getCommands().size() - 1) {
                 p.append(",");
             }
-            visitSpace(padded.getAfter(), p);
         }
 
         p.append("]");

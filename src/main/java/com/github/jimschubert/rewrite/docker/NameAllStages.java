@@ -62,7 +62,7 @@ public class NameAllStages extends Recipe {
                 Docker.Stage stage = Objects.requireNonNull(getCursor().getParent()).firstEnclosing(Docker.Stage.class);
                 if (stage != null && stage.getMarkers() != null && stage.getMarkers().findFirst(Counter.class).isPresent()) {
                     Counter counter = stage.getMarkers().findFirst(Counter.class).get();
-                    if (!counter.isLast && (from.getAlias().getElement().getText() == null || from.getAlias().getElement().getText().isEmpty())) {
+                    if (!counter.isLast && (from.getAlias().getText() == null || from.getAlias().getText().isEmpty())) {
                         return from.alias("stage" + counter.index);
                     }
                 }
@@ -74,19 +74,19 @@ public class NameAllStages extends Recipe {
             public Docker.Copy visitCopy(Docker.Copy copy, ExecutionContext executionContext) {
                 if (copy.getOptions() != null && copy.getOptions().stream().anyMatch(
                         o -> {
-                            Docker.KeyArgs key = o.getElement().getKeyArgs();
+                            Docker.KeyArgs key = o.getKeyArgs();
                             return (key != null && "--from".equals(key.key())) && (key.value() != null && key.value().matches("^\\d+$"));
                         })) {
                     return copy.withOptions(
                             ListUtils.map(copy.getOptions(), o -> {
-                                if (o == null || o.getElement() == null) {
+                                if (o == null) {
                                     return o;
                                 }
 
-                                Docker.KeyArgs key = o.getElement().getKeyArgs();
+                                Docker.KeyArgs key = o.getKeyArgs();
                                 if (key != null && "--from".equals(key.key()) && (key.value() != null && key.value().matches("^\\d+$"))) {
                                     int index = Integer.parseInt(key.value());
-                                    return o.map(e -> e.withKeyArgs(key.withValue(key.getValue().withText("stage" + index))));
+                                    return o.withKeyArgs(key.withValue(key.getValue().withText("stage" + index)));
                                 }
 
                                 return o;

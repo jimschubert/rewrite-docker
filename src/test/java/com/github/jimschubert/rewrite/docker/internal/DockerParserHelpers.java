@@ -44,16 +44,14 @@ public class DockerParserHelpers {
     }
 
     public static void assertComment(Docker.Comment comment, String expectedPrefix, String expectedText, String expectedAfter) {
-        DockerRightPadded<Docker.Literal> value = comment.getText();
+        Docker.Literal value = comment.getText();
 
-        assertNotNull(value.getElement(),
-                "Expected Comment to have an element but was null");
-        assertEquals(expectedAfter, value.getAfter().getWhitespace(),
-                "Expected Comment to have trailing whitespace '" + printableWhiteSpace(expectedAfter) + "' but was '" + printableWhiteSpace(value.getAfter().getWhitespace()) + "'");
-        assertEquals(expectedText, value.getElement().getText(),
-                "Expected Comment text to be '" + expectedText + "' but was '" + value.getElement().getText() + "'");
-        assertEquals(expectedPrefix, value.getElement().getPrefix().getWhitespace(),
-                "Expected Comment prefix whitespace to be '" + printableWhiteSpace(expectedPrefix) + "' but was '" + printableWhiteSpace(value.getElement().getPrefix().getWhitespace()) + "'");
+        assertEquals(expectedAfter, value.getTrailing().getWhitespace(),
+                "Expected Comment to have trailing whitespace '" + printableWhiteSpace(expectedAfter) + "' but was '" + printableWhiteSpace(value.getTrailing().getWhitespace()) + "'");
+        assertEquals(expectedText, value.getText(),
+                "Expected Comment text to be '" + expectedText + "' but was '" + value.getText() + "'");
+        assertEquals(expectedPrefix, value.getPrefix().getWhitespace(),
+                "Expected Comment prefix whitespace to be '" + printableWhiteSpace(expectedPrefix) + "' but was '" + printableWhiteSpace(value.getPrefix().getWhitespace()) + "'");
     }
 
     public static void assertDirective(Docker.Directive directive, String expectedPrefix, String expectedKey, boolean hasEquals, String expectedValue, String expectedAfter) {
@@ -147,7 +145,7 @@ public class DockerParserHelpers {
         assertEquals(expectedQuoting, value.getQuoting(),
                 "Expected Literal quoting to be '" + expectedQuoting + "' but was '" + value.getQuoting() + "'");
         assertEquals(expectedTrailing, value.getTrailing().getWhitespace(),
-                "Expected Literal trailing whitespace to be '" + expectedTrailing + "' but was '" + value.getTrailing() + "'");
+                "Expected Literal trailing whitespace to be '" + printableWhiteSpace(expectedTrailing) + "' but was '" + printableWhiteSpace(value.getTrailing().getWhitespace()) + "'");
     }
 
     public static void assertOption(

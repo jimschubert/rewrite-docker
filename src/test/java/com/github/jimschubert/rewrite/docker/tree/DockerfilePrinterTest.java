@@ -80,7 +80,7 @@ class DockerfilePrinterTest {
     @Test
     void visitRun() {
         Docker.Document doc = Docker.Document.build(
-                Docker.Run.build("echo Hello World").withEol(Space.build("\n")),
+                Docker.Run.build("echo Hello World").withEol(Space.NEWLINE),
                 Docker.Run.build("echo Goodbye World").withEol(Space.EMPTY)
         ).withEof(Space.EMPTY);
 
@@ -273,20 +273,15 @@ class DockerfilePrinterTest {
                         Tree.randomId(),
                         Space.EMPTY,
                         List.of(
-                                DockerRightPadded.build(
-                                        Docker.Option.build("--keep-git-dir", "false"))
+                            Docker.Option.build("--keep-git-dir", "false")
                         ),
                         List.of(
-                                DockerRightPadded.build(
-                                        Docker.Literal.build("https://example.com/archive.zip").withPrefix(Space.build(" "))
-                                )
+                            Docker.Literal.build("https://example.com/archive.zip").withPrefix(Space.build(" "))
                         ),
-                        DockerRightPadded.build(
-                                Docker.Literal.build("/usr/src/things/").withPrefix(Space.build(" ")
-                            )
+                            Docker.Literal.build("/usr/src/things/").withPrefix(Space.build(" ")
                         ),
                         Markers.EMPTY,
-                        Space.build("\n")
+                        Space.NEWLINE
                 )
         ).withEof(Space.EMPTY);
 
@@ -303,20 +298,14 @@ class DockerfilePrinterTest {
                         Tree.randomId(),
                         Space.EMPTY,
                         List.of(
-                                DockerRightPadded.build(
-                                        Docker.Option.build("--chown", "user:group"))
+                            Docker.Option.build("--chown", "user:group")
                         ),
                         List.of(
-                                DockerRightPadded.build(
-                                        Docker.Literal.build("src").withPrefix(Space.build(" "))
-                                )
+                            Docker.Literal.build("src").withPrefix(Space.build(" "))
                         ),
-                        DockerRightPadded.build(
-                                Docker.Literal.build("/dest").withPrefix(Space.build(" ")
-                            )
-                        ),
+                        Docker.Literal.build("/dest").withPrefix(Space.build(" ")),
                         Markers.EMPTY,
-                        Space.build("\n")
+                        Space.NEWLINE
                 )
         ).withEof(Space.EMPTY);
 
@@ -456,12 +445,10 @@ class DockerfilePrinterTest {
                                 )
                         ),
                         List.of(
-                                DockerRightPadded.build(
-                                        Docker.Literal.build("curl -f http://localhost/ || exit 1").withPrefix(Space.build(" "))
-                                )
+                            Docker.Literal.build("curl -f http://localhost/ || exit 1").withPrefix(Space.build(" "))
                         ),
                         Markers.EMPTY,
-                        Space.build("\n")
+                        Space.NEWLINE
                 )
         ).withEof(Space.EMPTY);
 
@@ -481,7 +468,7 @@ class DockerfilePrinterTest {
                         List.of(),
                         List.of(),
                         Markers.EMPTY,
-                        Space.build("\n")
+                        Space.NEWLINE
                 )
         ).withEof(Space.EMPTY);
 
@@ -494,7 +481,7 @@ class DockerfilePrinterTest {
     @Test
     void visitShell() {
         Docker.Document doc = Docker.Document.build(
-                Docker.Shell.build("sh", "-c").withEol(Space.build("\n"))
+                Docker.Shell.build("sh", "-c").withEol(Space.NEWLINE)
         ).withEof(Space.EMPTY);
 
         String expected = """

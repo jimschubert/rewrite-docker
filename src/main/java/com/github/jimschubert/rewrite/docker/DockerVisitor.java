@@ -53,11 +53,11 @@ public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
 
     public Docker visitFrom(Docker.From from, P p) {
         return from.withPrefix(visitSpace(from.getPrefix(), p))
-                .withImage(visitDockerRightPadded(from.getImage(), p))
-                .withPlatform(visitDockerRightPadded(from.getPlatform(), p))
-                .withVersion(visitDockerRightPadded(from.getVersion(), p))
+                .withImage(visitAndCast(from.getImage(), p))
+                .withPlatform(visitAndCast(from.getPlatform(), p))
+                .withVersion(visitAndCast(from.getVersion(), p))
                 .withAs(visitAndCast(from.getAs(), p))
-                .withAlias(visitDockerRightPadded(from.getAlias(), p))
+                .withAlias(visitAndCast(from.getAlias(), p))
                 .withMarkers(visitMarkers(from.getMarkers(), p));
     }
 
@@ -70,8 +70,8 @@ public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
     public Docker visitRun(Docker.Run run, P p) {
         return run
                 .withPrefix(visitSpace(run.getPrefix(), p))
-                .withOptions(ListUtils.map(run.getOptions(), o -> visitDockerRightPadded(o, p)))
-                .withCommands(ListUtils.map(run.getCommands(), c -> visitDockerRightPadded(c, p)))
+                .withOptions(ListUtils.map(run.getOptions(), o -> visitAndCast(o, p)))
+                .withCommands(ListUtils.map(run.getCommands(), c -> visitAndCast(c, p)))
                 .withMarkers(visitMarkers(run.getMarkers(), p));
     }
 
@@ -80,7 +80,7 @@ public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
                 .withForm(cmd.getForm())
                 .withPrefix(visitSpace(cmd.getPrefix(), p))
                 .withExecFormPrefix(visitSpace(cmd.getExecFormPrefix(), p))
-                .withCommands(ListUtils.map(cmd.getCommands(), c -> visitDockerRightPadded(c, p)))
+                .withCommands(ListUtils.map(cmd.getCommands(), c -> visitAndCast(c, p)))
                 .withExecFormSuffix(visitSpace(cmd.getExecFormSuffix(), p))
                 .withMarkers(visitMarkers(cmd.getMarkers(), p));
     }
@@ -117,18 +117,18 @@ public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
     public Docker visitAdd(Docker.Add add, P p) {
         return add
                 .withPrefix(visitSpace(add.getPrefix(), p))
-                .withOptions(ListUtils.map(add.getOptions(), o -> visitDockerRightPadded(o, p)))
-                .withSources(ListUtils.map(add.getSources(), s -> visitDockerRightPadded(s, p)))
-                .withDestination(visitDockerRightPadded(add.getDestination(), p))
+                .withOptions(ListUtils.map(add.getOptions(), o -> visitAndCast(o, p)))
+                .withSources(ListUtils.map(add.getSources(), s -> visitAndCast(s, p)))
+                .withDestination(visitAndCast(add.getDestination(), p))
                 .withMarkers(visitMarkers(add.getMarkers(), p));
     }
 
     public Docker visitCopy(Docker.Copy copy, P p) {
         return copy
                 .withPrefix(visitSpace(copy.getPrefix(), p))
-                .withOptions(ListUtils.map(copy.getOptions(), o -> visitDockerRightPadded(o, p)))
-                .withSources(ListUtils.map(copy.getSources(), s -> visitDockerRightPadded(s, p)))
-                .withDestination(visitDockerRightPadded(copy.getDestination(), p))
+                .withOptions(ListUtils.map(copy.getOptions(), o -> visitAndCast(o, p)))
+                .withSources(ListUtils.map(copy.getSources(), s -> visitAndCast(s, p)))
+                .withDestination(visitAndCast(copy.getDestination(), p))
                 .withMarkers(visitMarkers(copy.getMarkers(), p));
     }
 
@@ -137,7 +137,7 @@ public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
                 .withForm(entrypoint.getForm())
                 .withPrefix(visitSpace(entrypoint.getPrefix(), p))
                 .withExecFormPrefix(visitSpace(entrypoint.getExecFormPrefix(), p))
-                .withCommands(ListUtils.map(entrypoint.getCommands(), c -> visitDockerRightPadded(c, p)))
+                .withCommands(ListUtils.map(entrypoint.getCommands(), c -> visitAndCast(c, p)))
                 .withExecFormSuffix(visitSpace(entrypoint.getExecFormSuffix(), p))
                 .withMarkers(visitMarkers(entrypoint.getMarkers(), p));
     }
@@ -147,7 +147,7 @@ public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
                 .withForm(volume.getForm())
                 .withPrefix(visitSpace(volume.getPrefix(), p))
                 .withExecFormPrefix(visitSpace(volume.getExecFormPrefix(), p))
-                .withPaths(ListUtils.map(volume.getPaths(), path -> visitDockerRightPadded(path, p)))
+                .withPaths(ListUtils.map(volume.getPaths(), path -> visitAndCast(path, p)))
                 .withExecFormSuffix(visitSpace(volume.getExecFormSuffix(), p))
                 .withMarkers(visitMarkers(volume.getMarkers(), p));
     }
@@ -194,7 +194,7 @@ public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
                 .withPrefix(visitSpace(healthcheck.getPrefix(), p))
                 .withType(healthcheck.getType())
                 .withOptions(ListUtils.map(healthcheck.getOptions(), o -> visitDockerRightPadded(o, p)))
-                .withCommands(ListUtils.map(healthcheck.getCommands(), c -> visitDockerRightPadded(c, p)))
+                .withCommands(ListUtils.map(healthcheck.getCommands(), c -> visitAndCast(c, p)))
                 .withMarkers(visitMarkers(healthcheck.getMarkers(), p));
     }
 
@@ -202,7 +202,7 @@ public class DockerVisitor<P> extends TreeVisitor<Docker, P> {
         return shell
                 .withPrefix(visitSpace(shell.getPrefix(), p))
                 .withExecFormPrefix(visitSpace(shell.getExecFormPrefix(), p))
-                .withCommands(ListUtils.map(shell.getCommands(), c -> visitDockerRightPadded(c, p)))
+                .withCommands(ListUtils.map(shell.getCommands(), c -> visitAndCast(c, p)))
                 .withExecFormSuffix(visitSpace(shell.getExecFormSuffix(), p))
                 .withMarkers(visitMarkers(shell.getMarkers(), p));
     }

@@ -108,18 +108,18 @@ public class ChangeImage extends Recipe {
                     if (newPlatform != null) {
                         platform = newPlatform;
                     } else {
-                        platform = from.getPlatform().getElement().getText();
+                        platform = from.getPlatform().getText();
                     }
 
-                    if (image != null && !image.equals(from.getImage().getElement().getText())) {
+                    if (image != null && !image.equals(from.getImage().getText())) {
                         from = from.image(image);
                     }
 
-                    if (version != null && !version.equals(from.getVersion().getElement().getText())) {
+                    if (version != null && !version.equals(from.getVersion().getText())) {
                         from = from.version(version);
                     }
 
-                    if (platform != null && !platform.equals(from.getPlatform().getElement().getText())) {
+                    if (platform != null && !platform.equals(from.getPlatform().getText())) {
                         from = from.platform(platform);
                     }
 

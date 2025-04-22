@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static com.github.jimschubert.rewrite.docker.internal.ParserConstants.*;
 import static com.github.jimschubert.rewrite.docker.internal.ParserUtils.stringToKeyArgs;
@@ -339,9 +340,9 @@ public class DockerfileParser {
             // TODO: COPY allows for heredoc with redirection, but ADD does not
             List<DockerRightPadded<Docker.Literal>> literals = parseLiterals(instruction.toString());
 
-            List<DockerRightPadded<Docker.Option>> options = new ArrayList<>();
-            List<DockerRightPadded<Docker.Literal>> sources = new ArrayList<>();
-            DockerRightPadded<Docker.Literal> destination = null;
+            List<Docker.Option> options = new ArrayList<>();
+            List<Docker.Literal> sources = new ArrayList<>();
+            Docker.Literal destination = null;
 
             // reverse literals iteration
             for (int i = literals.size() - 1; i >= 0; i--) {
@@ -349,7 +350,7 @@ public class DockerfileParser {
                 // hack: if we have a heredoc, it'll all become the "sources"
                 if (heredoc == null && i == literals.size() - 1) {
                     // the last literal is the destination
-                    destination = literal;
+                    destination = literal.getElement().withTrailing(Space.append(literal.getElement().getTrailing(), literal.getAfter()));
                     continue;
                 }
 
@@ -359,18 +360,21 @@ public class DockerfileParser {
 
                 String value = literal.getElement().getText();
                 if (value.startsWith("--")) {
-                    options.add(0, DockerRightPadded.build(new Docker.Option(
+                    options.add(0, new Docker.Option(
                             Tree.randomId(),
                             literal.getElement().getPrefix(),
                             stringToKeyArgs(literal.getElement().getText()),
-                            Markers.EMPTY)).withAfter(literal.getAfter()));
+                            Markers.EMPTY, literal.getAfter()));
                 } else {
-                    sources.add(0, literal);
+                    sources.add(0, literal.getElement().withTrailing(Space.append(literal.getElement().getTrailing(), literal.getAfter())));
                 }
             }
 
             if (name.equals(Docker.Add.class.getSimpleName())) {
-                return new Docker.Add(Tree.randomId(), state.prefix(), options, sources, destination, Markers.EMPTY, Space.EMPTY);
+                return new Docker.Add(Tree.randomId(), state.prefix(), options,
+                        sources,
+                        destination,
+                        Markers.EMPTY, Space.EMPTY);
             }
 
             return new Docker.Copy(Tree.randomId(), state.prefix(), options, sources, destination, Markers.EMPTY, Space.EMPTY);
@@ -401,26 +405,41 @@ public class DockerfileParser {
             }
 
             if (name.equals(Docker.Cmd.class.getSimpleName())) {
-                return new Docker.Cmd(Tree.randomId(), form, state.prefix(), execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY, Space.EMPTY);
+                return new Docker.Cmd(Tree.randomId(), form, state.prefix(), execFormPrefix,
+                        parseLiterals(form, content).stream()
+                                .map(d -> d.getElement().withTrailing(Space.append(d.getElement().getTrailing(), d.getAfter())))
+                                .collect(Collectors.toList()),
+                        execFormSuffix, Markers.EMPTY, Space.EMPTY);
             } else if (name.equals(Docker.Shell.class.getSimpleName())) {
-                return new Docker.Shell(Tree.randomId(), state.prefix(), execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY, Space.EMPTY);
+                return new Docker.Shell(Tree.randomId(), state.prefix(), execFormPrefix,
+                        parseLiterals(form, content).stream()
+                                .map(d -> d.getElement().withTrailing(Space.append(d.getElement().getTrailing(), d.getAfter())))
+                                .collect(Collectors.toList()),
+                        execFormSuffix, Markers.EMPTY, Space.EMPTY);
             } else if (name.equals(Docker.Volume.class.getSimpleName())) {
-                return new Docker.Volume(Tree.randomId(), form, state.prefix(), execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY, Space.EMPTY);
+                return new Docker.Volume(Tree.randomId(), form, state.prefix(), execFormPrefix,
+                        parseLiterals(form, content).stream()
+                                .map(d -> d.getElement().withTrailing(Space.append(d.getElement().getTrailing(), d.getAfter())))
+                                .collect(Collectors.toList()),
+                        execFormSuffix, Markers.EMPTY, Space.EMPTY);
             } else if (name.equals(Docker.Workdir.class.getSimpleName())) {
                 List<DockerRightPadded<Docker.Literal>> lit = parseLiterals(form, content);
                 return new Docker.Workdir(Tree.randomId(), state.prefix(), lit.isEmpty() ? null : lit.get(0).getElement(), Markers.EMPTY, Space.EMPTY);
             }
 
-            return new Docker.Entrypoint(Tree.randomId(), form, state.prefix(), execFormPrefix, parseLiterals(form, content), execFormSuffix, Markers.EMPTY, Space.EMPTY);
+            return new Docker.Entrypoint(Tree.randomId(), form, state.prefix(), execFormPrefix,
+                    parseLiterals(form, content).stream()
+                            .map(d -> d.getElement().withTrailing(Space.append(d.getElement().getTrailing(), d.getAfter())))
+                            .collect(Collectors.toList()), execFormSuffix, Markers.EMPTY, Space.EMPTY);
         }
 
         private Docker.@NotNull Comment parseComment() {
             StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
-
+            Docker.Literal commentLiteral = createLiteral(stringWithPadding.content()).withPrefix(stringWithPadding.prefix());
             return new Docker.Comment(
                     Tree.randomId(),
                     state.prefix(),
-                    DockerRightPadded.build(createLiteral(stringWithPadding.content()).withPrefix(stringWithPadding.prefix())).withAfter(state.rightPadding()),
+                    commentLiteral.withTrailing(Space.append(commentLiteral.getTrailing(), state.rightPadding())),
                     Markers.EMPTY,
                     Space.EMPTY
             );
@@ -470,25 +489,27 @@ public class DockerfileParser {
 
         private Docker.@NotNull From parseFrom() {
             String content = instruction.toString();
-            DockerRightPadded<Docker.Literal> platform = DockerRightPadded.build(Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY));
-            DockerRightPadded<Docker.Literal> image = DockerRightPadded.build(Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY));
-            DockerRightPadded<Docker.Literal> version = DockerRightPadded.build(Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY));
-            DockerRightPadded<Docker.Literal> as = DockerRightPadded.build(Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY));
-            DockerRightPadded<Docker.Literal> alias = DockerRightPadded.build(Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY));
+            Docker.Literal platform = Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY);
+            Docker.Literal image = Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY);
+            Docker.Literal version = Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY);
+            Docker.Literal as = Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY);
+            Docker.Literal alias = Docker.Literal.build(Quoting.UNQUOTED, Space.EMPTY, null, Space.EMPTY);
 
             List<DockerRightPadded<Docker.Literal>> literals = parseLiterals(content);
             if (!literals.isEmpty()) {
                 while (!literals.isEmpty()) {
                     DockerRightPadded<Docker.Literal> literal = literals.remove(0);
+                    Docker.Literal elem = literal.getElement();
                     String value = literal.getElement().getText();
+                    Space after = Space.append(elem.getTrailing(), literal.getAfter());
                     if (value.startsWith("--platform")) {
-                        platform = literal;
-                    } else if (image.getElement().getText() != null && "as".equalsIgnoreCase(value)) {
-                        as = literal;
-                    } else if ("as".equalsIgnoreCase(as.getElement().getText())) {
-                        alias = literal;
-                    } else if (image.getElement().getText() == null) {
-                        image = literal;
+                        platform = elem.withTrailing(after);
+                    } else if (image.getText() != null && "as".equalsIgnoreCase(value)) {
+                        as = elem.withTrailing(after);
+                    } else if ("as".equalsIgnoreCase(as.getText())) {
+                        alias = elem.withTrailing(after);
+                    } else if (image.getText() == null) {
+                        image = elem.withTrailing(after);
                         String imageText = literal.getElement().getText();
                         // walk imageText forwards to find the first ':' or '@' to determine the version
                         int idx = 0;
@@ -500,27 +521,29 @@ public class DockerfileParser {
                         }
 
                         if (idx < imageText.length() - 1) {
-                            version = DockerRightPadded.build(createLiteral(imageText.substring(idx))).withAfter(image.getAfter());
+                            version = createLiteral(imageText.substring(idx))
+                                    .withPrefix(Space.EMPTY)
+                                    .withTrailing(image.getTrailing());
                             imageText = imageText.substring(0, idx);
 
                             String img = imageText;
-                            image = image.map(i -> i.withText(img)).withAfter(Space.EMPTY);
+                            image = image.withText(img).withTrailing(Space.EMPTY);
                         }
                     }
                 }
             }
 
-            return new Docker.From(Tree.randomId(), state.prefix(), platform, image, version, as.getElement(), alias, state.rightPadding(), Markers.EMPTY, Space.EMPTY);
+            return new Docker.From(Tree.randomId(), state.prefix(), platform, image, version, as, alias, state.rightPadding(), Markers.EMPTY, Space.EMPTY);
         }
 
         private Docker.@NotNull Healthcheck parseHealthcheck() {
             StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
             String content = stringWithPadding.content();
-            List<DockerRightPadded<Docker.Literal>> commands;
+            List<Docker.Literal> commands;
             if (content.equalsIgnoreCase("NONE")) {
                 commands = new ArrayList<>();
                 Docker.Literal none = Docker.Literal.build(Quoting.UNQUOTED, stringWithPadding.prefix(), content, stringWithPadding.suffix());
-                commands.add(DockerRightPadded.build(none).withAfter(state.rightPadding()));
+                commands.add(none.withTrailing(state.rightPadding()));
                 return new Docker.Healthcheck(Tree.randomId(), state.prefix(), Docker.Healthcheck.Type.NONE, null, commands, Markers.EMPTY, Space.EMPTY);
             }
 
@@ -537,10 +560,17 @@ public class DockerfileParser {
                 }
 
                 // the second part is the command, prefix it with any keyargs trailing whitespace
-                commands = parseLiterals(Form.SHELL, swp.suffix().getWhitespace() + "CMD" + parts[1]);
+                commands = parseLiterals(Form.SHELL, swp.suffix().getWhitespace() + "CMD" + parts[1])
+                        .stream().map(d ->
+                                d.getElement()
+                                .withTrailing(Space.append(d.getElement().getTrailing(), d.getAfter())))
+                        .collect(Collectors.toList());
             } else {
                 args = new ArrayList<>();
-                commands = parseLiterals(Form.SHELL, content);
+                commands = parseLiterals(Form.SHELL, content)
+                        .stream().map(d ->
+                                d.getElement().withTrailing(Space.append(d.getElement().getTrailing(), d.getAfter())))
+                        .collect(Collectors.toList());
             }
 
             return new Docker.Healthcheck(Tree.randomId(), state.prefix(), Docker.Healthcheck.Type.CMD, args, commands, Markers.EMPTY, Space.EMPTY);
@@ -575,21 +605,21 @@ public class DockerfileParser {
         private Docker.@NotNull Run parseRun() {
             // TODO: Run allows for JSON array syntax (exec form)
             List<DockerRightPadded<Docker.Literal>> literals = parseLiterals(instruction.toString());
-            List<DockerRightPadded<Docker.Option>> options = new ArrayList<>();
-            List<DockerRightPadded<Docker.Literal>> commands = new ArrayList<>();
+            List<Docker.Option> options = new ArrayList<>();
+            List<Docker.Literal> commands = new ArrayList<>();
 
             boolean doneWithOptions = false;
             for (DockerRightPadded<Docker.Literal> literal : literals) {
                 String value = literal.getElement().getText();
                 if (!doneWithOptions && (value.startsWith("--mount") || value.startsWith("--network") || value.startsWith("--security"))) {
-                    options.add(DockerRightPadded.build(new Docker.Option(
+                    options.add(new Docker.Option(
                             Tree.randomId(),
                             literal.getElement().getPrefix(),
                             stringToKeyArgs(literal.getElement().getText()),
-                            Markers.EMPTY)).withAfter(literal.getAfter()));
+                            Markers.EMPTY, literal.getAfter()));
                 } else {
                     doneWithOptions = true;
-                    commands.add(literal);
+                    commands.add(literal.getElement().withTrailing(Space.append(literal.getElement().getTrailing(), literal.getAfter())));
                 }
             }
 
