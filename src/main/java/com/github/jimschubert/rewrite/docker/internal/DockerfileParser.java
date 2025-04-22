@@ -435,7 +435,16 @@ public class DockerfileParser {
 
         private Docker.@NotNull Comment parseComment() {
             StringWithPadding stringWithPadding = StringWithPadding.of(instruction.toString());
-            Docker.Literal commentLiteral = createLiteral(stringWithPadding.content()).withPrefix(stringWithPadding.prefix());
+            Docker.Literal commentLiteral = createLiteral(stringWithPadding.content());
+            if (commentLiteral == null) {
+                // if the comment is empty, we need to create a literal with an empty string
+                commentLiteral = Docker.Literal.build(
+                        Quoting.UNQUOTED,
+                        Space.EMPTY,
+                        "",
+                        Space.EMPTY);
+            }
+            commentLiteral = commentLiteral.withPrefix(stringWithPadding.prefix());
             return new Docker.Comment(
                     Tree.randomId(),
                     state.prefix(),
@@ -831,7 +840,7 @@ public class DockerfileParser {
         } else if (instructionType != null) {
             parser.instructionType = instructionType;
             // remove the first word from line
-            line = (spaceIndex == -1) ? line : line.substring(spaceIndex);
+            line = (spaceIndex == -1) ? line.substring(0, firstWord.length()-1) : line.substring(spaceIndex);
         } else if (state.prefix() != null && !state.prefix().isEmpty()) {
             // if there was any prefix stored previously, add it to the multiline instruction
             // this is a special case for multi-line instructions like comments
@@ -882,6 +891,10 @@ public class DockerfileParser {
             case COMMENT:
                 return Docker.Comment.class;
             default:
+                // special case for non-standard comments
+                if (s.startsWith("#")) {
+                    return Docker.Comment.class;
+                }
                 return null;
         }
     }
