@@ -105,7 +105,7 @@ jobs:
           body_path: .github/CHANGELOG.md
           generate_release_notes: false
 
-#      - name: Request release from JitPack to trigger build
-#        run: |
-#          JITPACK_URL="https://jitpack.io/com/github/jimschubert/rewrite-docker/${{ steps.get_version.outputs.RELEASE_VERSION }}/"
-#          curl -X POST -s -m 30 ${JITPACK_URL} || true
+      - name: Request release from JitPack to trigger build
+        run: |
+          JITPACK_URL="https://jitpack.io/com/github/jimschubert/rewrite-docker/${{ steps.get_version.outputs.RELEASE_VERSION }}/"
+          curl -X POST -s -m 30 ${JITPACK_URL} || true

@@ -65,7 +65,7 @@ dependencies {
 To build the project, you can use Gradle. Make sure you have Java 17 or higher installed.
 
 ```bash
-./gradlew build
+./gradlew :spotlessApply build
 ```
 
 ## Usage Examples
