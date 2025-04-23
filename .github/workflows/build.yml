@@ -8,8 +8,6 @@ env:
 
 jobs:
   build:
-    env:
-      flags: ""
     name: Build and Check
     runs-on: ubuntu-latest
 
@@ -39,12 +37,13 @@ jobs:
           gradle-home-cache-cleanup: true
           dependency-graph: generate-and-submit
 
-      # tagged release
-      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        run: echo "flags=-Pversion=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
+      - name: Build with Gradle (non-Release)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: ./gradlew build test --stacktrace --no-daemon
 
-      - name: Build with Gradle
-        run: ./gradlew build test --stacktrace --no-daemon ${{ env.flags }}
+      - name: Build with Gradle (Release)
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        run: ./gradlew build test --stacktrace --no-daemon -Pversion=${{ github.event.release.tag_name }}
 
       - name: capture build artifacts
         uses: actions/upload-artifact@v4
