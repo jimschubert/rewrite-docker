@@ -27,7 +27,7 @@ Rewrite-Docker aims to bring the power of OpenRewrite's AST-based transformation
 ### Prerequisites
 
 * Java 17 or higher
-* Gradle or Maven (for dependency management)
+* Gradle
 
 ### Installation
 
