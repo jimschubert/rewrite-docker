@@ -3,8 +3,6 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Java Version](https://img.shields.io/badge/Java-17-blue.svg)](https://docs.aws.amazon.com/corretto/latest/corretto-17-ug/downloads-list.html)
 [![Build](https://github.com/jimschubert/rewrite-docker/actions/workflows/build.yml/badge.svg)](https://github.com/jimschubert/rewrite-docker/actions/workflows/build.yml)
-[![Release](https://github.com/jimschubert/rewrite-docker/actions/workflows/release.yml/badge.svg)](https://github.com/jimschubert/rewrite-docker/actions/workflows/release.yml)
-
 
 A library that extends [OpenRewrite](https://github.com/openrewrite/rewrite) to provide Dockerfile parsing, analysis, and transformation capabilities.
 
