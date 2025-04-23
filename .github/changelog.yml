@@ -10,16 +10,15 @@ groupings:
     patterns: ['(?i)^new\b', '(?i)^initial\b', '(?i)^support\b', '(?i)^introduce\b', '(?i)^feat\b']
   - name: Fixes
     patterns: ['(?i)^fix\b', '(?i)^bug', '(?i).*fixes$']
+  - name: Documentation
+    patterns: ['(?i)^doc\b', '(?i)^docs\b', '(?i)^readme\b', '(?i)^update\b', '(?i)^changelog\b']
   - name: Uncategorized
     patterns: ['.*']
 exclude:
   - '^(?i)wip\b'
   - '^(?i)help\b'
-  - '^(?i)doc\b'
-  - '^(?i)docs\b'
   - '^(?i)test\b'
   - '^(?i)trying\b'
-  - '^(?i)workflow\b'
   - '^(?i)update readme\b'
   - '^(?i)style\b'
   - '^(?i)chore\b'
