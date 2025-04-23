@@ -7,7 +7,9 @@ env:
   GRADLE_VERSION: 8.8
 
 jobs:
-  publish:
+  build:
+    env:
+      flags: ""
     name: Build and Check
     runs-on: ubuntu-latest
 
@@ -37,14 +39,74 @@ jobs:
           gradle-home-cache-cleanup: true
           dependency-graph: generate-and-submit
 
-      - name: Build with Gradle
-        run: ./gradlew build --stacktrace
+      # tagged release
+      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        run: echo "flags=-Pversion=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
 
-      - name: Run tests
-        run: ./gradlew test --stacktrace
+      - name: Build with Gradle
+        run: ./gradlew build test --stacktrace --no-daemon ${{ env.flags }}
 
       - name: capture build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Artifacts
-          path: 'versions/**/build/libs/*.jar'
+          path: '**/build/libs/*.jar'
+
+  release:
+    name: Release
+    needs: build
+    if: ${{startsWith(github.ref, 'refs/tags/v')}}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Artifacts
+          path: artifacts
+
+      - name: Find Last Tag
+        id: last
+        uses: jimschubert/query-tag-action@v1
+        with:
+          include: 'v*'
+          exclude: '*-rc*'
+          commit-ish: 'HEAD~'
+          skip-unshallow: 'true'
+
+      - name: Find Current Tag
+        id: current
+        uses: jimschubert/query-tag-action@v1
+        with:
+          include: 'v*'
+          exclude: '*-rc*'
+          commit-ish: '@'
+          skip-unshallow: 'true'
+
+      - name: Create Changelog
+        id: changelog
+        uses: jimschubert/beast-changelog-action@v1
+        with:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          CONFIG_LOCATION: .github/changelog.yml
+          FROM: ${{steps.last.outputs.tag}}
+          TO: ${{steps.current.outputs.tag}}
+          OUTPUT: .github/CHANGELOG.md
+
+      - name: View Changelog
+        run: cat .github/CHANGELOG.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/**/*.jar
+          body_path: .github/CHANGELOG.md
+          generate_release_notes: false

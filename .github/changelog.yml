@@ -1,0 +1,28 @@
+%YAML 1.1
+---
+resolve: commits
+owner: jimschubert
+repo: rewrite-docker
+groupings:
+  - name: Recipes
+    patterns: ['(?i)^recipe\b', '(?i)^rewrite\b', '(?i)^refactor\b', '(?i)^add\b', '(?i)^create\b']
+  - name: Functionality
+    patterns: ['(?i)^new\b', '(?i)^initial\b', '(?i)^support\b', '(?i)^introduce\b', '(?i)^feat\b']
+  - name: Fixes
+    patterns: ['(?i)^fix\b', '(?i)^bug', '(?i).*fixes$']
+  - name: Uncategorized
+    patterns: ['.*']
+exclude:
+  - '^(?i)wip\b'
+  - '^(?i)help\b'
+  - '^(?i)doc\b'
+  - '^(?i)docs\b'
+  - '^(?i)test\b'
+  - '^(?i)trying\b'
+  - '^(?i)workflow\b'
+  - '^(?i)update readme\b'
+  - '^(?i)style\b'
+  - '^(?i)chore\b'
+sort: asc
+max_commits: 250
+local: false
