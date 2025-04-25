@@ -27,7 +27,7 @@ import java.util.List;
 
 import static com.github.jimschubert.rewrite.docker.internal.ParserUtils.stringToKeyArgs;
 
-public class RunInstructionParser implements InstructionParser{
+public class RunInstructionParser implements InstructionParser {
     @Override
     public boolean supports(String keyword) {
         return keyword.equalsIgnoreCase("RUN");

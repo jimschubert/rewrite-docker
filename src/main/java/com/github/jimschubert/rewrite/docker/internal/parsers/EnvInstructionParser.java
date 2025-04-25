@@ -24,7 +24,7 @@ import org.openrewrite.marker.Markers;
 
 import java.util.List;
 
-public class EnvInstructionParser implements InstructionParser{
+public class EnvInstructionParser implements InstructionParser {
     @Override
     public boolean supports(String keyword) {
         return keyword.equalsIgnoreCase("ENV");

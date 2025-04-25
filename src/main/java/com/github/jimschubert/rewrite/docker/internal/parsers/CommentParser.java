@@ -26,7 +26,7 @@ import org.openrewrite.marker.Markers;
 
 import java.util.List;
 
-public class CommentParser implements InstructionParser{
+public class CommentParser implements InstructionParser {
     @Override
     public boolean supports(String keyword) {
         return keyword.equalsIgnoreCase("#");

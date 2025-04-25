@@ -14,7 +14,8 @@
  */
 package com.github.jimschubert.rewrite.docker.internal;
 
-import com.github.jimschubert.rewrite.docker.tree.*;
+import com.github.jimschubert.rewrite.docker.tree.Docker;
+import com.github.jimschubert.rewrite.docker.tree.Space;
 import org.openrewrite.Tree;
 import org.openrewrite.marker.Markers;
 
@@ -178,7 +179,7 @@ public class DockerfileParser {
      * Handle heredoc syntax in the line. This is used to handle the case where the line contains heredoc syntax.
      * The heredoc syntax is removed from the line and the heredoc content is stored in the parser state.
      *
-     * @param line The line to handle.
+     * @param line    The line to handle.
      * @param scanner The scanner to use to read the next lines.
      * @return The line without the heredoc syntax.
      */
@@ -228,7 +229,7 @@ public class DockerfileParser {
      * Handle leading whitespace of the line. This is used to handle the case where the line starts with whitespace.
      * The whitespace is stored in the parser state and removed from the line.
      *
-     * @param line The line to handle.
+     * @param line  The line to handle.
      * @param state The parser state.
      * @return The line without the leading whitespace.
      */
@@ -245,7 +246,7 @@ public class DockerfileParser {
      * Handle right padding of the line. This is used to handle the case where the line ends with whitespace.
      * The whitespace is stored in the parser state and removed from the line.
      *
-     * @param line The line to handle.
+     * @param line  The line to handle.
      * @param state The parser state.
      * @return The line without the right padding.
      */

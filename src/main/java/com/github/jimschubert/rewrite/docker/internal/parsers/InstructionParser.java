@@ -34,7 +34,7 @@ public interface InstructionParser {
     /**
      * Parses a line of a Dockerfile and transforms it into a Docker instruction object.
      *
-     * @param line the line of the Dockerfile to be parsed.
+     * @param line  the line of the Dockerfile to be parsed.
      * @param state the current state of the parser which may influence how the line is interpreted.
      * @return a Docker instruction object representing the parsed line.
      */

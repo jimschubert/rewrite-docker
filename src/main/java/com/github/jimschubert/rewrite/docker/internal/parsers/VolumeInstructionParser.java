@@ -25,7 +25,7 @@ import org.openrewrite.marker.Markers;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class VolumeInstructionParser extends CommandLikeInstructionParser{
+public class VolumeInstructionParser extends CommandLikeInstructionParser {
     @Override
     public boolean supports(String keyword) {
         return keyword.equalsIgnoreCase("VOLUME");

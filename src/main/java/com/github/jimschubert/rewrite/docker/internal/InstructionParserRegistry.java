@@ -14,9 +14,14 @@
  */
 package com.github.jimschubert.rewrite.docker.internal;
 
-import java.util.List;
 import com.github.jimschubert.rewrite.docker.internal.parsers.*;
 
+import java.util.List;
+
+/**
+ * Registry for instruction parsers.
+ * This class is responsible for managing and providing access to different instruction parsers.
+ */
 public class InstructionParserRegistry implements ParserRegistry {
 
     private final List<InstructionParser> parsers = List.of(
