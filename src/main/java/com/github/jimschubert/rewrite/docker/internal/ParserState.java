@@ -27,12 +27,14 @@ public class ParserState {
     private Space rightPadding = Space.EMPTY;
     private char escapeChar = '\\';
     private boolean isContinuation = false;
+    private Heredoc heredoc = null;
 
     public void reset() {
         prefix = Space.EMPTY;
         rightPadding = Space.EMPTY;
         escapeChar = '\\';
         isContinuation = false;
+        heredoc = null;
     }
 
     String getEscapeString() {
@@ -55,6 +57,7 @@ public class ParserState {
         copy.rightPadding = this.rightPadding;
         copy.escapeChar = this.escapeChar;
         copy.isContinuation = this.isContinuation;
+        copy.heredoc = this.heredoc;
         return copy;
     }
 }
