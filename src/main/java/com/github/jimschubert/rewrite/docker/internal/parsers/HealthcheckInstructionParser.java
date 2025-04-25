@@ -27,8 +27,8 @@ import java.util.stream.Collectors;
 
 public class HealthcheckInstructionParser implements InstructionParser {
     @Override
-    public boolean supports(String keyword) {
-        return keyword.equalsIgnoreCase("HEALTHCHECK");
+    public String instructionName() {
+        return "HEALTHCHECK";
     }
 
     @Override

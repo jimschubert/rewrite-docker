@@ -27,8 +27,8 @@ import java.util.stream.Collectors;
 
 public class CmdInstructionParser extends CommandLikeInstructionParser {
     @Override
-    public boolean supports(String keyword) {
-        return keyword.equalsIgnoreCase("CMD");
+    public String instructionName() {
+        return "CMD";
     }
 
     @Override

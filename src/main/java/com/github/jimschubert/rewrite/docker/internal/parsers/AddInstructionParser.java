@@ -22,8 +22,8 @@ import org.openrewrite.marker.Markers;
 
 public class AddInstructionParser extends AddLikeInstructionParser {
     @Override
-    public boolean supports(String keyword) {
-        return keyword.equalsIgnoreCase("ADD");
+    public String instructionName() {
+        return "ADD";
     }
 
     @Override

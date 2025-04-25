@@ -24,12 +24,21 @@ import com.github.jimschubert.rewrite.docker.tree.Docker;
  */
 public interface InstructionParser {
     /**
+     * Returns the name of the Dockerfile instruction that this parser supports.
+     *
+     * @return the name of the supported Dockerfile instruction.
+     */
+    String instructionName();
+
+    /**
      * Determines if the provided keyword corresponds to a supported Dockerfile instruction.
      *
      * @param keyword the keyword to check for support.
      * @return true if the keyword is supported, false otherwise.
      */
-    boolean supports(String keyword);
+    default boolean supports(String keyword) {
+        return keyword.equalsIgnoreCase(instructionName());
+    };
 
     /**
      * Parses a line of a Dockerfile and transforms it into a Docker instruction object.

@@ -30,8 +30,8 @@ public class OnBuildInstructionParser implements InstructionParser {
     }
 
     @Override
-    public boolean supports(String keyword) {
-        return keyword.equalsIgnoreCase("ONBUILD");
+    public String instructionName() {
+        return "ONBUILD";
     }
 
     @Override

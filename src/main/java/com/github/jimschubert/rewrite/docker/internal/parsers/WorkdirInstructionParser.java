@@ -26,8 +26,8 @@ import java.util.List;
 
 public class WorkdirInstructionParser extends CommandLikeInstructionParser {
     @Override
-    public boolean supports(String keyword) {
-        return keyword.equalsIgnoreCase("WORKDIR");
+    public String instructionName() {
+        return "WORKDIR";
     }
 
     @Override

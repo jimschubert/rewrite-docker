@@ -26,8 +26,8 @@ import java.util.List;
 
 public class LabelInstructionParser implements InstructionParser {
     @Override
-    public boolean supports(String keyword) {
-        return keyword.equalsIgnoreCase("LABEL");
+    public String instructionName() {
+        return "LABEL";
     }
 
     @Override

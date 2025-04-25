@@ -19,6 +19,11 @@ import com.github.jimschubert.rewrite.docker.tree.Docker;
 
 public class UnknownInstruction implements InstructionParser {
     @Override
+    public String instructionName() {
+        return null;
+    }
+
+    @Override
     public boolean supports(String keyword) {
         return true; // This parser supports all keywords
     }

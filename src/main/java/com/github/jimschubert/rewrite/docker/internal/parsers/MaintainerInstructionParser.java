@@ -24,8 +24,8 @@ import org.openrewrite.marker.Markers;
 
 public class MaintainerInstructionParser implements InstructionParser {
     @Override
-    public boolean supports(String keyword) {
-        return keyword.equalsIgnoreCase("MAINTAINER");
+    public String instructionName() {
+        return "MAINTAINER";
     }
 
     @Override

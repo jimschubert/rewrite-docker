@@ -27,8 +27,8 @@ import java.util.stream.Collectors;
 
 public class ShellInstructionParser extends CommandLikeInstructionParser {
     @Override
-    public boolean supports(String keyword) {
-        return keyword.equalsIgnoreCase("SHELL");
+    public String instructionName() {
+        return "SHELL";
     }
 
     @Override

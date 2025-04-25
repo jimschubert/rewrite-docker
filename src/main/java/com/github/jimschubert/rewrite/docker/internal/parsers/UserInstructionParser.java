@@ -22,12 +22,11 @@ import com.github.jimschubert.rewrite.docker.tree.Space;
 import org.openrewrite.Tree;
 import org.openrewrite.marker.Markers;
 
-import static com.github.jimschubert.rewrite.docker.internal.ParserConstants.USER;
 
 public class UserInstructionParser implements InstructionParser {
     @Override
-    public boolean supports(String keyword) {
-        return keyword.equalsIgnoreCase(USER);
+    public String instructionName() {
+        return "USER";
     }
 
     @Override

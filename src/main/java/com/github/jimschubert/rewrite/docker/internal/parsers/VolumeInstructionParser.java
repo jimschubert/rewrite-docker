@@ -27,8 +27,8 @@ import java.util.stream.Collectors;
 
 public class VolumeInstructionParser extends CommandLikeInstructionParser {
     @Override
-    public boolean supports(String keyword) {
-        return keyword.equalsIgnoreCase("VOLUME");
+    public String instructionName() {
+        return "VOLUME";
     }
 
     @Override

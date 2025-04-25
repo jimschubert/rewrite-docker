@@ -27,8 +27,8 @@ import java.util.List;
 
 public class StopSignalInstructionParser implements InstructionParser {
     @Override
-    public boolean supports(String keyword) {
-        return keyword.equalsIgnoreCase("STOPSIGNAL");
+    public String instructionName() {
+        return "STOPSIGNAL";
     }
 
     @Override

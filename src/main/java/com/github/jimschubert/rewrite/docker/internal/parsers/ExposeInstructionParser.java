@@ -26,8 +26,8 @@ import java.util.List;
 
 public class ExposeInstructionParser implements InstructionParser {
     @Override
-    public boolean supports(String keyword) {
-        return keyword.equalsIgnoreCase("EXPOSE");
+    public String instructionName() {
+        return "EXPOSE";
     }
 
     @Override

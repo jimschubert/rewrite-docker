@@ -26,8 +26,8 @@ import java.util.List;
 
 public class ArgInstructionParser implements InstructionParser {
     @Override
-    public boolean supports(String keyword) {
-        return keyword.equalsIgnoreCase("ARG");
+    public String instructionName() {
+        return "ARG";
     }
 
     @Override

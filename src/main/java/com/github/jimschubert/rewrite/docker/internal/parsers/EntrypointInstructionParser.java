@@ -27,8 +27,8 @@ import java.util.stream.Collectors;
 
 public class EntrypointInstructionParser extends CommandLikeInstructionParser {
     @Override
-    public boolean supports(String keyword) {
-        return keyword.equalsIgnoreCase("ENTRYPOINT");
+    public String instructionName() {
+        return "ENTRYPOINT";
     }
 
     @Override

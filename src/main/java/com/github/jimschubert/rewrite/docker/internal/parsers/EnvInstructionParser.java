@@ -26,8 +26,8 @@ import java.util.List;
 
 public class EnvInstructionParser implements InstructionParser {
     @Override
-    public boolean supports(String keyword) {
-        return keyword.equalsIgnoreCase("ENV");
+    public String instructionName() {
+        return "ENV";
     }
 
     @Override

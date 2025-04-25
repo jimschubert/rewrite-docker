@@ -22,8 +22,8 @@ import org.openrewrite.marker.Markers;
 
 public class CopyInstructionParser extends AddLikeInstructionParser {
     @Override
-    public boolean supports(String keyword) {
-        return keyword.equalsIgnoreCase("COPY");
+    public String instructionName() {
+        return "COPY";
     }
 
     @Override

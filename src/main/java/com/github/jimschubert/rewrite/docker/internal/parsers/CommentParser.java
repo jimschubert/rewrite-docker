@@ -28,8 +28,9 @@ import java.util.List;
 
 public class CommentParser implements InstructionParser {
     @Override
-    public boolean supports(String keyword) {
-        return keyword.equalsIgnoreCase("#");
+    public String instructionName() {
+        // a special case where we treat a comment as an instruction
+        return "#";
     }
 
     @Override

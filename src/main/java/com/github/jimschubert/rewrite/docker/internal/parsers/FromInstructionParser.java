@@ -27,8 +27,8 @@ import java.util.List;
 
 public class FromInstructionParser implements InstructionParser {
     @Override
-    public boolean supports(String keyword) {
-        return keyword.equalsIgnoreCase("FROM");
+    public String instructionName() {
+        return "FROM";
     }
 
     @Override
