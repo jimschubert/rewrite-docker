@@ -37,16 +37,10 @@ public class OnBuildInstructionParser implements InstructionParser {
     @Override
     public Docker.Instruction parse(String line, ParserState state) {
         StringWithPadding stringWithPadding = StringWithPadding.of(line);
-        state.prefix(Space.append(state.prefix(), stringWithPadding.prefix()));
 
-        String content = stringWithPadding.content();
-        if (stringWithPadding.suffix() != null) {
-            state.rightPadding(Space.append(stringWithPadding.suffix(), state.rightPadding()));
-        }
-
-        String instruction = peekWord(content);
-        content = content.substring(instruction.length()).trim();
-        Docker nested = registry.getParserFor(instruction).parse(content, state);
+        String instruction = peekWord(stringWithPadding.content());
+        line = line.substring(stringWithPadding.prefix().getWhitespace().length() + instruction.length());
+        Docker nested = registry.getParserFor(instruction).parse(line, state);
 
         return new Docker.OnBuild(Tree.randomId(), state.prefix(), nested, state.rightPadding(), Markers.EMPTY, Space.EMPTY);
     }
