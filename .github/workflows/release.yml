@@ -1,0 +1,114 @@
+name: Build
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  JAVA_VERSION: 17
+  GRADLE_VERSION: 8.8
+
+jobs:
+  build:
+    name: Build and Release
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'corretto'
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+          dependency-graph: generate-and-submit
+
+      - name: Get version
+        id: get_version
+        run: echo "RELEASE_VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_OUTPUT
+
+      - name: Build with Gradle (Release)
+        run: ./gradlew build test --stacktrace --no-daemon -Pversion=${{ steps.get_version.outputs.RELEASE_VERSION }}
+
+      - name: capture build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Artifacts
+          path: '**/build/libs/*.jar'
+
+  release:
+    name: Release
+    needs: build
+    if: ${{startsWith(github.ref, 'refs/tags/v')}}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Artifacts
+          path: artifacts
+
+      - name: Find Last Tag
+        id: last
+        uses: jimschubert/query-tag-action@v1
+        with:
+          include: 'v*'
+          exclude: '*-rc*'
+          commit-ish: 'HEAD~'
+          skip-unshallow: 'true'
+
+      - name: Find Current Tag
+        id: current
+        uses: jimschubert/query-tag-action@v1
+        with:
+          include: 'v*'
+          exclude: '*-rc*'
+          commit-ish: '@'
+          skip-unshallow: 'true'
+
+      - name: Create Changelog
+        id: changelog
+        uses: jimschubert/beast-changelog-action@v1
+        with:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          CONFIG_LOCATION: .github/changelog.yml
+          FROM: ${{steps.last.outputs.tag}}
+          TO: ${{steps.current.outputs.tag}}
+          OUTPUT: .github/CHANGELOG.md
+
+      - name: View Changelog
+        run: cat .github/CHANGELOG.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*.jar
+          body_path: .github/CHANGELOG.md
+          generate_release_notes: false
+          make_latest: true
+
+      - name: Get version
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        id: get_version
+        run: echo "RELEASE_VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_OUTPUT
+
+      - name: Trigger JitPack Release
+        run: |
+          JITPACK_URL="https://jitpack.io/com/github/jimschubert/rewrite-docker/${{ steps.get_version.outputs.RELEASE_VERSION }}/"
+          curl -X POST -s -m 30 ${JITPACK_URL} || true
