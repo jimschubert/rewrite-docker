@@ -57,7 +57,9 @@ public class ListImages extends ScanningRecipe<List<ImageUseReport.Row>> {
                 Path file = dockerfile.getSourcePath();
 
                 if (dockerfile.getStages() != null) {
-                    for (Docker.Stage stage : dockerfile.getStages()) {
+                    List<Docker.Stage> stages = dockerfile.getStages();
+                    for (int i = 0; i < stages.size(); i++) {
+                        Docker.Stage stage = stages.get(i);
                         if (stage != null) {
                             for (Docker child : stage.getChildren()) {
                                 if (child instanceof Docker.From) {
@@ -73,7 +75,8 @@ public class ListImages extends ScanningRecipe<List<ImageUseReport.Row>> {
                                             from.getTag(),
                                             from.getDigest(),
                                             platformSwitch,
-                                            from.getAlias().getText()
+                                            from.getAlias().getText(),
+                                            i
                                     ));
                                 }
                             }

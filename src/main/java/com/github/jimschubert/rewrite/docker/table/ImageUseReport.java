@@ -54,5 +54,9 @@ public class ImageUseReport extends DataTable<ImageUseReport.Row> {
         @Column(displayName = "Image Alias",
                 description = "The alias of the image used in the Dockerfile.")
         String alias;
+
+        @Column(displayName = "Stage Number",
+                description = "The stage number of the image used in the Dockerfile.")
+        Integer stageNumber;
     }
 }
