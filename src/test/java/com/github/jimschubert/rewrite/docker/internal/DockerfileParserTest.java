@@ -308,6 +308,38 @@ class DockerfileParserTest {
     }
 
     @Test
+    void testEnvAlternateSyntax() {
+        DockerfileParser parser = new DockerfileParser();
+        Docker.Document doc = parser.parse(new ByteArrayInputStream("ENV MY_NAME Jim".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
+
+        Docker.Env env = (Docker.Env) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, env.getPrefix());
+
+        List<DockerRightPadded<Docker.KeyArgs>> args = env.getArgs();
+        assertEquals(1, args.size());
+
+        assertRightPaddedArg(args.get(0), Quoting.UNQUOTED, " ", "MY_NAME", false, "Jim", "");
+    }
+
+    @Test
+    void testEnvAlternateSyntaxDocumentedCaveat() {
+        DockerfileParser parser = new DockerfileParser();
+        Docker.Document doc = parser.parse(new ByteArrayInputStream("ENV ONE TWO= THREE=world".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
+
+        Docker.Env env = (Docker.Env) stage.getChildren().get(0);
+        assertEquals(Space.EMPTY, env.getPrefix());
+
+        List<DockerRightPadded<Docker.KeyArgs>> args = env.getArgs();
+        assertEquals(1, args.size());
+
+        assertRightPaddedArg(args.get(0), Quoting.UNQUOTED, " ", "ONE", false, "TWO= THREE=world", "");
+    }
+
+    @Test
     void testEnvComplex() {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream("ENV MY_NAME=\"John Doe\" MY_DOG=Rex\\ The\\ Dog MY_CAT=fluffy".getBytes(StandardCharsets.UTF_8)));
