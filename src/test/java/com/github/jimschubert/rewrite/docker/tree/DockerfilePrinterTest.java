@@ -36,6 +36,30 @@ class DockerfilePrinterTest {
     }
 
     @Test
+    void visitFromLowercased() {
+        Docker.Document doc = Docker.Document.build(
+                Docker.From.build("alpine:latest")
+                        .withEol(Space.EMPTY)
+                        .withMarkers(Markers.build(List.of(new InstructionName(Tree.randomId(), "from"))))
+        ).withEof(Space.EMPTY);
+
+        String expected = "from alpine:latest";
+        assertEquals(expected, doc.print(new Cursor(null, new DockerfilePrinter<Integer>())));
+    }
+
+    @Test
+    void visitFromIgnoreInvalidInstructionName() {
+        Docker.Document doc = Docker.Document.build(
+                Docker.From.build("alpine:latest")
+                        .withEol(Space.EMPTY)
+                        .withMarkers(Markers.build(List.of(new InstructionName(Tree.randomId(), "apples"))))
+        ).withEof(Space.EMPTY);
+
+        String expected = "FROM alpine:latest";
+        assertEquals(expected, doc.print(new Cursor(null, new DockerfilePrinter<Integer>())));
+    }
+
+    @Test
     void visitFromFull() {
         Docker.Document doc = Docker.Document.build(
                 Docker.From.build("alpine:latest")

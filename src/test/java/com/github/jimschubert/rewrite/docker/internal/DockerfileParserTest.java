@@ -126,6 +126,22 @@ class DockerfileParserTest {
     }
 
     @Test
+    void testArgNoAssignmentLowercased() {
+        DockerfileParser parser = new DockerfileParser();
+        Docker.Document doc = parser.parse(new ByteArrayInputStream("arg foo".getBytes(StandardCharsets.UTF_8)));
+
+        Docker.Stage stage = assertSingleStageWithChildCount(doc, 1);
+
+        Docker.Arg arg = (Docker.Arg) stage.getChildren().get(0);
+        assertTrue(arg.getMarkers().findFirst(InstructionName.class).isPresent());
+
+        assertEquals(Space.EMPTY, arg.getPrefix());
+        List<DockerRightPadded<Docker.KeyArgs>> args = arg.getArgs();
+
+        assertRightPaddedArg(args.get(0), Quoting.UNQUOTED, " ", "foo", false, null, "");
+    }
+
+    @Test
     void testArgComplex() {
         DockerfileParser parser = new DockerfileParser();
         Docker.Document doc = parser.parse(new ByteArrayInputStream("ARG foo=bar baz MY_VAR OTHER_VAR=\"some default\" \t".getBytes(StandardCharsets.UTF_8)));

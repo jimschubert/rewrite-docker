@@ -15,6 +15,7 @@
 package com.github.jimschubert.rewrite.docker.internal;
 
 import com.github.jimschubert.rewrite.docker.tree.Docker;
+import com.github.jimschubert.rewrite.docker.tree.InstructionName;
 import com.github.jimschubert.rewrite.docker.tree.Space;
 import org.openrewrite.Tree;
 import org.openrewrite.marker.Markers;
@@ -93,7 +94,7 @@ public class DockerfileParser {
 
                 String instructionName = peekInstruction(line);
                 if (state.isContinuation()
-                    && "HEALTHCHECK".equals(instructionType)
+                    && "HEALTHCHECK".equalsIgnoreCase(instructionType)
                     && "CMD".equalsIgnoreCase(instructionName)) {
                     // if we are in a HEALTHCHECK and the next word is CMD, we need to treat this as a continuation
                     // of the previous instruction, not a new one.
@@ -134,9 +135,13 @@ public class DockerfileParser {
                     eol = Space.EMPTY;
                 }
 
-                Docker.Instruction instr = parseInstruction();
+                Docker.Instruction instr = registry.getParserFor(instructionType).parse(instruction.toString(), state);
                 if (instr != null) {
                     instr = instr.withEol(eol);
+                    // if instructionType not upperCase, store the original casing in maker
+                    if (!instructionType.equals(instructionType.toUpperCase())) {
+                        instr = instr.withMarkers(instr.getMarkers().add(new InstructionName(Tree.randomId(), instructionType)));
+                    }
                 }
                 currentInstructions.add(instr);
                 if (instr instanceof Docker.From) {
@@ -164,15 +169,6 @@ public class DockerfileParser {
     private void reset() {
         instruction.setLength(0);
         state.reset();
-    }
-
-    /**
-     * Parse the current instruction into an LST node.
-     *
-     * @return The parsed instruction as a {@link Docker.Instruction}.
-     */
-    private Docker.Instruction parseInstruction() {
-        return registry.getParserFor(instructionType).parse(instruction.toString(), state);
     }
 
     /**
