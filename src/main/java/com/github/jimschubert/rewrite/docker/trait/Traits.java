@@ -24,4 +24,8 @@ public class Traits {
     public static DockerLiteral.Matcher literal(Pattern pattern) {
         return new DockerLiteral.Matcher(pattern);
     }
+
+    public static DockerOption.Matcher option(String key, String value, boolean regexMatch) {
+        return new DockerOption.Matcher(key, value, regexMatch);
+    }
 }
